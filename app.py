@@ -1,9 +1,9 @@
 import streamlit as st
 import pandas as pd
-import gspread
-from google.oauth2.service_account import Credentials
+from datetime import datetime
 import pyrebase
 from firebase_config import firebase_config
+from firestore_config import db  # tu archivo con la configuración de Firestore
 
 # ---------------- FIREBASE ----------------
 firebase = pyrebase.initialize_app(firebase_config)
@@ -40,8 +40,12 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ---------------- HEADER ----------------
-# (comentado temporalmente para evitar error si no hay logo)
-# st.image("logo.png", width=120)
+from pathlib import Path
+logo_path = Path("logo.png")
+if logo_path.exists():
+    st.image(str(logo_path), width=120)
+else:
+    st.warning("Logo no encontrado")
 
 st.markdown("## ZENTIX")
 st.caption("Control inteligente de tu dinero")
@@ -85,47 +89,27 @@ user_id = st.session_state.user["localId"]
 menu = ["Inicio", "Registrar", "Análisis", "Ahorro"]
 pagina = st.sidebar.selectbox("Menú", menu)
 
-# ---------------- GOOGLE SHEETS ----------------
-scope = ["https://www.googleapis.com/auth/spreadsheets"]
+# ---------------- CARGAR DATOS DESDE FIRESTORE ----------------
+movimientos_ref = db.collection("movimientos")
+query = movimientos_ref.where("usuario", "==", user_id)
+docs = query.stream()
 
-creds_dict = st.secrets["GOOGLE_CREDENTIALS"]
-creds = Credentials.from_service_account_info(creds_dict, scopes=scope)
+data = [doc.to_dict() for doc in docs]
+df = pd.DataFrame(data)
 
-client = gspread.authorize(creds)
-
-sheet = client.open_by_url(
-    "https://docs.google.com/spreadsheets/d/1ZYKTKT5E5GIBLa9FceWt3PgSx0eg04_EAwF2mUWiuMI/edit?gid=0#gid=0"
-).sheet1
-
-# ---------------- CARGAR DATOS ----------------
-try:
-    data = sheet.get_all_records()
-    df = pd.DataFrame(data)
-except:
-    df = pd.DataFrame(columns=["Usuario", "Fecha", "Tipo", "Categoría", "Monto", "Descripción"])
-
-# ---------------- FILTRAR USUARIO ----------------
+# ---------------- FILTRAR POR MES ACTUAL ----------------
 if not df.empty:
-    df = df[df["Usuario"] == user_id]
-
-# ---------------- FILTRO MENSUAL ----------------
-if not df.empty:
-    df["Fecha"] = pd.to_datetime(df["Fecha"], errors="coerce")
-
+    df["fecha"] = pd.to_datetime(df["fecha"])
     mes_actual = pd.Timestamp.now().month
     anio_actual = pd.Timestamp.now().year
-
-    df_mes = df[
-        (df["Fecha"].dt.month == mes_actual) &
-        (df["Fecha"].dt.year == anio_actual)
-    ]
+    df_mes = df[(df["fecha"].dt.month == mes_actual) & (df["fecha"].dt.year == anio_actual)]
 else:
-    df_mes = df
+    df_mes = pd.DataFrame(columns=["usuario","fecha","tipo","categoria","monto","descripcion"])
 
 # ---------------- VARIABLES ----------------
 if not df_mes.empty:
-    total_gastos = df_mes[df_mes["Tipo"] == "Gasto"]["Monto"].sum()
-    total_ingresos = df_mes[df_mes["Tipo"] == "Ingreso"]["Monto"].sum()
+    total_gastos = df_mes[df_mes["tipo"] == "Gasto"]["monto"].sum()
+    total_ingresos = df_mes[df_mes["tipo"] == "Ingreso"]["monto"].sum()
 else:
     total_gastos = 0
     total_ingresos = 0
@@ -133,34 +117,34 @@ else:
 # ---------------- INICIO ----------------
 if pagina == "Inicio":
     st.subheader("📊 Resumen")
-
     col1, col2 = st.columns(2)
-
     with col1:
         st.metric("💸 Gastos", total_gastos)
-
     with col2:
         st.metric("💰 Ingresos", total_ingresos)
 
 # ---------------- REGISTRAR ----------------
 if pagina == "Registrar":
     st.subheader("➕ Agregar movimiento")
-
     fecha = st.date_input("Fecha")
     tipo = st.selectbox("Tipo", ["Gasto", "Ingreso"])
     categoria = st.text_input("Categoría")
     monto = st.number_input("Monto", min_value=0)
     descripcion = st.text_input("Descripción")
-
     col1, col2 = st.columns(2)
-
     with col1:
         if st.button("💾 Guardar"):
-            nueva_fila = [user_id, str(fecha), tipo, categoria, monto, descripcion]
-            sheet.append_row(nueva_fila)
+            doc_ref = db.collection("movimientos").document()
+            doc_ref.set({
+                "usuario": user_id,
+                "fecha": datetime.strptime(str(fecha), "%Y-%m-%d"),
+                "tipo": tipo,
+                "categoria": categoria,
+                "monto": monto,
+                "descripcion": descripcion
+            })
             st.success("Guardado correctamente")
             st.rerun()
-
     with col2:
         if st.button("🗑️ Reset"):
             st.warning("Formulario limpiado")
@@ -169,12 +153,10 @@ if pagina == "Registrar":
 # ---------------- ANÁLISIS ----------------
 if pagina == "Análisis":
     st.subheader("📈 Análisis")
-
     if not df_mes.empty:
         st.dataframe(df_mes)
-
         try:
-            resumen = df_mes.groupby("Categoría")["Monto"].sum()
+            resumen = df_mes.groupby("categoria")["monto"].sum()
             st.bar_chart(resumen)
         except:
             st.info("Agrega datos para ver gráficos")
@@ -184,17 +166,12 @@ if pagina == "Análisis":
 # ---------------- AHORRO ----------------
 if pagina == "Ahorro":
     st.subheader("🎯 Plan de ahorro")
-
     meta = st.number_input("¿Cuánto quieres ahorrar?", min_value=0)
-
     ahorro_actual = total_ingresos - total_gastos
-
     st.write(f"💰 Ahorro actual: {ahorro_actual}")
     st.write(f"🎯 Meta: {meta}")
-
     if meta > 0:
         progreso = ahorro_actual / meta if meta != 0 else 0
-
         if progreso >= 1:
             st.success("🎉 ¡Meta alcanzada!")
         else:
