@@ -3,7 +3,7 @@ import pandas as pd
 from datetime import datetime
 import pyrebase
 from firebase_config import firebase_config
-from firestore_config import db  # tu archivo con la configuración de Firestore
+from firestore_config import db  # firestore_config.py con st.secrets
 
 # ---------------- FIREBASE ----------------
 firebase = pyrebase.initialize_app(firebase_config)
@@ -144,11 +144,11 @@ if pagina == "Registrar":
                 "descripcion": descripcion
             })
             st.success("Guardado correctamente")
-            st.rerun()
+            st.experimental_rerun()
     with col2:
         if st.button("🗑️ Reset"):
             st.warning("Formulario limpiado")
-            st.rerun()
+            st.experimental_rerun()
 
 # ---------------- ANÁLISIS ----------------
 if pagina == "Análisis":
@@ -175,6 +175,11 @@ if pagina == "Ahorro":
         if progreso >= 1:
             st.success("🎉 ¡Meta alcanzada!")
         else:
+            st.progress(min(progreso, 1.0))
+            restante = meta - ahorro_actual
+            st.info(f"Te faltan {restante} para cumplir tu meta")
+    else:
+        st.info("Define una meta para comenzar")
             st.progress(min(progreso, 1.0))
             restante = meta - ahorro_actual
             st.info(f"Te faltan {restante} para cumplir tu meta")
