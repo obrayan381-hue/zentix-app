@@ -170,16 +170,12 @@ if pagina == "Ahorro":
     ahorro_actual = total_ingresos - total_gastos
     st.write(f"💰 Ahorro actual: {ahorro_actual}")
     st.write(f"🎯 Meta: {meta}")
+
     if meta > 0:
         progreso = ahorro_actual / meta if meta != 0 else 0
         if progreso >= 1:
             st.success("🎉 ¡Meta alcanzada!")
         else:
-            st.progress(min(progreso, 1.0))
-            restante = meta - ahorro_actual
-            st.info(f"Te faltan {restante} para cumplir tu meta")
-    else:
-        st.info("Define una meta para comenzar")
             st.progress(min(progreso, 1.0))
             restante = meta - ahorro_actual
             st.info(f"Te faltan {restante} para cumplir tu meta")
