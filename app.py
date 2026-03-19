@@ -1,48 +1,52 @@
 import streamlit as st
 import pandas as pd
+import gspread
+from google.oauth2.service_account import Credentials
 import pyrebase
-import firebase_admin
-from firebase_admin import credentials, firestore
 from firebase_config import firebase_config
 
-# ---------------- FIREBASE AUTH ----------------
+# ---------------- FIREBASE ----------------
 firebase = pyrebase.initialize_app(firebase_config)
 auth = firebase.auth()
-
-# ---------------- FIRESTORE ----------------
-if not firebase_admin._apps:
-    cred = credentials.Certificate(dict(st.secrets["FIREBASE_CREDENTIALS"]))
-    firebase_admin.initialize_app(cred)
-
-db = firestore.client()
 
 # ---------------- CONFIG ----------------
 st.set_page_config(page_title="Zentix", layout="wide")
 
-# ---------------- ESTILO ----------------
+# ---------------- ESTILO FINTECH ----------------
 st.markdown("""
     <style>
-    body { background-color: #0D0D0D; color: white; }
-    .stApp { background-color: #0D0D0D; }
+    body {
+        background-color: #0D0D0D;
+        color: white;
+    }
+    .stApp {
+        background-color: #0D0D0D;
+    }
     .stButton>button {
         background-color: #00C896;
         color: white;
         border-radius: 10px;
         font-weight: bold;
     }
-    .stTextInput input, .stNumberInput input {
+    .stTextInput>div>div>input {
+        background-color: #1A1A1A;
+        color: white;
+    }
+    .stNumberInput input {
         background-color: #1A1A1A;
         color: white;
     }
     </style>
 """, unsafe_allow_html=True)
 
-# ---------------- LOGO ----------------
-st.image("logo.png", width=120)
+# ---------------- HEADER ----------------
+# (comentado temporalmente para evitar error si no hay logo)
+# st.image("logo.png", width=120)
+
 st.markdown("## ZENTIX")
 st.caption("Control inteligente de tu dinero")
 
-# ---------------- AUTH ----------------
+# ---------------- AUTENTICACIÓN ----------------
 menu_auth = ["Login", "Registro"]
 choice = st.sidebar.selectbox("Acceso", menu_auth)
 
@@ -52,22 +56,24 @@ password = st.text_input("Contraseña", type="password")
 if "user" not in st.session_state:
     st.session_state.user = None
 
+# ---------------- REGISTRO ----------------
 if choice == "Registro":
     if st.button("Crear cuenta"):
         try:
-            auth.create_user_with_email_and_password(email, password)
+            user = auth.create_user_with_email_and_password(email, password)
             st.success("Cuenta creada correctamente")
-        except:
-            st.error("Error al crear cuenta")
+        except Exception as e:
+            st.error(f"Error: {e}")
 
+# ---------------- LOGIN ----------------
 elif choice == "Login":
     if st.button("Ingresar"):
         try:
             user = auth.sign_in_with_email_and_password(email, password)
             st.session_state.user = user
             st.success("Bienvenido a Zentix")
-        except:
-            st.error("Credenciales incorrectas")
+        except Exception as e:
+            st.error(f"Error: {e}")
 
 if st.session_state.user is None:
     st.stop()
@@ -75,27 +81,34 @@ if st.session_state.user is None:
 # ---------------- USER ID ----------------
 user_id = st.session_state.user["localId"]
 
-# ---------------- NAV ----------------
+# ---------------- NAVEGACIÓN ----------------
 menu = ["Inicio", "Registrar", "Análisis", "Ahorro"]
 pagina = st.sidebar.selectbox("Menú", menu)
 
-# ---------------- CARGAR DATOS FIRESTORE ----------------
-docs = db.collection("usuarios").document(user_id).collection("movimientos").stream()
+# ---------------- GOOGLE SHEETS ----------------
+scope = ["https://www.googleapis.com/auth/spreadsheets"]
 
-data = []
-for doc in docs:
-    item = doc.to_dict()
-    data.append({
-        "Fecha": item.get("fecha"),
-        "Tipo": item.get("tipo"),
-        "Categoría": item.get("categoria"),
-        "Monto": item.get("monto"),
-        "Descripción": item.get("descripcion")
-    })
+creds_dict = st.secrets["GOOGLE_CREDENTIALS"]
+creds = Credentials.from_service_account_info(creds_dict, scopes=scope)
 
-df = pd.DataFrame(data)
+client = gspread.authorize(creds)
 
-# ---------------- FILTRO MES ----------------
+sheet = client.open_by_url(
+    "https://docs.google.com/spreadsheets/d/1ZYKTKT5E5GIBLa9FceWt3PgSx0eg04_EAwF2mUWiuMI/edit?gid=0#gid=0"
+).sheet1
+
+# ---------------- CARGAR DATOS ----------------
+try:
+    data = sheet.get_all_records()
+    df = pd.DataFrame(data)
+except:
+    df = pd.DataFrame(columns=["Usuario", "Fecha", "Tipo", "Categoría", "Monto", "Descripción"])
+
+# ---------------- FILTRAR USUARIO ----------------
+if not df.empty:
+    df = df[df["Usuario"] == user_id]
+
+# ---------------- FILTRO MENSUAL ----------------
 if not df.empty:
     df["Fecha"] = pd.to_datetime(df["Fecha"], errors="coerce")
 
@@ -110,16 +123,24 @@ else:
     df_mes = df
 
 # ---------------- VARIABLES ----------------
-total_gastos = df_mes[df_mes["Tipo"] == "Gasto"]["Monto"].sum() if not df_mes.empty else 0
-total_ingresos = df_mes[df_mes["Tipo"] == "Ingreso"]["Monto"].sum() if not df_mes.empty else 0
+if not df_mes.empty:
+    total_gastos = df_mes[df_mes["Tipo"] == "Gasto"]["Monto"].sum()
+    total_ingresos = df_mes[df_mes["Tipo"] == "Ingreso"]["Monto"].sum()
+else:
+    total_gastos = 0
+    total_ingresos = 0
 
 # ---------------- INICIO ----------------
 if pagina == "Inicio":
     st.subheader("📊 Resumen")
+
     col1, col2 = st.columns(2)
 
-    col1.metric("💸 Gastos", total_gastos)
-    col2.metric("💰 Ingresos", total_ingresos)
+    with col1:
+        st.metric("💸 Gastos", total_gastos)
+
+    with col2:
+        st.metric("💰 Ingresos", total_ingresos)
 
 # ---------------- REGISTRAR ----------------
 if pagina == "Registrar":
@@ -131,16 +152,19 @@ if pagina == "Registrar":
     monto = st.number_input("Monto", min_value=0)
     descripcion = st.text_input("Descripción")
 
-    if st.button("💾 Guardar"):
-        db.collection("usuarios").document(user_id).collection("movimientos").add({
-            "fecha": str(fecha),
-            "tipo": tipo,
-            "categoria": categoria,
-            "monto": monto,
-            "descripcion": descripcion
-        })
-        st.success("Guardado correctamente")
-        st.rerun()
+    col1, col2 = st.columns(2)
+
+    with col1:
+        if st.button("💾 Guardar"):
+            nueva_fila = [user_id, str(fecha), tipo, categoria, monto, descripcion]
+            sheet.append_row(nueva_fila)
+            st.success("Guardado correctamente")
+            st.rerun()
+
+    with col2:
+        if st.button("🗑️ Reset"):
+            st.warning("Formulario limpiado")
+            st.rerun()
 
 # ---------------- ANÁLISIS ----------------
 if pagina == "Análisis":
@@ -148,8 +172,12 @@ if pagina == "Análisis":
 
     if not df_mes.empty:
         st.dataframe(df_mes)
-        resumen = df_mes.groupby("Categoría")["Monto"].sum()
-        st.bar_chart(resumen)
+
+        try:
+            resumen = df_mes.groupby("Categoría")["Monto"].sum()
+            st.bar_chart(resumen)
+        except:
+            st.info("Agrega datos para ver gráficos")
     else:
         st.info("No hay datos este mes")
 
@@ -157,16 +185,21 @@ if pagina == "Análisis":
 if pagina == "Ahorro":
     st.subheader("🎯 Plan de ahorro")
 
-    meta = st.number_input("Meta", min_value=0)
+    meta = st.number_input("¿Cuánto quieres ahorrar?", min_value=0)
+
     ahorro_actual = total_ingresos - total_gastos
 
-    st.write(f"Ahorro actual: {ahorro_actual}")
+    st.write(f"💰 Ahorro actual: {ahorro_actual}")
+    st.write(f"🎯 Meta: {meta}")
 
     if meta > 0:
-        progreso = ahorro_actual / meta
+        progreso = ahorro_actual / meta if meta != 0 else 0
 
         if progreso >= 1:
-            st.success("🎉 Meta alcanzada")
+            st.success("🎉 ¡Meta alcanzada!")
         else:
             st.progress(min(progreso, 1.0))
-            st.info(f"Te faltan {meta - ahorro_actual}")
+            restante = meta - ahorro_actual
+            st.info(f"Te faltan {restante} para cumplir tu meta")
+    else:
+        st.info("Define una meta para comenzar")
