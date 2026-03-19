@@ -1,6 +1,7 @@
 firebase_config = {
     "apiKey": "AIzaSyD5GW_1A8kkDJbQAXeC8g8IE1fza7Lp8Jc",
     "authDomain": "zentix-87c2b.firebaseapp.com",
+    "databaseURL": "https://zentix-87c2b.firebaseio.com",  # 👈 ESTA LÍNEA ES LA CLAVE
     "projectId": "zentix-87c2b",
     "storageBucket": "zentix-87c2b.firebasestorage.app",
     "messagingSenderId": "521087113413",
