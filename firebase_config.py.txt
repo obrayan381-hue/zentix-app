@@ -1,0 +1,8 @@
+firebase_config = {
+    "apiKey": "AIzaSyD5GW_1A8kkDJbQAXeC8g8IE1fza7Lp8Jc",
+    "authDomain": "zentix-87c2b.firebaseapp.com",
+    "projectId": "zentix-87c2b",
+    "storageBucket": "zentix-87c2b.firebasestorage.app",
+    "messagingSenderId": "521087113413",
+    "appId": "1:521087113413:web:76aeda684731ba9f1338ac"
+}
