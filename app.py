@@ -96,7 +96,6 @@ def obtener_movimientos(user_id):
 
 def obtener_mensaje_ahorro(meta, ingresos, gastos):
     disponible = ingresos - gastos
-    faltante = meta - max(disponible, 0)
 
     if meta <= 0:
         return "Define una meta clara para empezar a medir tu avance.", "info"
@@ -350,35 +349,110 @@ if pagina == "Análisis":
 if pagina == "Ahorro":
     st.subheader("🎯 Plan de ahorro")
 
-    meta = st.number_input("¿Cuánto quieres ahorrar?", min_value=0.0, step=1000.0)
+    try:
+        meta_result = (
+            supabase.table("ahorro_meta")
+            .select("*")
+            .eq("usuario_id", user_id)
+            .limit(1)
+            .execute()
+        )
+
+        if meta_result.data:
+            meta_guardada = float(meta_result.data[0]["meta"])
+        else:
+            meta_guardada = 0.0
+
+    except Exception as e:
+        st.error(f"Error cargando meta de ahorro: {e}")
+        meta_result = None
+        meta_guardada = 0.0
+
+    meta = st.number_input(
+        "¿Cuánto quieres ahorrar?",
+        min_value=0.0,
+        step=1000.0,
+        value=meta_guardada,
+        key="meta_ahorro_input"
+    )
+
+    col_meta1, col_meta2 = st.columns(2)
+
+    with col_meta1:
+        if st.button("💾 Guardar meta", use_container_width=True):
+            try:
+                if meta_result and meta_result.data:
+                    supabase.table("ahorro_meta").update({
+                        "meta": float(meta),
+                        "actualizado_en": datetime.now().isoformat()
+                    }).eq("usuario_id", user_id).execute()
+                else:
+                    supabase.table("ahorro_meta").insert({
+                        "usuario_id": user_id,
+                        "meta": float(meta),
+                        "actualizado_en": datetime.now().isoformat()
+                    }).execute()
+
+                st.success("Meta guardada correctamente")
+                st.rerun()
+
+            except Exception as e:
+                st.error(f"Error guardando meta: {e}")
+
+    with col_meta2:
+        if st.button("🗑️ Limpiar meta", use_container_width=True):
+            try:
+                supabase.table("ahorro_meta").delete().eq("usuario_id", user_id).execute()
+                st.warning("Meta eliminada correctamente")
+                st.rerun()
+
+            except Exception as e:
+                st.error(f"Error eliminando meta: {e}")
 
     ahorro_actual = float(saldo_disponible)
-    faltante = max(0.0, meta - max(ahorro_actual, 0))
+    faltante = max(0.0, float(meta) - max(ahorro_actual, 0.0))
 
     st.write(f"💰 Dinero disponible actual: {ahorro_actual:,.0f}")
-    st.write(f"🎯 Meta de ahorro: {meta:,.0f}")
+    st.write(f"🎯 Meta de ahorro: {float(meta):,.0f}")
 
-    if meta > 0:
-        progreso = max(0.0, ahorro_actual / meta) if meta > 0 else 0
+    if float(meta) > 0:
+        progreso = max(0.0, ahorro_actual / float(meta))
         st.progress(min(progreso, 1.0))
 
-        if ahorro_actual >= meta:
-            st.success("Vas excelente: con tu disponible actual ya alcanzas la meta de ahorro.")
+        if ahorro_actual >= float(meta):
+            st.success("Vas excelente: con tu disponible actual ya alcanzas tu meta de ahorro.")
         else:
             st.info(f"Te faltan {faltante:,.0f} para cumplir tu meta.")
 
-        mensaje, tipo_msg = obtener_mensaje_ahorro(meta, total_ingresos, total_gastos)
+        if total_ingresos > 0:
+            porcentaje_gastado = total_gastos / total_ingresos
 
-        if tipo_msg == "success":
-            st.success(mensaje)
-        elif tipo_msg == "warning":
-            st.warning(mensaje)
-        elif tipo_msg == "error":
-            st.error(mensaje)
+            if ahorro_actual <= 0:
+                st.error(
+                    "Tus gastos ya consumieron todo tu ingreso disponible. "
+                    "Conviene detener un poco los gastos y reorganizar tu meta."
+                )
+            elif ahorro_actual >= float(meta):
+                st.success(
+                    "Tu disponible actual ya cubre la meta. Vas por muy buen camino."
+                )
+            elif porcentaje_gastado >= 0.8:
+                st.warning(
+                    f"Tus gastos ya consumieron gran parte de tus ingresos. "
+                    f"Si quieres ahorrar {float(meta):,.0f}, conviene frenar un poco para no quedarte sin margen."
+                )
+            elif porcentaje_gastado >= 0.6:
+                st.info(
+                    f"Vas avanzando, pero tus gastos ya están reduciendo bastante tu capacidad de ahorro. "
+                    f"Aún te faltan {faltante:,.0f}."
+                )
+            else:
+                st.success(
+                    f"Vas bien. Si mantienes este ritmo, podrás acercarte a tu meta de {float(meta):,.0f}."
+                )
         else:
-            st.info(mensaje)
-
+            st.info("Aún no tienes ingresos registrados para evaluar tu ahorro.")
     else:
-        st.info("Define una meta para comenzar")
+        st.info("Define una meta para comenzar.")
 
     render_bot(pagina, total_ingresos, total_gastos, saldo_disponible, ultimo_tipo)
