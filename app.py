@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 from datetime import datetime, date
+from pathlib import Path
 from supabase_config import supabase
 
 st.set_page_config(page_title="Zentix", layout="wide")
@@ -16,6 +17,9 @@ DEFAULT_INGRESOS = [
     "Salario", "Freelance", "Ventas", "Inversiones", "Regalos", "Otros"
 ]
 
+logo_path = Path("logo_zentix.png")
+avatar_path = Path("avatar_zentix.png")
+
 # ---------------- ESTILO ----------------
 st.markdown("""
     <style>
@@ -23,7 +27,7 @@ st.markdown("""
     .stApp { background-color: #0D0D0D; }
 
     .stButton>button {
-        background: linear-gradient(90deg, #4F46E5, #7C3AED);
+        background: linear-gradient(90deg, #2563EB, #7C3AED);
         color: white;
         border-radius: 12px;
         font-weight: 700;
@@ -44,21 +48,6 @@ st.markdown("""
         align-items: center;
         gap: 16px;
         margin-bottom: 16px;
-    }
-
-    .brand-mark {
-        width: 70px;
-        height: 70px;
-        border-radius: 20px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: linear-gradient(135deg, #2563EB, #7C3AED 55%, #A855F7);
-        box-shadow: 0 10px 30px rgba(124, 58, 237, 0.35);
-        font-size: 38px;
-        font-weight: 900;
-        color: white;
-        letter-spacing: -2px;
     }
 
     .brand-title {
@@ -102,31 +91,6 @@ st.markdown("""
         margin-top: 8px;
     }
 
-    .avatar-row {
-        display: flex;
-        align-items: center;
-        gap: 14px;
-    }
-
-    .avatar-bubble {
-        width: 58px;
-        height: 58px;
-        border-radius: 18px;
-        background: linear-gradient(135deg, #2563EB, #7C3AED);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 28px;
-        box-shadow: 0 8px 24px rgba(79, 70, 229, 0.35);
-    }
-
-    .avatar-title {
-        color: #A5B4FC;
-        font-size: 18px;
-        font-weight: 800;
-        margin-bottom: 4px;
-    }
-
     .pill-ingreso {
         display: inline-block;
         padding: 8px 14px;
@@ -159,16 +123,16 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# ---------------- HEADER BRAND ----------------
-st.markdown("""
-<div class="brand-wrap">
-    <div class="brand-mark">Z</div>
-    <div>
-        <div class="brand-title">ZENTIX</div>
-        <div class="brand-subtitle">Finanzas personales con inteligencia y estilo fintech</div>
-    </div>
-</div>
-""", unsafe_allow_html=True)
+# ---------------- HEADER ----------------
+col_logo, col_title = st.columns([1, 5])
+
+with col_logo:
+    if logo_path.exists():
+        st.image(str(logo_path), width=120)
+
+with col_title:
+    st.markdown("## ZENTIX")
+    st.caption("Finanzas inteligentes con estilo fintech")
 
 # ---------------- SESSION ----------------
 if "user" not in st.session_state:
@@ -252,31 +216,27 @@ def obtener_meta(user_id):
 
 def render_avatar(pagina, nombre, total_ingresos, total_gastos, ahorro_actual, ultimo_tipo):
     if pagina == "Inicio":
-        mensaje = f"{nombre}, tu panorama está aquí. Mira si tus gastos ya están apretando demasiado tu flujo."
+        mensaje = f"{nombre}, este es tu panorama financiero actual. Vigila si tus gastos están subiendo demasiado."
     elif pagina == "Registrar":
-        mensaje = f"{nombre}, cada movimiento cuenta. Regístralo bien para que tus análisis sean más inteligentes."
+        mensaje = f"{nombre}, registra bien cada movimiento. Así Zentix podrá ayudarte mejor."
     elif pagina == "Análisis":
-        mensaje = f"{nombre}, aquí se ve dónde se va tu dinero. Detectar patrones es la base del control."
+        mensaje = f"{nombre}, aquí podrás detectar patrones y entender en qué se te va más dinero."
     else:
-        mensaje = f"{nombre}, ahorrar no es solo querer. Es proteger lo que todavía te queda disponible."
+        mensaje = f"{nombre}, ahorrar es conservar lo que queda después de gastar, no solo proponértelo."
 
     estado = "🟢 Último movimiento: ingreso" if ultimo_tipo == "Ingreso" else "🔴 Último movimiento: gasto" if ultimo_tipo == "Gasto" else "⚪ Aún no hay movimientos"
 
-    st.markdown(f"""
-        <div class="avatar-card">
-            <div class="avatar-row">
-                <div class="avatar-bubble">🧠</div>
-                <div>
-                    <div class="avatar-title">Avatar Zentix</div>
-                    <div style="color:#E5E7EB;">{mensaje}</div>
-                </div>
-            </div>
-            <div style="margin-top:12px; color:#94A3B8;">
-                {estado}<br>
-                Ingresos: {total_ingresos:,.0f} | Gastos: {total_gastos:,.0f} | Disponible: {ahorro_actual:,.0f}
-            </div>
-        </div>
-    """, unsafe_allow_html=True)
+    col1, col2 = st.columns([1, 5])
+
+    with col1:
+        if avatar_path.exists():
+            st.image(str(avatar_path), width=90)
+
+    with col2:
+        st.markdown("### Avatar Zentix")
+        st.write(mensaje)
+        st.caption(estado)
+        st.caption(f"Ingresos: {total_ingresos:,.0f} | Gastos: {total_gastos:,.0f} | Disponible: {ahorro_actual:,.0f}")
 
 # ---------------- AUTH ----------------
 if st.session_state.user is None:
@@ -420,7 +380,11 @@ if pagina == "Inicio":
                 title="Distribución de ingresos vs gastos",
                 hole=0.52
             )
-            fig_tipos.update_layout(paper_bgcolor="#0D0D0D", plot_bgcolor="#0D0D0D", font_color="white")
+            fig_tipos.update_layout(
+                paper_bgcolor="#0D0D0D",
+                plot_bgcolor="#0D0D0D",
+                font_color="white"
+            )
             st.plotly_chart(fig_tipos, use_container_width=True)
 
         with col_b:
@@ -436,7 +400,11 @@ if pagina == "Inicio":
                 names="categoria",
                 title="Categorías del mes"
             )
-            fig_cat.update_layout(paper_bgcolor="#0D0D0D", plot_bgcolor="#0D0D0D", font_color="white")
+            fig_cat.update_layout(
+                paper_bgcolor="#0D0D0D",
+                plot_bgcolor="#0D0D0D",
+                font_color="white"
+            )
             st.plotly_chart(fig_cat, use_container_width=True)
     else:
         st.info("Aún no hay movimientos este mes.")
@@ -510,7 +478,11 @@ if pagina == "Análisis":
             title="Movimientos por categoría",
             text_auto=True
         )
-        fig_bar.update_layout(paper_bgcolor="#0D0D0D", plot_bgcolor="#0D0D0D", font_color="white")
+        fig_bar.update_layout(
+            paper_bgcolor="#0D0D0D",
+            plot_bgcolor="#0D0D0D",
+            font_color="white"
+        )
         st.plotly_chart(fig_bar, use_container_width=True)
     else:
         st.info("No hay datos este mes")
