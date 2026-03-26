@@ -4,6 +4,8 @@ import plotly.express as px
 from datetime import datetime, date
 from pathlib import Path
 from supabase_config import supabase
+from openai import OpenAI
+import html
 
 st.set_page_config(
     page_title="Zentix",
@@ -27,6 +29,9 @@ if not icono_path.exists():
     icono_path = Path("icono_zentix.png")
 
 avatar_path = Path("avatar_zentix.png")
+
+OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"] if "OPENAI_API_KEY" in st.secrets else None
+openai_client = OpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
 
 
 def aplicar_estilo_zentix():
@@ -136,13 +141,6 @@ def aplicar_estilo_zentix():
 
     .stAlert {
         border-radius: 16px;
-    }
-
-    .zentix-topbar {
-        display: flex;
-        align-items: center;
-        gap: 14px;
-        margin-bottom: 1rem;
     }
 
     .zentix-brand-title {
@@ -412,6 +410,53 @@ def aplicar_estilo_zentix():
         background: linear-gradient(90deg, #2563EB, #8B5CF6);
     }
 
+    .chat-wrap {
+        margin-top: 0.9rem;
+    }
+
+    .chat-bubble-ai {
+        background: rgba(59,130,246,0.10);
+        border: 1px solid rgba(96,165,250,0.18);
+        border-radius: 16px;
+        padding: 0.8rem 0.9rem;
+        margin-bottom: 0.55rem;
+        color: #E2E8F0;
+        line-height: 1.5;
+        font-size: 0.92rem;
+    }
+
+    .chat-bubble-user {
+        background: rgba(139,92,246,0.10);
+        border: 1px solid rgba(139,92,246,0.18);
+        border-radius: 16px;
+        padding: 0.8rem 0.9rem;
+        margin-bottom: 0.55rem;
+        color: #F8FAFC;
+        line-height: 1.5;
+        font-size: 0.92rem;
+    }
+
+    .chat-label {
+        font-size: 0.78rem;
+        color: var(--muted);
+        margin: 0.55rem 0 0.45rem 0;
+        font-weight: 700;
+    }
+
+    .chat-input-label {
+        font-size: 0.8rem;
+        color: var(--muted);
+        margin-top: 0.8rem;
+        margin-bottom: 0.35rem;
+    }
+
+    .quick-action-note {
+        font-size: 0.78rem;
+        color: var(--muted);
+        margin-top: 0.55rem;
+        margin-bottom: 0.45rem;
+    }
+
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
@@ -507,15 +552,93 @@ def empty_state(title, text):
     )
 
 
+def obtener_movimientos_recientes_para_ia(df_mes_actual, limite=8):
+    if df_mes_actual is None or df_mes_actual.empty:
+        return "No hay movimientos registrados este mes."
+
+    vista = df_mes_actual.copy().sort_values("fecha", ascending=False).head(limite)
+
+    lineas = []
+    for _, row in vista.iterrows():
+        fecha_txt = row["fecha"].strftime("%Y-%m-%d") if pd.notna(row["fecha"]) else "Sin fecha"
+        tipo = row.get("tipo", "Sin tipo")
+        categoria = row.get("categoria", "Sin categoría")
+        monto = money(row.get("monto", 0))
+        descripcion = row.get("descripcion", "") or "Sin descripción"
+        lineas.append(f"- {fecha_txt} | {tipo} | {categoria} | {monto} | {descripcion}")
+
+    return "\n".join(lineas)
+
+
+def construir_contexto_zentix(pagina, nombre, total_ingresos, total_gastos, ahorro_actual, ultimo_tipo):
+    df_mes_actual = globals().get("df_mes", pd.DataFrame())
+    meta_actual = float(globals().get("meta_guardada_global", 0.0) or 0.0)
+    categoria_top_actual = globals().get("categoria_top", None)
+    monto_top_actual = float(globals().get("monto_top", 0.0) or 0.0)
+    insight_actual = globals().get("insight_financiero", "Sin insight disponible.")
+
+    movimientos_texto = obtener_movimientos_recientes_para_ia(df_mes_actual, limite=8)
+
+    return f"""
+CONTEXTO DE ZENTIX
+- Página actual: {pagina}
+- Usuario: {nombre}
+- Ingresos del mes: {money(total_ingresos)}
+- Gastos del mes: {money(total_gastos)}
+- Saldo disponible actual: {money(ahorro_actual)}
+- Meta de ahorro actual: {money(meta_actual)}
+- Categoría con mayor peso: {categoria_top_actual if categoria_top_actual else 'Sin datos'}
+- Monto de categoría top: {money(monto_top_actual)}
+- Último tipo de movimiento: {ultimo_tipo if ultimo_tipo else 'Sin movimientos'}
+- Insight financiero actual: {insight_actual}
+
+MOVIMIENTOS RECIENTES DEL MES
+{movimientos_texto}
+""".strip()
+
+
+def consultar_ia_zentix(pregunta, contexto):
+    if not openai_client:
+        return "La IA todavía no está activa. Agrega OPENAI_API_KEY en los secrets de Streamlit Cloud para habilitar al avatar."
+
+    try:
+        response = openai_client.responses.create(
+            model="gpt-5.4",
+            instructions=(
+                "Eres Avatar Zentix, un copiloto financiero dentro de una app de finanzas personales. "
+                "Hablas siempre en español. "
+                "Tu tono es premium, claro, útil y cercano. "
+                "Usa únicamente el contexto recibido. "
+                "Nunca inventes cifras, categorías o movimientos. "
+                "Si algo no está en el contexto, dilo con honestidad. "
+                "No des asesoría financiera profesional, legal ni tributaria. "
+                "Responde de forma breve pero valiosa, idealmente entre 4 y 8 líneas. "
+                "Cuando corresponda, entrega viñetas cortas. "
+                "Cierra con una recomendación concreta."
+            ),
+            input=f"{contexto}\n\nPREGUNTA DEL USUARIO:\n{pregunta}"
+        )
+
+        texto = (response.output_text or "").strip()
+
+        if not texto:
+            return "No pude generar una respuesta útil en este momento."
+
+        return texto
+
+    except Exception as e:
+        return f"No pude responder ahora mismo. Error: {e}"
+
+
 def render_avatar(pagina, nombre, total_ingresos, total_gastos, ahorro_actual, ultimo_tipo):
     if pagina == "Inicio":
-        mensaje = f"{nombre}, tu panorama mensual ya está listo. Observa si tus gastos se acercan demasiado a tus ingresos."
+        mensaje = f"{nombre}, tu panorama mensual ya está listo. Ahora también puedes preguntarme por tus números."
     elif pagina == "Registrar":
-        mensaje = f"{nombre}, cada movimiento que registras mejora tu lectura financiera y hace a Zentix más útil para ti."
+        mensaje = f"{nombre}, puedo ayudarte a interpretar lo que registras y darte contexto financiero al instante."
     elif pagina == "Análisis":
-        mensaje = f"{nombre}, aquí puedes detectar patrones, concentraciones por categoría y señales de gasto recurrente."
+        mensaje = f"{nombre}, aquí puedo explicarte patrones, concentración por categoría y alertas simples."
     else:
-        mensaje = f"{nombre}, una meta funciona mejor cuando está conectada con tu saldo real y no solo con una intención."
+        mensaje = f"{nombre}, también puedo ayudarte a leer tu meta de ahorro contra tu saldo actual."
 
     estado = (
         "🟢 Último movimiento: ingreso" if ultimo_tipo == "Ingreso"
@@ -523,19 +646,144 @@ def render_avatar(pagina, nombre, total_ingresos, total_gastos, ahorro_actual, u
         else "⚪ Aún no hay movimientos"
     )
 
+    contexto_ia = construir_contexto_zentix(
+        pagina=pagina,
+        nombre=nombre,
+        total_ingresos=total_ingresos,
+        total_gastos=total_gastos,
+        ahorro_actual=ahorro_actual,
+        ultimo_tipo=ultimo_tipo
+    )
+
+    chat_key = f"zentix_chat_{pagina}"
+    input_key = f"zentix_input_{pagina}"
+    clear_key = f"zentix_clear_{pagina}"
+
+    mensajes_iniciales = {
+        "Inicio": f"Hola, {nombre}. Puedo resumirte tu mes, detectar alertas y decirte en qué estás gastando más.",
+        "Registrar": f"Hola, {nombre}. Puedo ayudarte a revisar el impacto de tus registros en tu panorama financiero.",
+        "Análisis": f"Hola, {nombre}. Pregúntame por tendencias, categorías dominantes o señales de gasto.",
+        "Ahorro": f"Hola, {nombre}. Puedo ayudarte a leer tu progreso de ahorro y qué te falta para tu meta."
+    }
+
+    if chat_key not in st.session_state:
+        st.session_state[chat_key] = [
+            {"role": "assistant", "content": mensajes_iniciales.get(pagina, "Hola. Soy tu avatar financiero de Zentix.")}
+        ]
+
+    if clear_key not in st.session_state:
+        st.session_state[clear_key] = False
+
+    if st.session_state.get(clear_key):
+        st.session_state[input_key] = ""
+        st.session_state[clear_key] = False
+
     st.markdown('<div class="assistant-card">', unsafe_allow_html=True)
+
     col1, col2 = st.columns([1, 4])
+
     with col1:
         if avatar_path.exists():
             st.image(str(avatar_path), width=88)
+
     with col2:
-        st.markdown('<div class="assistant-title">Avatar Zentix</div>', unsafe_allow_html=True)
+        st.markdown('<div class="assistant-title">Avatar Zentix IA</div>', unsafe_allow_html=True)
         st.markdown(f'<div class="assistant-text">{mensaje}</div>', unsafe_allow_html=True)
         st.markdown(f'<div class="assistant-mini">{estado}</div>', unsafe_allow_html=True)
         st.markdown(
             f'<div class="assistant-mini">Ingresos: {money(total_ingresos)} · Gastos: {money(total_gastos)} · Disponible: {money(ahorro_actual)}</div>',
             unsafe_allow_html=True
         )
+
+    st.markdown('<div class="quick-action-note">Acciones rápidas</div>', unsafe_allow_html=True)
+
+    preguntas_rapidas = {
+        "Inicio": [
+            "Resúmeme mi mes en 3 puntos",
+            "¿En qué estoy gastando más?",
+            "¿Ves alguna alerta este mes?",
+            "¿Cómo voy frente a mi ahorro?"
+        ],
+        "Registrar": [
+            "¿Qué debería vigilar al registrar gastos?",
+            "¿Cómo impactan mis gastos en mi balance?",
+            "Dame una recomendación rápida para registrar mejor",
+            "¿Qué categoría conviene vigilar más?"
+        ],
+        "Análisis": [
+            "Interpreta mis patrones de gasto",
+            "¿Cuál es mi categoría más pesada?",
+            "¿Qué tendencia ves este mes?",
+            "Dame 3 insights claros"
+        ],
+        "Ahorro": [
+            "Explícame mi progreso de ahorro",
+            "¿Cuánto me falta realmente?",
+            "¿Qué ajuste simple me recomiendas?",
+            "Dame un plan corto para acercarme a mi meta"
+        ]
+    }
+
+    pregunta_final = None
+    qa = preguntas_rapidas.get(pagina, preguntas_rapidas["Inicio"])
+
+    q1, q2 = st.columns(2)
+    with q1:
+        if st.button(qa[0], key=f"qa1_{pagina}", use_container_width=True):
+            pregunta_final = qa[0]
+        if st.button(qa[2], key=f"qa3_{pagina}", use_container_width=True):
+            pregunta_final = qa[2]
+    with q2:
+        if st.button(qa[1], key=f"qa2_{pagina}", use_container_width=True):
+            pregunta_final = qa[1]
+        if st.button(qa[3], key=f"qa4_{pagina}", use_container_width=True):
+            pregunta_final = qa[3]
+
+    st.markdown('<div class="chat-wrap">', unsafe_allow_html=True)
+    st.markdown('<div class="chat-label">Conversación</div>', unsafe_allow_html=True)
+
+    historial = st.session_state[chat_key][-6:]
+    for item in historial:
+        contenido = html.escape(item["content"]).replace("\\n", "<br>").replace("\n", "<br>")
+        if item["role"] == "assistant":
+            st.markdown(f'<div class="chat-bubble-ai"><strong>Zentix:</strong><br>{contenido}</div>', unsafe_allow_html=True)
+        else:
+            st.markdown(f'<div class="chat-bubble-user"><strong>Tú:</strong><br>{contenido}</div>', unsafe_allow_html=True)
+
+    st.markdown('<div class="chat-input-label">Pregúntale a Zentix</div>', unsafe_allow_html=True)
+    pregunta_manual = st.text_input(
+        "Pregúntale a Zentix",
+        key=input_key,
+        label_visibility="collapsed",
+        placeholder="Ej: ¿Cómo voy este mes? ¿Dónde debería ajustar gastos?"
+    )
+
+    c1, c2 = st.columns([3, 1])
+
+    with c1:
+        if st.button("Enviar pregunta", key=f"enviar_{pagina}", use_container_width=True):
+            if pregunta_manual.strip():
+                pregunta_final = pregunta_manual.strip()
+
+    with c2:
+        if st.button("Limpiar", key=f"limpiar_chat_{pagina}", use_container_width=True):
+            st.session_state[chat_key] = [
+                {"role": "assistant", "content": mensajes_iniciales.get(pagina, "Hola. Soy tu avatar financiero de Zentix.")}
+            ]
+            st.session_state[clear_key] = True
+            st.rerun()
+
+    if pregunta_final:
+        st.session_state[chat_key].append({"role": "user", "content": pregunta_final})
+
+        with st.spinner("Zentix está analizando tu información..."):
+            respuesta = consultar_ia_zentix(pregunta_final, contexto_ia)
+
+        st.session_state[chat_key].append({"role": "assistant", "content": respuesta})
+        st.session_state[clear_key] = True
+        st.rerun()
+
+    st.markdown('</div>', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
 
@@ -575,7 +823,6 @@ def obtener_categoria_top(df_mes):
 aplicar_estilo_zentix()
 
 
-# ---------------- FUNCIONES DE DATOS ----------------
 def obtener_movimientos(user_id):
     result = (
         supabase.table("movimientos")
@@ -656,12 +903,10 @@ def obtener_meta(user_id):
     return result.data[0] if result.data else None
 
 
-# ---------------- SESSION ----------------
 if "user" not in st.session_state:
     st.session_state.user = None
 
 
-# ---------------- LOGIN / REGISTRO ----------------
 if st.session_state.user is None:
     with st.sidebar:
         col_sb_icon, col_sb_text = st.columns([1, 3])
@@ -730,10 +975,8 @@ if st.session_state.user is None:
     st.stop()
 
 
-# ---------------- HEADER APP ----------------
 zentix_brand_header()
 
-# ---------------- SESIÓN INICIADA ----------------
 user_id = st.session_state.user.id
 perfil = obtener_perfil(user_id)
 nombre_usuario = perfil["nombre_mostrado"] if perfil and perfil.get("nombre_mostrado") else "usuario"
@@ -764,7 +1007,6 @@ with st.sidebar:
         st.rerun()
 
 
-# ---------------- ONBOARDING ----------------
 if not perfil or not perfil.get("onboarding_completo", False):
     st.markdown(
         """
@@ -834,7 +1076,6 @@ if not perfil or not perfil.get("onboarding_completo", False):
     st.stop()
 
 
-# ---------------- CARGAR DATOS ----------------
 try:
     df = obtener_movimientos(user_id)
 except Exception as e:
@@ -866,12 +1107,10 @@ else:
 
 saldo_disponible = total_ingresos - total_gastos
 ahorro_actual = float(saldo_disponible)
-faltante_global = max(0.0, meta_guardada_global - max(ahorro_actual, 0.0))
 insight_financiero = obtener_insight_financiero(total_ingresos, total_gastos, saldo_disponible, df_mes)
 categoria_top, monto_top = obtener_categoria_top(df_mes)
 
 
-# ---------------- INICIO ----------------
 if pagina == "Inicio":
     zentix_hero(nombre_usuario, saldo_disponible, total_ingresos, total_gastos)
 
@@ -947,7 +1186,6 @@ if pagina == "Inicio":
         )
 
 
-# ---------------- REGISTRAR ----------------
 if pagina == "Registrar":
     zentix_hero(nombre_usuario, saldo_disponible, total_ingresos, total_gastos)
     section_header("Registrar movimiento", "Agrega ingresos y gastos con una experiencia más clara y visual.")
@@ -1021,7 +1259,6 @@ if pagina == "Registrar":
         render_avatar(pagina, nombre_usuario, total_ingresos, total_gastos, saldo_disponible, ultimo_tipo)
 
 
-# ---------------- ANÁLISIS ----------------
 if pagina == "Análisis":
     zentix_hero(nombre_usuario, saldo_disponible, total_ingresos, total_gastos)
     section_header("Análisis del mes", "Explora movimientos, concentración por categoría y evolución diaria.")
@@ -1087,7 +1324,6 @@ if pagina == "Análisis":
         st.info("No hay datos este mes.")
 
 
-# ---------------- AHORRO ----------------
 if pagina == "Ahorro":
     zentix_hero(nombre_usuario, saldo_disponible, total_ingresos, total_gastos)
     section_header("Plan de ahorro", "Conecta tu meta con tu saldo disponible actual.")
