@@ -2,29 +2,78 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 from datetime import datetime, date
-from pathlib import Path
 from supabase_config import supabase
 
 st.set_page_config(page_title="Zentix", layout="wide")
+
+# ---------------- CONFIG BASE ----------------
+DEFAULT_GASTOS = [
+    "Comida", "Transporte", "Arriendo", "Servicios", "Salud",
+    "Educación", "Compras", "Ocio", "Deudas", "Otros"
+]
+
+DEFAULT_INGRESOS = [
+    "Salario", "Freelance", "Ventas", "Inversiones", "Regalos", "Otros"
+]
 
 # ---------------- ESTILO ----------------
 st.markdown("""
     <style>
     body { background-color: #0D0D0D; color: white; }
     .stApp { background-color: #0D0D0D; }
+
     .stButton>button {
-        background-color: #00C896;
+        background: linear-gradient(90deg, #4F46E5, #7C3AED);
         color: white;
-        border-radius: 10px;
-        font-weight: bold;
+        border-radius: 12px;
+        font-weight: 700;
         border: none;
     }
+
     .stTextInput>div>div>input,
     .stNumberInput input,
-    .stSelectbox div[data-baseweb="select"] > div {
-        background-color: #1A1A1A !important;
+    .stSelectbox div[data-baseweb="select"] > div,
+    .stMultiSelect div[data-baseweb="select"] > div {
+        background-color: #151515 !important;
         color: white !important;
+        border-radius: 12px !important;
     }
+
+    .brand-wrap {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 16px;
+    }
+
+    .brand-mark {
+        width: 70px;
+        height: 70px;
+        border-radius: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #2563EB, #7C3AED 55%, #A855F7);
+        box-shadow: 0 10px 30px rgba(124, 58, 237, 0.35);
+        font-size: 38px;
+        font-weight: 900;
+        color: white;
+        letter-spacing: -2px;
+    }
+
+    .brand-title {
+        font-size: 34px;
+        font-weight: 800;
+        color: white;
+        margin: 0;
+    }
+
+    .brand-subtitle {
+        color: #94A3B8;
+        margin-top: 4px;
+        font-size: 14px;
+    }
+
     .metric-card {
         background: #151515;
         padding: 18px;
@@ -32,45 +81,94 @@ st.markdown("""
         border: 1px solid #2a2a2a;
         margin-bottom: 10px;
     }
+
     .saldo-verde {
-        color: #00C896;
+        color: #22C55E;
         font-weight: bold;
         font-size: 24px;
     }
+
     .saldo-rojo {
-        color: #FF4B4B;
+        color: #EF4444;
         font-weight: bold;
         font-size: 24px;
     }
-    .bot-card {
+
+    .avatar-card {
         background: linear-gradient(135deg, #0f172a, #111827);
         border: 1px solid #1f2937;
-        border-radius: 18px;
-        padding: 16px;
+        border-radius: 22px;
+        padding: 18px;
         margin-top: 8px;
     }
-    .bot-title {
-        color: #00C896;
+
+    .avatar-row {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+    }
+
+    .avatar-bubble {
+        width: 58px;
+        height: 58px;
+        border-radius: 18px;
+        background: linear-gradient(135deg, #2563EB, #7C3AED);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 28px;
+        box-shadow: 0 8px 24px rgba(79, 70, 229, 0.35);
+    }
+
+    .avatar-title {
+        color: #A5B4FC;
         font-size: 18px;
+        font-weight: 800;
+        margin-bottom: 4px;
+    }
+
+    .pill-ingreso {
+        display: inline-block;
+        padding: 8px 14px;
+        border-radius: 999px;
+        background: rgba(34,197,94,0.15);
+        border: 1px solid rgba(34,197,94,0.35);
+        color: #22C55E;
         font-weight: 700;
-        margin-bottom: 6px;
+        margin-bottom: 10px;
+    }
+
+    .pill-gasto {
+        display: inline-block;
+        padding: 8px 14px;
+        border-radius: 999px;
+        background: rgba(239,68,68,0.15);
+        border: 1px solid rgba(239,68,68,0.35);
+        color: #EF4444;
+        font-weight: 700;
+        margin-bottom: 10px;
+    }
+
+    .section-card {
+        background: #101010;
+        border: 1px solid #222;
+        border-radius: 18px;
+        padding: 18px;
+        margin-bottom: 16px;
     }
     </style>
 """, unsafe_allow_html=True)
 
-# ---------------- HEADER ----------------
-logo_path = Path("logo.png")
-
-col_logo, col_title = st.columns([1, 5])
-with col_logo:
-    if logo_path.exists():
-        st.image(str(logo_path), width=110)
-    else:
-        st.warning("Logo no encontrado")
-
-with col_title:
-    st.markdown("## ZENTIX")
-    st.caption("Control inteligente de tu dinero")
+# ---------------- HEADER BRAND ----------------
+st.markdown("""
+<div class="brand-wrap">
+    <div class="brand-mark">Z</div>
+    <div>
+        <div class="brand-title">ZENTIX</div>
+        <div class="brand-subtitle">Finanzas personales con inteligencia y estilo fintech</div>
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
 # ---------------- SESSION ----------------
 if "user" not in st.session_state:
@@ -94,46 +192,89 @@ def obtener_movimientos(user_id):
 
     return df_local
 
-def obtener_mensaje_ahorro(meta, ingresos, gastos):
-    disponible = ingresos - gastos
+def obtener_perfil(user_id):
+    result = (
+        supabase.table("perfiles_usuario")
+        .select("*")
+        .eq("id", user_id)
+        .limit(1)
+        .execute()
+    )
+    return result.data[0] if result.data else None
 
-    if meta <= 0:
-        return "Define una meta clara para empezar a medir tu avance.", "info"
+def guardar_onboarding(user_id, nombre_mostrado, categorias_gasto, categorias_ingreso):
+    perfil = obtener_perfil(user_id)
 
-    if disponible <= 0:
-        return "Tus gastos ya consumieron todo tu ingreso disponible. Conviene frenar un poco antes de seguir con tu meta.", "error"
-
-    if disponible >= meta:
-        return "Vas muy bien. Con lo que te queda disponible ya puedes cumplir tu meta de ahorro.", "success"
-
-    porcentaje = disponible / meta
-
-    if porcentaje >= 0.75:
-        return "Estás cerca de lograr tu meta. Mantén controlados tus gastos para no perder el ritmo.", "info"
-    elif porcentaje >= 0.4:
-        return "Vas avanzando, pero tus gastos todavía se están comiendo una parte importante de tus ingresos.", "warning"
+    if perfil:
+        supabase.table("perfiles_usuario").update({
+            "nombre_mostrado": nombre_mostrado,
+            "onboarding_completo": True
+        }).eq("id", user_id).execute()
     else:
-        return "Tu meta todavía está lejos. Conviene reducir gastos para que el ahorro no se te escape.", "warning"
+        supabase.table("perfiles_usuario").insert({
+            "id": user_id,
+            "nombre_mostrado": nombre_mostrado,
+            "onboarding_completo": True
+        }).execute()
 
-def render_bot(pagina, total_ingresos, total_gastos, ahorro_actual, ultimo_tipo):
+    supabase.table("categorias_usuario").delete().eq("usuario_id", user_id).execute()
+
+    registros = []
+    for cat in categorias_gasto:
+        registros.append({"usuario_id": user_id, "tipo": "Gasto", "nombre": cat})
+    for cat in categorias_ingreso:
+        registros.append({"usuario_id": user_id, "tipo": "Ingreso", "nombre": cat})
+
+    if registros:
+        supabase.table("categorias_usuario").insert(registros).execute()
+
+def obtener_categorias_usuario(user_id, tipo):
+    result = (
+        supabase.table("categorias_usuario")
+        .select("*")
+        .eq("usuario_id", user_id)
+        .eq("tipo", tipo)
+        .order("nombre")
+        .execute()
+    )
+    data = result.data if result.data else []
+    return [x["nombre"] for x in data]
+
+def obtener_meta(user_id):
+    result = (
+        supabase.table("ahorro_meta")
+        .select("*")
+        .eq("usuario_id", user_id)
+        .limit(1)
+        .execute()
+    )
+    return result.data[0] if result.data else None
+
+def render_avatar(pagina, nombre, total_ingresos, total_gastos, ahorro_actual, ultimo_tipo):
     if pagina == "Inicio":
-        mensaje = "Estoy revisando tu panorama financiero. Mira tus métricas clave y detecta si tus gastos ya están presionando demasiado tu ingreso."
+        mensaje = f"{nombre}, tu panorama está aquí. Mira si tus gastos ya están apretando demasiado tu flujo."
     elif pagina == "Registrar":
-        mensaje = "Registra cada movimiento apenas ocurra. Mientras más completo esté tu historial, mejores decisiones vas a tomar."
+        mensaje = f"{nombre}, cada movimiento cuenta. Regístralo bien para que tus análisis sean más inteligentes."
     elif pagina == "Análisis":
-        mensaje = "Aquí puedes identificar en qué categoría se te está yendo más dinero. Esa es la clave para mejorar."
+        mensaje = f"{nombre}, aquí se ve dónde se va tu dinero. Detectar patrones es la base del control."
     else:
-        mensaje = "El ahorro no es solo lo que quieres guardar, sino lo que realmente logras conservar después de gastar."
+        mensaje = f"{nombre}, ahorrar no es solo querer. Es proteger lo que todavía te queda disponible."
 
     estado = "🟢 Último movimiento: ingreso" if ultimo_tipo == "Ingreso" else "🔴 Último movimiento: gasto" if ultimo_tipo == "Gasto" else "⚪ Aún no hay movimientos"
-    resumen = f"Ingresos: {total_ingresos:,.0f} | Gastos: {total_gastos:,.0f} | Disponible: {ahorro_actual:,.0f}"
 
     st.markdown(f"""
-        <div class="bot-card">
-            <div class="bot-title">🤖 Zentix Bot</div>
-            <div style="margin-bottom:8px;">{mensaje}</div>
-            <div style="margin-bottom:4px;">{estado}</div>
-            <div style="color:#cbd5e1;">{resumen}</div>
+        <div class="avatar-card">
+            <div class="avatar-row">
+                <div class="avatar-bubble">🧠</div>
+                <div>
+                    <div class="avatar-title">Avatar Zentix</div>
+                    <div style="color:#E5E7EB;">{mensaje}</div>
+                </div>
+            </div>
+            <div style="margin-top:12px; color:#94A3B8;">
+                {estado}<br>
+                Ingresos: {total_ingresos:,.0f} | Gastos: {total_gastos:,.0f} | Disponible: {ahorro_actual:,.0f}
+            </div>
         </div>
     """, unsafe_allow_html=True)
 
@@ -148,21 +289,15 @@ if st.session_state.user is None:
     if choice == "Registro":
         if st.button("Crear cuenta"):
             try:
-                supabase.auth.sign_up({
-                    "email": email,
-                    "password": password
-                })
-                st.success("Cuenta creada correctamente")
+                supabase.auth.sign_up({"email": email, "password": password})
+                st.success("Cuenta creada correctamente. Ahora inicia sesión.")
             except Exception as e:
                 st.error(f"Error al registrar: {e}")
 
     elif choice == "Login":
         if st.button("Ingresar"):
             try:
-                res = supabase.auth.sign_in_with_password({
-                    "email": email,
-                    "password": password
-                })
+                res = supabase.auth.sign_in_with_password({"email": email, "password": password})
                 st.session_state.user = res.user
                 st.success("Bienvenido a Zentix")
                 st.rerun()
@@ -173,12 +308,54 @@ if st.session_state.user is None:
 
 # ---------------- SESIÓN INICIADA ----------------
 user_id = st.session_state.user.id
+perfil = obtener_perfil(user_id)
 
 with st.sidebar:
     st.success("Sesión iniciada")
     if st.button("Cerrar sesión"):
         st.session_state.user = None
         st.rerun()
+
+# ---------------- ONBOARDING ----------------
+if not perfil or not perfil.get("onboarding_completo", False):
+    st.markdown('<div class="section-card">', unsafe_allow_html=True)
+    st.subheader("👋 Configura tu experiencia Zentix")
+
+    nombre_mostrado = st.text_input("¿Cómo quieres que te llame Zentix?")
+    categorias_gasto = st.multiselect(
+        "Selecciona tus categorías de gasto",
+        DEFAULT_GASTOS,
+        default=["Comida", "Transporte", "Servicios"]
+    )
+    categorias_ingreso = st.multiselect(
+        "Selecciona tus categorías de ingreso",
+        DEFAULT_INGRESOS,
+        default=["Salario"]
+    )
+
+    if st.button("Guardar configuración inicial"):
+        if not nombre_mostrado.strip():
+            st.error("Escribe el nombre con el que quieres ser llamado.")
+        elif not categorias_gasto:
+            st.error("Selecciona al menos una categoría de gasto.")
+        elif not categorias_ingreso:
+            st.error("Selecciona al menos una categoría de ingreso.")
+        else:
+            try:
+                guardar_onboarding(
+                    user_id,
+                    nombre_mostrado.strip(),
+                    categorias_gasto,
+                    categorias_ingreso
+                )
+                st.success("Tu configuración inicial quedó guardada.")
+                st.rerun()
+            except Exception as e:
+                st.error(f"Error guardando onboarding: {e}")
+    st.markdown('</div>', unsafe_allow_html=True)
+    st.stop()
+
+nombre_usuario = perfil["nombre_mostrado"] if perfil and perfil.get("nombre_mostrado") else "usuario"
 
 menu = ["Inicio", "Registrar", "Análisis", "Ahorro"]
 pagina = st.sidebar.selectbox("Menú", menu)
@@ -194,13 +371,11 @@ if not df.empty:
     mes_actual = pd.Timestamp.now().month
     anio_actual = pd.Timestamp.now().year
     df_mes = df[(df["fecha"].dt.month == mes_actual) & (df["fecha"].dt.year == anio_actual)].copy()
-    ultimo_movimiento = df.iloc[0]
-    ultimo_tipo = ultimo_movimiento["tipo"]
+    ultimo_tipo = df.iloc[0]["tipo"]
 else:
     df_mes = pd.DataFrame(columns=["usuario_id", "fecha", "tipo", "categoria", "monto", "descripcion"])
     ultimo_tipo = None
 
-# ---------------- MÉTRICAS ----------------
 if not df_mes.empty:
     total_gastos = df_mes[df_mes["tipo"] == "Gasto"]["monto"].sum()
     total_ingresos = df_mes[df_mes["tipo"] == "Ingreso"]["monto"].sum()
@@ -212,7 +387,7 @@ saldo_disponible = total_ingresos - total_gastos
 
 # ---------------- INICIO ----------------
 if pagina == "Inicio":
-    st.subheader("📊 Resumen")
+    st.subheader(f"📊 Resumen de {nombre_usuario}")
 
     col1, col2, col3 = st.columns(3)
     with col1:
@@ -228,10 +403,10 @@ if pagina == "Inicio":
             </div>
         """, unsafe_allow_html=True)
 
-    render_bot(pagina, total_ingresos, total_gastos, saldo_disponible, ultimo_tipo)
+    render_avatar(pagina, nombre_usuario, total_ingresos, total_gastos, saldo_disponible, ultimo_tipo)
 
     if not df_mes.empty:
-        col_a, col_b = st.columns([1, 1])
+        col_a, col_b = st.columns(2)
 
         with col_a:
             resumen_tipos = pd.DataFrame({
@@ -243,13 +418,9 @@ if pagina == "Inicio":
                 values="Monto",
                 names="Tipo",
                 title="Distribución de ingresos vs gastos",
-                hole=0.45
+                hole=0.52
             )
-            fig_tipos.update_layout(
-                paper_bgcolor="#0D0D0D",
-                plot_bgcolor="#0D0D0D",
-                font_color="white"
-            )
+            fig_tipos.update_layout(paper_bgcolor="#0D0D0D", plot_bgcolor="#0D0D0D", font_color="white")
             st.plotly_chart(fig_tipos, use_container_width=True)
 
         with col_b:
@@ -263,13 +434,9 @@ if pagina == "Inicio":
                 resumen_categoria,
                 values="monto",
                 names="categoria",
-                title="Gastos e ingresos por categoría"
+                title="Categorías del mes"
             )
-            fig_cat.update_layout(
-                paper_bgcolor="#0D0D0D",
-                plot_bgcolor="#0D0D0D",
-                font_color="white"
-            )
+            fig_cat.update_layout(paper_bgcolor="#0D0D0D", plot_bgcolor="#0D0D0D", font_color="white")
             st.plotly_chart(fig_cat, use_container_width=True)
     else:
         st.info("Aún no hay movimientos este mes.")
@@ -278,9 +445,17 @@ if pagina == "Inicio":
 if pagina == "Registrar":
     st.subheader("➕ Agregar movimiento")
 
+    tipo = st.radio("Tipo de movimiento", ["Ingreso", "Gasto"], horizontal=True)
+
+    if tipo == "Ingreso":
+        st.markdown('<div class="pill-ingreso">Ingreso seleccionado</div>', unsafe_allow_html=True)
+        categorias_disponibles = obtener_categorias_usuario(user_id, "Ingreso")
+    else:
+        st.markdown('<div class="pill-gasto">Gasto seleccionado</div>', unsafe_allow_html=True)
+        categorias_disponibles = obtener_categorias_usuario(user_id, "Gasto")
+
     fecha = st.date_input("Fecha", value=date.today())
-    tipo = st.selectbox("Tipo", ["Gasto", "Ingreso"])
-    categoria = st.text_input("Categoría")
+    categoria = st.selectbox("Categoría", categorias_disponibles if categorias_disponibles else ["Sin categorías"])
     monto = st.number_input("Monto", min_value=0.0, step=1000.0)
     descripcion = st.text_input("Descripción")
 
@@ -311,13 +486,12 @@ if pagina == "Registrar":
         if st.button("🗑️ Reset"):
             st.rerun()
 
-    render_bot(pagina, total_ingresos, total_gastos, saldo_disponible, ultimo_tipo)
+    render_avatar(pagina, nombre_usuario, total_ingresos, total_gastos, saldo_disponible, ultimo_tipo)
 
 # ---------------- ANÁLISIS ----------------
 if pagina == "Análisis":
     st.subheader("📈 Análisis")
-
-    render_bot(pagina, total_ingresos, total_gastos, saldo_disponible, ultimo_tipo)
+    render_avatar(pagina, nombre_usuario, total_ingresos, total_gastos, saldo_disponible, ultimo_tipo)
 
     if not df_mes.empty:
         st.dataframe(df_mes, use_container_width=True)
@@ -336,11 +510,7 @@ if pagina == "Análisis":
             title="Movimientos por categoría",
             text_auto=True
         )
-        fig_bar.update_layout(
-            paper_bgcolor="#0D0D0D",
-            plot_bgcolor="#0D0D0D",
-            font_color="white"
-        )
+        fig_bar.update_layout(paper_bgcolor="#0D0D0D", plot_bgcolor="#0D0D0D", font_color="white")
         st.plotly_chart(fig_bar, use_container_width=True)
     else:
         st.info("No hay datos este mes")
@@ -350,19 +520,8 @@ if pagina == "Ahorro":
     st.subheader("🎯 Plan de ahorro")
 
     try:
-        meta_result = (
-            supabase.table("ahorro_meta")
-            .select("*")
-            .eq("usuario_id", user_id)
-            .limit(1)
-            .execute()
-        )
-
-        if meta_result.data:
-            meta_guardada = float(meta_result.data[0]["meta"])
-        else:
-            meta_guardada = 0.0
-
+        meta_result = obtener_meta(user_id)
+        meta_guardada = float(meta_result["meta"]) if meta_result else 0.0
     except Exception as e:
         st.error(f"Error cargando meta de ahorro: {e}")
         meta_result = None
@@ -381,7 +540,7 @@ if pagina == "Ahorro":
     with col_meta1:
         if st.button("💾 Guardar meta", use_container_width=True):
             try:
-                if meta_result and meta_result.data:
+                if meta_result:
                     supabase.table("ahorro_meta").update({
                         "meta": float(meta),
                         "actualizado_en": datetime.now().isoformat()
@@ -395,7 +554,6 @@ if pagina == "Ahorro":
 
                 st.success("Meta guardada correctamente")
                 st.rerun()
-
             except Exception as e:
                 st.error(f"Error guardando meta: {e}")
 
@@ -405,7 +563,6 @@ if pagina == "Ahorro":
                 supabase.table("ahorro_meta").delete().eq("usuario_id", user_id).execute()
                 st.warning("Meta eliminada correctamente")
                 st.rerun()
-
             except Exception as e:
                 st.error(f"Error eliminando meta: {e}")
 
@@ -423,36 +580,7 @@ if pagina == "Ahorro":
             st.success("Vas excelente: con tu disponible actual ya alcanzas tu meta de ahorro.")
         else:
             st.info(f"Te faltan {faltante:,.0f} para cumplir tu meta.")
-
-        if total_ingresos > 0:
-            porcentaje_gastado = total_gastos / total_ingresos
-
-            if ahorro_actual <= 0:
-                st.error(
-                    "Tus gastos ya consumieron todo tu ingreso disponible. "
-                    "Conviene detener un poco los gastos y reorganizar tu meta."
-                )
-            elif ahorro_actual >= float(meta):
-                st.success(
-                    "Tu disponible actual ya cubre la meta. Vas por muy buen camino."
-                )
-            elif porcentaje_gastado >= 0.8:
-                st.warning(
-                    f"Tus gastos ya consumieron gran parte de tus ingresos. "
-                    f"Si quieres ahorrar {float(meta):,.0f}, conviene frenar un poco para no quedarte sin margen."
-                )
-            elif porcentaje_gastado >= 0.6:
-                st.info(
-                    f"Vas avanzando, pero tus gastos ya están reduciendo bastante tu capacidad de ahorro. "
-                    f"Aún te faltan {faltante:,.0f}."
-                )
-            else:
-                st.success(
-                    f"Vas bien. Si mantienes este ritmo, podrás acercarte a tu meta de {float(meta):,.0f}."
-                )
-        else:
-            st.info("Aún no tienes ingresos registrados para evaluar tu ahorro.")
     else:
         st.info("Define una meta para comenzar.")
 
-    render_bot(pagina, total_ingresos, total_gastos, saldo_disponible, ultimo_tipo)
+    render_avatar(pagina, nombre_usuario, total_ingresos, total_gastos, saldo_disponible, ultimo_tipo)
