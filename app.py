@@ -7,7 +7,7 @@ from supabase_config import supabase
 
 st.set_page_config(
     page_title="Zentix",
-    page_icon="icono_zentix.png",
+    page_icon="icono_zentix_v2.png",
     layout="wide"
 )
 
@@ -21,7 +21,10 @@ DEFAULT_INGRESOS = [
     "Salario", "Freelance", "Ventas", "Inversiones", "Regalos", "Otros"
 ]
 
-icono_path = Path("icono_zentix.png")
+icono_path = Path("icono_zentix_v2.png")
+if not icono_path.exists():
+    icono_path = Path("icono_zentix.png")
+
 avatar_path = Path("avatar_zentix.png")
 
 # ---------------- ESTILO ----------------
@@ -54,20 +57,6 @@ st.markdown("""
         padding: 28px;
         box-shadow: 0 12px 35px rgba(37,99,235,0.14);
         backdrop-filter: blur(10px);
-    }
-
-    .brand-title {
-        font-size: 42px;
-        font-weight: 900;
-        color: white;
-        letter-spacing: 1px;
-        margin-bottom: 8px;
-    }
-
-    .brand-subtitle {
-        color: #94A3B8;
-        font-size: 16px;
-        line-height: 1.5;
     }
 
     .metric-card {
@@ -155,12 +144,37 @@ st.markdown("""
         border-radius: 24px;
         padding: 24px;
     }
+
+    .header-brand-name {
+        font-size: 2.1rem;
+        font-weight: 900;
+        letter-spacing: 1px;
+        margin: 0;
+        color: white;
+        line-height: 1.1;
+    }
+
+    .header-brand-sub {
+        color: #94A3B8;
+        font-size: 0.98rem;
+        margin-top: 6px;
+    }
+
+    .sidebar-brand-title {
+        font-size: 1.1rem;
+        font-weight: 800;
+        color: white;
+        margin: 0;
+        line-height: 1.1;
+    }
+
+    .sidebar-brand-sub {
+        color: #94A3B8;
+        font-size: 0.78rem;
+        margin-top: 2px;
+    }
     </style>
 """, unsafe_allow_html=True)
-
-# ---------------- SESSION ----------------
-if "user" not in st.session_state:
-    st.session_state.user = None
 
 # ---------------- FUNCIONES ----------------
 def obtener_movimientos(user_id):
@@ -251,7 +265,6 @@ def render_avatar(pagina, nombre, total_ingresos, total_gastos, ahorro_actual, u
     estado = "🟢 Último movimiento: ingreso" if ultimo_tipo == "Ingreso" else "🔴 Último movimiento: gasto" if ultimo_tipo == "Gasto" else "⚪ Aún no hay movimientos"
 
     st.markdown('<div class="avatar-card">', unsafe_allow_html=True)
-
     col1, col2 = st.columns([1, 5])
 
     with col1:
@@ -266,30 +279,38 @@ def render_avatar(pagina, nombre, total_ingresos, total_gastos, ahorro_actual, u
             f'<div class="avatar-mini">Ingresos: {total_ingresos:,.0f} | Gastos: {total_gastos:,.0f} | Disponible: {ahorro_actual:,.0f}</div>',
             unsafe_allow_html=True
         )
-
     st.markdown('</div>', unsafe_allow_html=True)
+
+# ---------------- SESSION ----------------
+if "user" not in st.session_state:
+    st.session_state.user = None
 
 # ---------------- LOGIN PREMIUM ----------------
 if st.session_state.user is None:
     with st.sidebar:
-        if icono_path.exists():
-            st.image(str(icono_path), width=78)
-        st.markdown("### ZENTIX")
-        st.caption("Acceso seguro")
+        col_sb_icon, col_sb_text = st.columns([1, 3])
+        with col_sb_icon:
+            if icono_path.exists():
+                st.image(str(icono_path), width=42)
+        with col_sb_text:
+            st.markdown('<div class="sidebar-brand-title">ZENTIX</div>', unsafe_allow_html=True)
+            st.markdown('<div class="sidebar-brand-sub">Acceso seguro</div>', unsafe_allow_html=True)
 
     col_hero, col_form = st.columns([1.25, 1])
 
     with col_hero:
         st.markdown('<div class="hero-card">', unsafe_allow_html=True)
 
-        if icono_path.exists():
-            st.image(str(icono_path), width=150)
-
-        st.markdown('<div class="brand-title">ZENTIX</div>', unsafe_allow_html=True)
-        st.markdown(
-            '<div class="brand-subtitle">Tu centro financiero inteligente. Controla ingresos, gastos, ahorro y análisis con una experiencia moderna, visual y personalizada.</div>',
-            unsafe_allow_html=True
-        )
+        col_h1, col_h2 = st.columns([1, 4])
+        with col_h1:
+            if icono_path.exists():
+                st.image(str(icono_path), width=110)
+        with col_h2:
+            st.markdown('<div class="header-brand-name">ZENTIX</div>', unsafe_allow_html=True)
+            st.markdown(
+                '<div class="header-brand-sub">Tu centro financiero inteligente. Controla ingresos, gastos, ahorro y análisis con una experiencia moderna, visual y personalizada.</div>',
+                unsafe_allow_html=True
+            )
 
         st.write("")
         if avatar_path.exists():
@@ -330,26 +351,29 @@ if st.session_state.user is None:
     st.stop()
 
 # ---------------- HEADER APP ----------------
-col_logo, col_title = st.columns([1, 6])
+col_logo, col_title = st.columns([1, 7])
 
 with col_logo:
     if icono_path.exists():
-        st.image(str(icono_path), width=82)
+        st.image(str(icono_path), width=72)
 
 with col_title:
-    st.markdown("## ZENTIX")
-    st.caption("Finanzas inteligentes con estilo fintech")
+    st.markdown('<div class="header-brand-name">ZENTIX</div>', unsafe_allow_html=True)
+    st.markdown('<div class="header-brand-sub">Finanzas inteligentes con estilo fintech</div>', unsafe_allow_html=True)
 
 # ---------------- SESIÓN INICIADA ----------------
 user_id = st.session_state.user.id
 perfil = obtener_perfil(user_id)
 
 with st.sidebar:
-    if icono_path.exists():
-        st.image(str(icono_path), width=70)
+    col_sb_icon, col_sb_text = st.columns([1, 3])
+    with col_sb_icon:
+        if icono_path.exists():
+            st.image(str(icono_path), width=42)
+    with col_sb_text:
+        st.markdown('<div class="sidebar-brand-title">ZENTIX</div>', unsafe_allow_html=True)
+        st.markdown('<div class="sidebar-brand-sub">Panel personal</div>', unsafe_allow_html=True)
 
-    st.markdown("### ZENTIX")
-    st.caption("Panel personal")
     st.success("Sesión iniciada")
 
     if st.button("Cerrar sesión"):
