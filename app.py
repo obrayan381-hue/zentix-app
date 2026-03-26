@@ -550,7 +550,7 @@ def kpi_card(label, value, foot="", variant="balance"):
         "income": "kpi-card kpi-income",
         "expense": "kpi-card kpi-expense",
         "balance": "kpi-card kpi-balance",
-        "saving": "saving": "kpi-card kpi-saving",
+        "saving": "kpi-card kpi-saving",
     }
     st.markdown(
         f"""
