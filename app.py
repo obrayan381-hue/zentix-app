@@ -5,7 +5,11 @@ from datetime import datetime, date
 from pathlib import Path
 from supabase_config import supabase
 
-st.set_page_config(page_title="Zentix", layout="wide")
+st.set_page_config(
+    page_title="Zentix",
+    page_icon="icono_zentix.png",
+    layout="wide"
+)
 
 # ---------------- CONFIG BASE ----------------
 DEFAULT_GASTOS = [
@@ -24,7 +28,7 @@ avatar_path = Path("avatar_zentix.png")
 st.markdown("""
     <style>
     body { background-color: #0D0D0D; color: white; }
-    .stApp { background-color: #0D0D0D; }
+    .stApp { background: radial-gradient(circle at top left, #111827 0%, #0D0D0D 45%, #070707 100%); }
 
     .stButton>button {
         background: linear-gradient(90deg, #2563EB, #7C3AED);
@@ -43,25 +47,27 @@ st.markdown("""
         border-radius: 12px !important;
     }
 
-    .brand-wrap {
-        display: flex;
-        align-items: center;
-        gap: 18px;
-        margin-bottom: 18px;
+    .hero-card {
+        background: linear-gradient(135deg, rgba(37,99,235,0.16), rgba(124,58,237,0.18));
+        border: 1px solid rgba(124,58,237,0.28);
+        border-radius: 28px;
+        padding: 28px;
+        box-shadow: 0 12px 35px rgba(37,99,235,0.14);
+        backdrop-filter: blur(10px);
     }
 
     .brand-title {
-        font-size: 34px;
-        font-weight: 800;
+        font-size: 42px;
+        font-weight: 900;
         color: white;
-        margin: 0;
         letter-spacing: 1px;
+        margin-bottom: 8px;
     }
 
     .brand-subtitle {
         color: #94A3B8;
-        margin-top: 4px;
-        font-size: 14px;
+        font-size: 16px;
+        line-height: 1.5;
     }
 
     .metric-card {
@@ -142,19 +148,15 @@ st.markdown("""
         padding: 18px;
         margin-bottom: 16px;
     }
+
+    .login-box {
+        background: rgba(10,10,10,0.78);
+        border: 1px solid #242424;
+        border-radius: 24px;
+        padding: 24px;
+    }
     </style>
 """, unsafe_allow_html=True)
-
-# ---------------- HEADER ----------------
-col_logo, col_title = st.columns([1, 6])
-
-with col_logo:
-    if icono_path.exists():
-        st.image(str(icono_path), width=82)
-
-with col_title:
-    st.markdown("## ZENTIX")
-    st.caption("Finanzas inteligentes con estilo fintech")
 
 # ---------------- SESSION ----------------
 if "user" not in st.session_state:
@@ -267,33 +269,76 @@ def render_avatar(pagina, nombre, total_ingresos, total_gastos, ahorro_actual, u
 
     st.markdown('</div>', unsafe_allow_html=True)
 
-# ---------------- AUTH ----------------
+# ---------------- LOGIN PREMIUM ----------------
 if st.session_state.user is None:
-    menu_auth = ["Login", "Registro"]
-    choice = st.sidebar.selectbox("Acceso", menu_auth)
+    with st.sidebar:
+        if icono_path.exists():
+            st.image(str(icono_path), width=78)
+        st.markdown("### ZENTIX")
+        st.caption("Acceso seguro")
 
-    email = st.text_input("Correo")
-    password = st.text_input("Contraseña", type="password")
+    col_hero, col_form = st.columns([1.25, 1])
 
-    if choice == "Registro":
-        if st.button("Crear cuenta"):
-            try:
-                supabase.auth.sign_up({"email": email, "password": password})
-                st.success("Cuenta creada correctamente. Ahora inicia sesión.")
-            except Exception as e:
-                st.error(f"Error al registrar: {e}")
+    with col_hero:
+        st.markdown('<div class="hero-card">', unsafe_allow_html=True)
 
-    elif choice == "Login":
-        if st.button("Ingresar"):
-            try:
-                res = supabase.auth.sign_in_with_password({"email": email, "password": password})
-                st.session_state.user = res.user
-                st.success("Bienvenido a Zentix")
-                st.rerun()
-            except Exception as e:
-                st.error(f"Error al iniciar sesión: {e}")
+        if icono_path.exists():
+            st.image(str(icono_path), width=150)
 
+        st.markdown('<div class="brand-title">ZENTIX</div>', unsafe_allow_html=True)
+        st.markdown(
+            '<div class="brand-subtitle">Tu centro financiero inteligente. Controla ingresos, gastos, ahorro y análisis con una experiencia moderna, visual y personalizada.</div>',
+            unsafe_allow_html=True
+        )
+
+        st.write("")
+        if avatar_path.exists():
+            st.image(str(avatar_path), width=180)
+
+        st.caption("Avatar Zentix: listo para acompañarte en cada decisión financiera.")
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    with col_form:
+        st.markdown('<div class="login-box">', unsafe_allow_html=True)
+        st.subheader("Accede a tu cuenta")
+
+        menu_auth = ["Login", "Registro"]
+        choice = st.selectbox("Acceso", menu_auth)
+
+        email = st.text_input("Correo")
+        password = st.text_input("Contraseña", type="password")
+
+        if choice == "Registro":
+            if st.button("Crear cuenta", use_container_width=True):
+                try:
+                    supabase.auth.sign_up({"email": email, "password": password})
+                    st.success("Cuenta creada correctamente. Ahora inicia sesión.")
+                except Exception as e:
+                    st.error(f"Error al registrar: {e}")
+
+        elif choice == "Login":
+            if st.button("Ingresar", use_container_width=True):
+                try:
+                    res = supabase.auth.sign_in_with_password({"email": email, "password": password})
+                    st.session_state.user = res.user
+                    st.success("Bienvenido a Zentix")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Error al iniciar sesión: {e}")
+
+        st.markdown('</div>', unsafe_allow_html=True)
     st.stop()
+
+# ---------------- HEADER APP ----------------
+col_logo, col_title = st.columns([1, 6])
+
+with col_logo:
+    if icono_path.exists():
+        st.image(str(icono_path), width=82)
+
+with col_title:
+    st.markdown("## ZENTIX")
+    st.caption("Finanzas inteligentes con estilo fintech")
 
 # ---------------- SESIÓN INICIADA ----------------
 user_id = st.session_state.user.id
@@ -305,7 +350,6 @@ with st.sidebar:
 
     st.markdown("### ZENTIX")
     st.caption("Panel personal")
-
     st.success("Sesión iniciada")
 
     if st.button("Cerrar sesión"):
