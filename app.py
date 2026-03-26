@@ -10,7 +10,8 @@ import html
 st.set_page_config(
     page_title="Zentix",
     page_icon="icono_zentix_v2.png",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
 DEFAULT_GASTOS = [
@@ -1000,7 +1001,12 @@ with st.sidebar:
         unsafe_allow_html=True
     )
 
-    pagina = st.selectbox("Menú", ["Inicio", "Registrar", "Análisis", "Ahorro"])
+    st.markdown("### Navegación")
+    pagina = st.radio(
+        "Ir a",
+        ["Inicio", "Registrar", "Análisis", "Ahorro"],
+        label_visibility="collapsed"
+    )
 
     if st.button("Cerrar sesión", use_container_width=True):
         st.session_state.user = None
@@ -1416,3 +1422,4 @@ if pagina == "Ahorro":
             unsafe_allow_html=True
         )
         render_avatar(pagina, nombre_usuario, total_ingresos, total_gastos, saldo_disponible, ultimo_tipo)
+
