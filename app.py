@@ -17,7 +17,7 @@ DEFAULT_INGRESOS = [
     "Salario", "Freelance", "Ventas", "Inversiones", "Regalos", "Otros"
 ]
 
-logo_path = Path("logo_zentix.png")
+icono_path = Path("icono_zentix.png")
 avatar_path = Path("avatar_zentix.png")
 
 # ---------------- ESTILO ----------------
@@ -46,8 +46,8 @@ st.markdown("""
     .brand-wrap {
         display: flex;
         align-items: center;
-        gap: 16px;
-        margin-bottom: 16px;
+        gap: 18px;
+        margin-bottom: 18px;
     }
 
     .brand-title {
@@ -55,6 +55,7 @@ st.markdown("""
         font-weight: 800;
         color: white;
         margin: 0;
+        letter-spacing: 1px;
     }
 
     .brand-subtitle {
@@ -84,10 +85,31 @@ st.markdown("""
     }
 
     .avatar-card {
-        background: linear-gradient(135deg, #0f172a, #111827);
-        border: 1px solid #1f2937;
-        border-radius: 22px;
+        background: linear-gradient(135deg, rgba(37,99,235,0.16), rgba(124,58,237,0.18));
+        border: 1px solid rgba(124,58,237,0.28);
+        border-radius: 24px;
         padding: 18px;
+        margin-top: 12px;
+        box-shadow: 0 12px 35px rgba(37,99,235,0.16);
+        backdrop-filter: blur(10px);
+    }
+
+    .avatar-title {
+        font-size: 20px;
+        font-weight: 800;
+        color: #C4B5FD;
+        margin-bottom: 6px;
+    }
+
+    .avatar-text {
+        color: #E5E7EB;
+        font-size: 15px;
+        line-height: 1.5;
+    }
+
+    .avatar-mini {
+        color: #94A3B8;
+        font-size: 13px;
         margin-top: 8px;
     }
 
@@ -124,11 +146,11 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ---------------- HEADER ----------------
-col_logo, col_title = st.columns([1, 5])
+col_logo, col_title = st.columns([1, 6])
 
 with col_logo:
-    if logo_path.exists():
-        st.image(str(logo_path), width=120)
+    if icono_path.exists():
+        st.image(str(icono_path), width=82)
 
 with col_title:
     st.markdown("## ZENTIX")
@@ -226,17 +248,24 @@ def render_avatar(pagina, nombre, total_ingresos, total_gastos, ahorro_actual, u
 
     estado = "🟢 Último movimiento: ingreso" if ultimo_tipo == "Ingreso" else "🔴 Último movimiento: gasto" if ultimo_tipo == "Gasto" else "⚪ Aún no hay movimientos"
 
+    st.markdown('<div class="avatar-card">', unsafe_allow_html=True)
+
     col1, col2 = st.columns([1, 5])
 
     with col1:
         if avatar_path.exists():
-            st.image(str(avatar_path), width=90)
+            st.image(str(avatar_path), width=95)
 
     with col2:
-        st.markdown("### Avatar Zentix")
-        st.write(mensaje)
-        st.caption(estado)
-        st.caption(f"Ingresos: {total_ingresos:,.0f} | Gastos: {total_gastos:,.0f} | Disponible: {ahorro_actual:,.0f}")
+        st.markdown('<div class="avatar-title">Avatar Zentix</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="avatar-text">{mensaje}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="avatar-mini">{estado}</div>', unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="avatar-mini">Ingresos: {total_ingresos:,.0f} | Gastos: {total_gastos:,.0f} | Disponible: {ahorro_actual:,.0f}</div>',
+            unsafe_allow_html=True
+        )
+
+    st.markdown('</div>', unsafe_allow_html=True)
 
 # ---------------- AUTH ----------------
 if st.session_state.user is None:
@@ -271,7 +300,14 @@ user_id = st.session_state.user.id
 perfil = obtener_perfil(user_id)
 
 with st.sidebar:
+    if icono_path.exists():
+        st.image(str(icono_path), width=70)
+
+    st.markdown("### ZENTIX")
+    st.caption("Panel personal")
+
     st.success("Sesión iniciada")
+
     if st.button("Cerrar sesión"):
         st.session_state.user = None
         st.rerun()
