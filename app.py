@@ -11,7 +11,6 @@ st.set_page_config(
     layout="wide"
 )
 
-# ---------------- CONFIG BASE ----------------
 DEFAULT_GASTOS = [
     "Comida", "Transporte", "Arriendo", "Servicios", "Salud",
     "Educación", "Compras", "Ocio", "Deudas", "Otros"
@@ -21,162 +20,561 @@ DEFAULT_INGRESOS = [
     "Salario", "Freelance", "Ventas", "Inversiones", "Regalos", "Otros"
 ]
 
+CHART_COLORS = ["#22C55E", "#EF4444", "#3B82F6", "#8B5CF6", "#06B6D4", "#F59E0B"]
+
 icono_path = Path("icono_zentix_v2.png")
 if not icono_path.exists():
     icono_path = Path("icono_zentix.png")
 
 avatar_path = Path("avatar_zentix.png")
 
-# ---------------- ESTILO ----------------
-st.markdown("""
-    <style>
-    body { background-color: #0D0D0D; color: white; }
-    .stApp { background: radial-gradient(circle at top left, #111827 0%, #0D0D0D 45%, #070707 100%); }
 
-    .stButton>button {
-        background: linear-gradient(90deg, #2563EB, #7C3AED);
-        color: white;
-        border-radius: 12px;
-        font-weight: 700;
-        border: none;
+def aplicar_estilo_zentix():
+    st.markdown("""
+    <style>
+    :root {
+        --bg: #06111f;
+        --bg2: #0a1628;
+        --panel: rgba(12, 20, 36, 0.88);
+        --panel-2: rgba(14, 24, 42, 0.94);
+        --line: rgba(148, 163, 184, 0.15);
+        --line-strong: rgba(96, 165, 250, 0.20);
+        --text: #F8FAFC;
+        --muted: #94A3B8;
+        --blue: #3B82F6;
+        --cyan: #06B6D4;
+        --purple: #8B5CF6;
+        --green: #22C55E;
+        --red: #EF4444;
+        --amber: #F59E0B;
     }
 
-    .stTextInput>div>div>input,
+    html, body, [class*="css"]  {
+        color: var(--text);
+    }
+
+    .stApp {
+        background:
+            radial-gradient(circle at top left, rgba(59,130,246,0.16), transparent 28%),
+            radial-gradient(circle at top right, rgba(139,92,246,0.10), transparent 24%),
+            linear-gradient(180deg, #040b15 0%, #08111f 50%, #0b1627 100%);
+    }
+
+    [data-testid="stAppViewContainer"] {
+        background: transparent;
+    }
+
+    .block-container {
+        max-width: 1220px;
+        padding-top: 1.2rem;
+        padding-bottom: 2rem;
+    }
+
+    [data-testid="stSidebar"] {
+        background: linear-gradient(180deg, rgba(7,12,22,0.98), rgba(10,18,32,0.98));
+        border-right: 1px solid var(--line);
+    }
+
+    [data-testid="stSidebar"] * {
+        color: var(--text);
+    }
+
+    h1, h2, h3 {
+        color: var(--text) !important;
+        letter-spacing: -0.02em;
+    }
+
+    p, label, .stMarkdown, .stCaption, span, div {
+        color: inherit;
+    }
+
+    .stButton > button {
+        width: 100%;
+        border-radius: 16px;
+        border: 1px solid rgba(125, 211, 252, 0.14);
+        background: linear-gradient(135deg, #2563EB, #0891B2);
+        color: white;
+        font-weight: 800;
+        padding: 0.72rem 1rem;
+        box-shadow: 0 12px 24px rgba(37,99,235,0.18);
+        transition: all 0.18s ease;
+    }
+
+    .stButton > button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 16px 28px rgba(37,99,235,0.24);
+        border-color: rgba(125, 211, 252, 0.24);
+    }
+
+    .stButton > button[kind="secondary"] {
+        background: linear-gradient(135deg, #111827, #0F172A);
+        border: 1px solid rgba(148, 163, 184, 0.16);
+        box-shadow: none;
+    }
+
+    .stTextInput > div > div > input,
     .stNumberInput input,
+    .stDateInput input,
     .stSelectbox div[data-baseweb="select"] > div,
     .stMultiSelect div[data-baseweb="select"] > div {
-        background-color: #151515 !important;
-        color: white !important;
-        border-radius: 12px !important;
+        background: rgba(15,23,42,0.88) !important;
+        color: var(--text) !important;
+        border: 1px solid rgba(148,163,184,0.15) !important;
+        border-radius: 15px !important;
+    }
+
+    .stRadio [role="radiogroup"] {
+        gap: 0.6rem;
+    }
+
+    .stRadio label {
+        background: rgba(15,23,42,0.72);
+        padding: 0.35rem 0.8rem;
+        border-radius: 999px;
+        border: 1px solid rgba(148,163,184,0.14);
+    }
+
+    .stAlert {
+        border-radius: 16px;
+    }
+
+    .zentix-topbar {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin-bottom: 1rem;
+    }
+
+    .zentix-brand-title {
+        font-size: 2rem;
+        font-weight: 900;
+        line-height: 1;
+        margin: 0;
+        letter-spacing: 0.02em;
+    }
+
+    .zentix-brand-sub {
+        color: var(--muted);
+        margin-top: 4px;
+        font-size: 0.95rem;
     }
 
     .hero-card {
-        background: linear-gradient(135deg, rgba(37,99,235,0.16), rgba(124,58,237,0.18));
-        border: 1px solid rgba(124,58,237,0.28);
+        background:
+            radial-gradient(circle at top left, rgba(59,130,246,0.16), transparent 30%),
+            linear-gradient(135deg, rgba(15,23,42,0.96), rgba(8,15,28,0.98));
+        border: 1px solid rgba(96,165,250,0.16);
         border-radius: 28px;
-        padding: 28px;
-        box-shadow: 0 12px 35px rgba(37,99,235,0.14);
+        padding: 1.35rem;
+        box-shadow: 0 18px 40px rgba(0,0,0,0.32);
         backdrop-filter: blur(10px);
+        margin-bottom: 1rem;
     }
 
-    .metric-card {
-        background: #151515;
-        padding: 18px;
-        border-radius: 16px;
-        border: 1px solid #2a2a2a;
-        margin-bottom: 10px;
+    .hero-badge {
+        display: inline-block;
+        padding: 0.35rem 0.78rem;
+        border-radius: 999px;
+        background: rgba(59,130,246,0.12);
+        border: 1px solid rgba(59,130,246,0.22);
+        color: #BFDBFE;
+        font-size: 0.78rem;
+        font-weight: 700;
+        margin-bottom: 0.85rem;
     }
 
-    .saldo-verde {
-        color: #22C55E;
-        font-weight: bold;
-        font-size: 24px;
+    .hero-title {
+        font-size: 2rem;
+        font-weight: 900;
+        line-height: 1.05;
+        margin: 0 0 0.35rem 0;
+        color: var(--text);
+        letter-spacing: -0.03em;
     }
 
-    .saldo-rojo {
-        color: #EF4444;
-        font-weight: bold;
-        font-size: 24px;
+    .hero-subtitle {
+        color: var(--muted);
+        font-size: 1rem;
+        line-height: 1.55;
+        margin: 0;
     }
 
-    .avatar-card {
-        background: linear-gradient(135deg, rgba(37,99,235,0.16), rgba(124,58,237,0.18));
-        border: 1px solid rgba(124,58,237,0.28);
+    .hero-pills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 1rem;
+    }
+
+    .hero-pill {
+        display: inline-block;
+        padding: 0.42rem 0.8rem;
+        border-radius: 999px;
+        background: rgba(15,23,42,0.74);
+        border: 1px solid rgba(148,163,184,0.16);
+        color: #E2E8F0;
+        font-size: 0.82rem;
+        font-weight: 600;
+    }
+
+    .section-title {
+        font-size: 1.06rem;
+        font-weight: 800;
+        color: var(--text);
+        margin-top: 0.35rem;
+        margin-bottom: 0.12rem;
+    }
+
+    .section-caption {
+        font-size: 0.9rem;
+        color: var(--muted);
+        margin-bottom: 0.85rem;
+    }
+
+    .kpi-card {
+        background: linear-gradient(180deg, rgba(12,20,36,0.94), rgba(9,16,29,0.98));
+        border: 1px solid var(--line);
+        border-radius: 22px;
+        padding: 1rem;
+        min-height: 124px;
+        box-shadow: 0 12px 28px rgba(0,0,0,0.22);
+    }
+
+    .kpi-income {
+        border-color: rgba(34,197,94,0.24);
+        box-shadow: 0 12px 28px rgba(34,197,94,0.07);
+    }
+
+    .kpi-expense {
+        border-color: rgba(239,68,68,0.22);
+        box-shadow: 0 12px 28px rgba(239,68,68,0.07);
+    }
+
+    .kpi-balance {
+        border-color: rgba(59,130,246,0.24);
+        box-shadow: 0 12px 28px rgba(59,130,246,0.08);
+    }
+
+    .kpi-saving {
+        border-color: rgba(139,92,246,0.22);
+        box-shadow: 0 12px 28px rgba(139,92,246,0.08);
+    }
+
+    .kpi-label {
+        font-size: 0.82rem;
+        color: var(--muted);
+        margin-bottom: 0.55rem;
+    }
+
+    .kpi-value {
+        font-size: 1.6rem;
+        font-weight: 900;
+        color: var(--text);
+        line-height: 1.1;
+        margin-bottom: 0.25rem;
+    }
+
+    .kpi-foot {
+        font-size: 0.82rem;
+        color: var(--muted);
+    }
+
+    .soft-card {
+        background: linear-gradient(180deg, rgba(12,20,36,0.80), rgba(10,18,32,0.94));
+        border: 1px solid var(--line);
+        border-radius: 22px;
+        padding: 1rem 1.05rem;
+        box-shadow: 0 12px 30px rgba(0,0,0,0.22);
+        margin-bottom: 1rem;
+    }
+
+    .assistant-card {
+        background:
+            radial-gradient(circle at top left, rgba(59,130,246,0.14), transparent 32%),
+            linear-gradient(135deg, rgba(15,23,42,0.96), rgba(10,18,32,0.98));
+        border: 1px solid rgba(96,165,250,0.16);
         border-radius: 24px;
-        padding: 18px;
-        margin-top: 12px;
-        box-shadow: 0 12px 35px rgba(37,99,235,0.16);
-        backdrop-filter: blur(10px);
+        padding: 1rem;
+        box-shadow: 0 16px 32px rgba(0,0,0,0.26);
     }
 
-    .avatar-title {
-        font-size: 20px;
+    .assistant-title {
+        font-size: 1.05rem;
         font-weight: 800;
         color: #C4B5FD;
-        margin-bottom: 6px;
+        margin-bottom: 0.2rem;
     }
 
-    .avatar-text {
-        color: #E5E7EB;
-        font-size: 15px;
-        line-height: 1.5;
+    .assistant-text {
+        color: #E2E8F0;
+        font-size: 0.95rem;
+        line-height: 1.55;
     }
 
-    .avatar-mini {
-        color: #94A3B8;
-        font-size: 13px;
-        margin-top: 8px;
+    .assistant-mini {
+        color: var(--muted);
+        font-size: 0.82rem;
+        margin-top: 0.4rem;
     }
 
     .pill-ingreso {
         display: inline-block;
-        padding: 8px 14px;
+        padding: 0.45rem 0.88rem;
         border-radius: 999px;
-        background: rgba(34,197,94,0.15);
-        border: 1px solid rgba(34,197,94,0.35);
-        color: #22C55E;
-        font-weight: 700;
-        margin-bottom: 10px;
+        background: rgba(34,197,94,0.14);
+        border: 1px solid rgba(34,197,94,0.28);
+        color: #4ADE80;
+        font-weight: 800;
+        margin-bottom: 0.8rem;
     }
 
     .pill-gasto {
         display: inline-block;
-        padding: 8px 14px;
+        padding: 0.45rem 0.88rem;
         border-radius: 999px;
-        background: rgba(239,68,68,0.15);
-        border: 1px solid rgba(239,68,68,0.35);
-        color: #EF4444;
-        font-weight: 700;
-        margin-bottom: 10px;
+        background: rgba(239,68,68,0.14);
+        border: 1px solid rgba(239,68,68,0.28);
+        color: #F87171;
+        font-weight: 800;
+        margin-bottom: 0.8rem;
     }
 
-    .section-card {
-        background: #101010;
-        border: 1px solid #222;
-        border-radius: 18px;
-        padding: 18px;
-        margin-bottom: 16px;
+    .empty-card {
+        background: linear-gradient(180deg, rgba(12,20,36,0.82), rgba(10,18,32,0.94));
+        border: 1px dashed rgba(148,163,184,0.18);
+        border-radius: 22px;
+        padding: 1.2rem;
+        text-align: center;
+        color: var(--muted);
     }
 
     .login-box {
-        background: rgba(10,10,10,0.78);
-        border: 1px solid #242424;
+        background: linear-gradient(180deg, rgba(10,14,24,0.92), rgba(10,18,32,0.98));
+        border: 1px solid var(--line);
         border-radius: 24px;
-        padding: 24px;
-    }
-
-    .header-brand-name {
-        font-size: 2.1rem;
-        font-weight: 900;
-        letter-spacing: 1px;
-        margin: 0;
-        color: white;
-        line-height: 1.1;
-    }
-
-    .header-brand-sub {
-        color: #94A3B8;
-        font-size: 0.98rem;
-        margin-top: 6px;
+        padding: 1.25rem;
+        box-shadow: 0 18px 36px rgba(0,0,0,0.28);
     }
 
     .sidebar-brand-title {
-        font-size: 1.1rem;
-        font-weight: 800;
-        color: white;
+        font-size: 1.05rem;
+        font-weight: 900;
+        color: var(--text);
         margin: 0;
         line-height: 1.1;
     }
 
     .sidebar-brand-sub {
-        color: #94A3B8;
+        color: var(--muted);
         font-size: 0.78rem;
         margin-top: 2px;
     }
-    </style>
-""", unsafe_allow_html=True)
 
-# ---------------- FUNCIONES ----------------
+    .sidebar-user-card {
+        background: rgba(15,23,42,0.72);
+        border: 1px solid rgba(148,163,184,0.14);
+        border-radius: 18px;
+        padding: 0.85rem 0.9rem;
+        margin: 0.6rem 0 0.9rem 0;
+    }
+
+    .sidebar-user-label {
+        color: var(--muted);
+        font-size: 0.76rem;
+    }
+
+    .sidebar-user-name {
+        font-size: 0.96rem;
+        font-weight: 800;
+        color: var(--text);
+        margin-top: 0.12rem;
+    }
+
+    .form-preview-value {
+        font-size: 1.45rem;
+        font-weight: 900;
+        margin-top: 0.2rem;
+        color: var(--text);
+    }
+
+    .tiny-muted {
+        color: var(--muted);
+        font-size: 0.82rem;
+    }
+
+    .stDataFrame {
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        overflow: hidden;
+    }
+
+    div[data-testid="stProgressBar"] > div > div {
+        background: linear-gradient(90deg, #2563EB, #8B5CF6);
+    }
+
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+    </style>
+    """, unsafe_allow_html=True)
+
+
+def money(value):
+    return f"${float(value):,.0f}"
+
+
+def aplicar_estilo_plotly(fig, height=360):
+    fig.update_layout(
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        font_color="#E5E7EB",
+        title_font_size=18,
+        title_x=0.03,
+        margin=dict(l=20, r=20, t=60, b=20),
+        height=height,
+        legend_title_text=""
+    )
+    return fig
+
+
+def zentix_brand_header():
+    col_logo, col_title = st.columns([1, 8])
+    with col_logo:
+        if icono_path.exists():
+            st.image(str(icono_path), width=72)
+    with col_title:
+        st.markdown('<div class="zentix-brand-title">ZENTIX</div>', unsafe_allow_html=True)
+        st.markdown('<div class="zentix-brand-sub">Finanzas inteligentes con estilo fintech premium</div>', unsafe_allow_html=True)
+
+
+def zentix_hero(nombre, saldo_disponible, total_ingresos, total_gastos):
+    balance_label = "Balance positivo" if saldo_disponible >= 0 else "Balance ajustado"
+    st.markdown(
+        f"""
+        <div class="hero-card">
+            <div class="hero-badge">Zentix · centro financiero personal</div>
+            <div class="hero-title">Hola, {nombre}</div>
+            <div class="hero-subtitle">
+                Visualiza tu mes con claridad, registra movimientos en segundos y toma decisiones con una interfaz más sólida, limpia y premium.
+            </div>
+            <div class="hero-pills">
+                <span class="hero-pill">Disponible: {money(saldo_disponible)}</span>
+                <span class="hero-pill">Ingresos: {money(total_ingresos)}</span>
+                <span class="hero-pill">Gastos: {money(total_gastos)}</span>
+                <span class="hero-pill">{balance_label}</span>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+
+def section_header(titulo, subtitulo=""):
+    st.markdown(f'<div class="section-title">{titulo}</div>', unsafe_allow_html=True)
+    if subtitulo:
+        st.markdown(f'<div class="section-caption">{subtitulo}</div>', unsafe_allow_html=True)
+
+
+def kpi_card(label, value, foot="", variant="balance"):
+    classes = {
+        "income": "kpi-card kpi-income",
+        "expense": "kpi-card kpi-expense",
+        "balance": "kpi-card kpi-balance",
+        "saving": "kpi-card kpi-saving",
+    }
+    st.markdown(
+        f"""
+        <div class="{classes.get(variant, 'kpi-card')}">
+            <div class="kpi-label">{label}</div>
+            <div class="kpi-value">{value}</div>
+            <div class="kpi-foot">{foot}</div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+
+def empty_state(title, text):
+    st.markdown(
+        f"""
+        <div class="empty-card">
+            <div style="font-size:1.05rem;font-weight:800;color:#F8FAFC;margin-bottom:0.35rem;">{title}</div>
+            <div style="font-size:0.92rem;line-height:1.6;">{text}</div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+
+def render_avatar(pagina, nombre, total_ingresos, total_gastos, ahorro_actual, ultimo_tipo):
+    if pagina == "Inicio":
+        mensaje = f"{nombre}, tu panorama mensual ya está listo. Observa si tus gastos se acercan demasiado a tus ingresos."
+    elif pagina == "Registrar":
+        mensaje = f"{nombre}, cada movimiento que registras mejora tu lectura financiera y hace a Zentix más útil para ti."
+    elif pagina == "Análisis":
+        mensaje = f"{nombre}, aquí puedes detectar patrones, concentraciones por categoría y señales de gasto recurrente."
+    else:
+        mensaje = f"{nombre}, una meta funciona mejor cuando está conectada con tu saldo real y no solo con una intención."
+
+    estado = (
+        "🟢 Último movimiento: ingreso" if ultimo_tipo == "Ingreso"
+        else "🔴 Último movimiento: gasto" if ultimo_tipo == "Gasto"
+        else "⚪ Aún no hay movimientos"
+    )
+
+    st.markdown('<div class="assistant-card">', unsafe_allow_html=True)
+    col1, col2 = st.columns([1, 4])
+    with col1:
+        if avatar_path.exists():
+            st.image(str(avatar_path), width=88)
+    with col2:
+        st.markdown('<div class="assistant-title">Avatar Zentix</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="assistant-text">{mensaje}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="assistant-mini">{estado}</div>', unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="assistant-mini">Ingresos: {money(total_ingresos)} · Gastos: {money(total_gastos)} · Disponible: {money(ahorro_actual)}</div>',
+            unsafe_allow_html=True
+        )
+    st.markdown('</div>', unsafe_allow_html=True)
+
+
+def obtener_insight_financiero(total_ingresos, total_gastos, saldo_disponible, df_mes):
+    if df_mes.empty:
+        return "Empieza registrando tus primeros movimientos. En cuanto tengas datos del mes, Zentix podrá mostrarte patrones y alertas útiles."
+
+    if total_ingresos == 0 and total_gastos > 0:
+        return "Este mes tienes gastos registrados, pero no ingresos. Revisa si te falta registrar entradas para ver un balance real."
+
+    if total_ingresos > 0:
+        ratio = total_gastos / total_ingresos
+        if ratio >= 0.9:
+            return "Tus gastos están muy cerca de tus ingresos. Conviene revisar la categoría más pesada del mes y contener salidas."
+        if ratio >= 0.7:
+            return "Tu nivel de gasto está controlado, aunque ya representa una parte importante de tus ingresos. Mantén vigilancia."
+        return "Tu relación entre ingresos y gastos es saludable. Tienes margen para ahorro o colchón de seguridad."
+
+    if saldo_disponible < 0:
+        return "Tu saldo actual está en negativo. Prioriza recortar gasto variable antes de fijar metas más agresivas."
+    return "Tu comportamiento del mes luce estable. Sigue registrando para confirmar la tendencia."
+
+
+def obtener_categoria_top(df_mes):
+    if df_mes.empty:
+        return None, 0.0
+    resumen = (
+        df_mes.groupby("categoria", dropna=False)["monto"]
+        .sum()
+        .sort_values(ascending=False)
+    )
+    if resumen.empty:
+        return None, 0.0
+    return resumen.index[0], float(resumen.iloc[0])
+
+
+aplicar_estilo_zentix()
+
+
+# ---------------- FUNCIONES DE DATOS ----------------
 def obtener_movimientos(user_id):
     result = (
         supabase.table("movimientos")
@@ -194,6 +592,7 @@ def obtener_movimientos(user_id):
 
     return df_local
 
+
 def obtener_perfil(user_id):
     result = (
         supabase.table("perfiles_usuario")
@@ -203,6 +602,7 @@ def obtener_perfil(user_id):
         .execute()
     )
     return result.data[0] if result.data else None
+
 
 def guardar_onboarding(user_id, nombre_mostrado, categorias_gasto, categorias_ingreso):
     perfil = obtener_perfil(user_id)
@@ -230,6 +630,7 @@ def guardar_onboarding(user_id, nombre_mostrado, categorias_gasto, categorias_in
     if registros:
         supabase.table("categorias_usuario").insert(registros).execute()
 
+
 def obtener_categorias_usuario(user_id, tipo):
     result = (
         supabase.table("categorias_usuario")
@@ -242,6 +643,7 @@ def obtener_categorias_usuario(user_id, tipo):
     data = result.data if result.data else []
     return [x["nombre"] for x in data]
 
+
 def obtener_meta(user_id):
     result = (
         supabase.table("ahorro_meta")
@@ -252,80 +654,66 @@ def obtener_meta(user_id):
     )
     return result.data[0] if result.data else None
 
-def render_avatar(pagina, nombre, total_ingresos, total_gastos, ahorro_actual, ultimo_tipo):
-    if pagina == "Inicio":
-        mensaje = f"{nombre}, este es tu panorama financiero actual. Vigila si tus gastos están subiendo demasiado."
-    elif pagina == "Registrar":
-        mensaje = f"{nombre}, registra bien cada movimiento. Así Zentix podrá ayudarte mejor."
-    elif pagina == "Análisis":
-        mensaje = f"{nombre}, aquí podrás detectar patrones y entender en qué se te va más dinero."
-    else:
-        mensaje = f"{nombre}, ahorrar es conservar lo que queda después de gastar, no solo proponértelo."
-
-    estado = "🟢 Último movimiento: ingreso" if ultimo_tipo == "Ingreso" else "🔴 Último movimiento: gasto" if ultimo_tipo == "Gasto" else "⚪ Aún no hay movimientos"
-
-    st.markdown('<div class="avatar-card">', unsafe_allow_html=True)
-    col1, col2 = st.columns([1, 5])
-
-    with col1:
-        if avatar_path.exists():
-            st.image(str(avatar_path), width=95)
-
-    with col2:
-        st.markdown('<div class="avatar-title">Avatar Zentix</div>', unsafe_allow_html=True)
-        st.markdown(f'<div class="avatar-text">{mensaje}</div>', unsafe_allow_html=True)
-        st.markdown(f'<div class="avatar-mini">{estado}</div>', unsafe_allow_html=True)
-        st.markdown(
-            f'<div class="avatar-mini">Ingresos: {total_ingresos:,.0f} | Gastos: {total_gastos:,.0f} | Disponible: {ahorro_actual:,.0f}</div>',
-            unsafe_allow_html=True
-        )
-    st.markdown('</div>', unsafe_allow_html=True)
 
 # ---------------- SESSION ----------------
 if "user" not in st.session_state:
     st.session_state.user = None
 
-# ---------------- LOGIN PREMIUM ----------------
+
+# ---------------- LOGIN / REGISTRO ----------------
 if st.session_state.user is None:
     with st.sidebar:
         col_sb_icon, col_sb_text = st.columns([1, 3])
         with col_sb_icon:
             if icono_path.exists():
-                st.image(str(icono_path), width=42)
+                st.image(str(icono_path), width=40)
         with col_sb_text:
             st.markdown('<div class="sidebar-brand-title">ZENTIX</div>', unsafe_allow_html=True)
             st.markdown('<div class="sidebar-brand-sub">Acceso seguro</div>', unsafe_allow_html=True)
 
-    col_hero, col_form = st.columns([1.25, 1])
+    col_hero, col_form = st.columns([1.2, 0.95])
 
     with col_hero:
-        st.markdown('<div class="hero-card">', unsafe_allow_html=True)
+        st.markdown(
+            """
+            <div class="hero-card">
+                <div class="hero-badge">Fintech personal · Supabase powered</div>
+                <div class="hero-title">Controla tu dinero con una experiencia premium</div>
+                <div class="hero-subtitle">
+                    Zentix reúne registro, análisis y ahorro en un solo lugar con una interfaz más moderna, clara y enfocada en decisiones.
+                </div>
+                <div class="hero-pills">
+                    <span class="hero-pill">Login seguro</span>
+                    <span class="hero-pill">Dashboard ejecutivo</span>
+                    <span class="hero-pill">Análisis mensual</span>
+                    <span class="hero-pill">Metas de ahorro</span>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
-        col_h1, col_h2 = st.columns([1, 4])
-        with col_h1:
+        col_brand, col_copy = st.columns([1, 3])
+        with col_brand:
             if icono_path.exists():
-                st.image(str(icono_path), width=110)
-        with col_h2:
-            st.markdown('<div class="header-brand-name">ZENTIX</div>', unsafe_allow_html=True)
+                st.image(str(icono_path), width=120)
+        with col_copy:
+            st.markdown('<div class="section-title">Una capa visual más premium</div>', unsafe_allow_html=True)
             st.markdown(
-                '<div class="header-brand-sub">Tu centro financiero inteligente. Controla ingresos, gastos, ahorro y análisis con una experiencia moderna, visual y personalizada.</div>',
+                '<div class="section-caption">Misma base funcional, mejor jerarquía visual, más claridad en métricas y una identidad de marca más fuerte.</div>',
                 unsafe_allow_html=True
             )
 
-        st.write("")
         if avatar_path.exists():
             st.image(str(avatar_path), width=180)
-
-        st.caption("Avatar Zentix: listo para acompañarte en cada decisión financiera.")
-        st.markdown('</div>', unsafe_allow_html=True)
+        st.caption("Avatar Zentix: tu asistente visual para leer mejor tu salud financiera.")
 
     with col_form:
         st.markdown('<div class="login-box">', unsafe_allow_html=True)
-        st.subheader("Accede a tu cuenta")
+        st.markdown('<div class="section-title">Accede a tu cuenta</div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-caption">Ingresa o crea tu cuenta para continuar en tu panel personal.</div>', unsafe_allow_html=True)
 
-        menu_auth = ["Login", "Registro"]
-        choice = st.selectbox("Acceso", menu_auth)
-
+        choice = st.selectbox("Acceso", ["Login", "Registro"])
         email = st.text_input("Correo")
         password = st.text_input("Contraseña", type="password")
 
@@ -337,7 +725,7 @@ if st.session_state.user is None:
                 except Exception as e:
                     st.error(f"Error al registrar: {e}")
 
-        elif choice == "Login":
+        if choice == "Login":
             if st.button("Ingresar", use_container_width=True):
                 try:
                     res = supabase.auth.sign_in_with_password({"email": email, "password": password})
@@ -350,40 +738,59 @@ if st.session_state.user is None:
         st.markdown('</div>', unsafe_allow_html=True)
     st.stop()
 
+
 # ---------------- HEADER APP ----------------
-col_logo, col_title = st.columns([1, 7])
-
-with col_logo:
-    if icono_path.exists():
-        st.image(str(icono_path), width=72)
-
-with col_title:
-    st.markdown('<div class="header-brand-name">ZENTIX</div>', unsafe_allow_html=True)
-    st.markdown('<div class="header-brand-sub">Finanzas inteligentes con estilo fintech</div>', unsafe_allow_html=True)
+zentix_brand_header()
 
 # ---------------- SESIÓN INICIADA ----------------
 user_id = st.session_state.user.id
 perfil = obtener_perfil(user_id)
+nombre_usuario = perfil["nombre_mostrado"] if perfil and perfil.get("nombre_mostrado") else "usuario"
 
 with st.sidebar:
     col_sb_icon, col_sb_text = st.columns([1, 3])
     with col_sb_icon:
         if icono_path.exists():
-            st.image(str(icono_path), width=42)
+            st.image(str(icono_path), width=40)
     with col_sb_text:
         st.markdown('<div class="sidebar-brand-title">ZENTIX</div>', unsafe_allow_html=True)
         st.markdown('<div class="sidebar-brand-sub">Panel personal</div>', unsafe_allow_html=True)
 
-    st.success("Sesión iniciada")
+    st.markdown(
+        f"""
+        <div class="sidebar-user-card">
+            <div class="sidebar-user-label">Sesión activa</div>
+            <div class="sidebar-user-name">{nombre_usuario}</div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
-    if st.button("Cerrar sesión"):
+    pagina = st.selectbox("Menú", ["Inicio", "Registrar", "Análisis", "Ahorro"])
+
+    if st.button("Cerrar sesión", use_container_width=True):
         st.session_state.user = None
         st.rerun()
 
+
 # ---------------- ONBOARDING ----------------
 if not perfil or not perfil.get("onboarding_completo", False):
-    st.markdown('<div class="section-card">', unsafe_allow_html=True)
-    st.subheader("👋 Configura tu experiencia Zentix")
+    st.markdown(
+        """
+        <div class="hero-card">
+            <div class="hero-badge">Onboarding inicial</div>
+            <div class="hero-title">Configura tu experiencia Zentix</div>
+            <div class="hero-subtitle">
+                Define cómo quieres que te llame Zentix y selecciona tus categorías principales para personalizar tu registro financiero.
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    section_header("Preferencias iniciales", "Esta configuración se guarda por usuario y luego puedes ampliarla en tu evolución de producto.")
+    progreso_onboarding = 0.34
+    st.progress(progreso_onboarding)
 
     nombre_mostrado = st.text_input("¿Cómo quieres que te llame Zentix?")
     categorias_gasto = st.multiselect(
@@ -397,32 +804,44 @@ if not perfil or not perfil.get("onboarding_completo", False):
         default=["Salario"]
     )
 
-    if st.button("Guardar configuración inicial"):
-        if not nombre_mostrado.strip():
-            st.error("Escribe el nombre con el que quieres ser llamado.")
-        elif not categorias_gasto:
-            st.error("Selecciona al menos una categoría de gasto.")
-        elif not categorias_ingreso:
-            st.error("Selecciona al menos una categoría de ingreso.")
-        else:
-            try:
-                guardar_onboarding(
-                    user_id,
-                    nombre_mostrado.strip(),
-                    categorias_gasto,
-                    categorias_ingreso
-                )
-                st.success("Tu configuración inicial quedó guardada.")
-                st.rerun()
-            except Exception as e:
-                st.error(f"Error guardando onboarding: {e}")
-    st.markdown('</div>', unsafe_allow_html=True)
+    col_on_1, col_on_2 = st.columns([1.1, 0.9])
+
+    with col_on_1:
+        if st.button("Guardar configuración inicial", use_container_width=True):
+            if not nombre_mostrado.strip():
+                st.error("Escribe el nombre con el que quieres ser llamado.")
+            elif not categorias_gasto:
+                st.error("Selecciona al menos una categoría de gasto.")
+            elif not categorias_ingreso:
+                st.error("Selecciona al menos una categoría de ingreso.")
+            else:
+                try:
+                    guardar_onboarding(
+                        user_id,
+                        nombre_mostrado.strip(),
+                        categorias_gasto,
+                        categorias_ingreso
+                    )
+                    st.success("Tu configuración inicial quedó guardada.")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Error guardando onboarding: {e}")
+
+    with col_on_2:
+        st.markdown(
+            """
+            <div class="soft-card">
+                <div class="section-title">Qué mejoras trae esta versión</div>
+                <div class="section-caption">
+                    Más presencia visual, métricas con mejor jerarquía, formularios más limpios y una experiencia más cercana a una fintech real.
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
     st.stop()
 
-nombre_usuario = perfil["nombre_mostrado"] if perfil and perfil.get("nombre_mostrado") else "usuario"
-
-menu = ["Inicio", "Registrar", "Análisis", "Ahorro"]
-pagina = st.sidebar.selectbox("Menú", menu)
 
 # ---------------- CARGAR DATOS ----------------
 try:
@@ -430,6 +849,13 @@ try:
 except Exception as e:
     st.error(f"Error cargando movimientos: {e}")
     st.stop()
+
+try:
+    meta_result_global = obtener_meta(user_id)
+    meta_guardada_global = float(meta_result_global["meta"]) if meta_result_global else 0.0
+except Exception:
+    meta_result_global = None
+    meta_guardada_global = 0.0
 
 if not df.empty:
     mes_actual = pd.Timestamp.now().month
@@ -448,28 +874,44 @@ else:
     total_ingresos = 0
 
 saldo_disponible = total_ingresos - total_gastos
+ahorro_actual = float(saldo_disponible)
+faltante_global = max(0.0, meta_guardada_global - max(ahorro_actual, 0.0))
+insight_financiero = obtener_insight_financiero(total_ingresos, total_gastos, saldo_disponible, df_mes)
+categoria_top, monto_top = obtener_categoria_top(df_mes)
+
 
 # ---------------- INICIO ----------------
 if pagina == "Inicio":
-    st.subheader(f"📊 Resumen de {nombre_usuario}")
+    zentix_hero(nombre_usuario, saldo_disponible, total_ingresos, total_gastos)
 
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3, col4 = st.columns(4)
     with col1:
-        st.metric("💸 Gastos", f"{total_gastos:,.0f}")
+        kpi_card("Ingresos del mes", money(total_ingresos), "Entradas registradas", "income")
     with col2:
-        st.metric("💰 Ingresos", f"{total_ingresos:,.0f}")
+        kpi_card("Gastos del mes", money(total_gastos), "Salidas registradas", "expense")
     with col3:
-        color_class = "saldo-verde" if ultimo_tipo == "Ingreso" else "saldo-rojo" if ultimo_tipo == "Gasto" else "saldo-verde"
-        st.markdown(f"""
-            <div class="metric-card">
-                <div style="font-size:14px;color:#9ca3af;">Disponible</div>
-                <div class="{color_class}">{saldo_disponible:,.0f}</div>
-            </div>
-        """, unsafe_allow_html=True)
+        kpi_card("Disponible", money(saldo_disponible), "Resultado neto actual", "balance")
+    with col4:
+        kpi_card("Meta de ahorro", money(meta_guardada_global), "Objetivo configurado", "saving")
 
-    render_avatar(pagina, nombre_usuario, total_ingresos, total_gastos, saldo_disponible, ultimo_tipo)
+    col_info, col_avatar = st.columns([1.2, 0.8])
+    with col_info:
+        section_header("Lectura rápida del mes", "Una interpretación simple para tomar mejores decisiones.")
+        st.markdown(
+            f"""
+            <div class="soft-card">
+                <div class="section-title">Salud financiera</div>
+                <div class="section-caption">{insight_financiero}</div>
+                <div class="tiny-muted">Categoría más representativa: {categoria_top if categoria_top else 'Sin datos'} {f'· {money(monto_top)}' if categoria_top else ''}</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+    with col_avatar:
+        render_avatar(pagina, nombre_usuario, total_ingresos, total_gastos, saldo_disponible, ultimo_tipo)
 
     if not df_mes.empty:
+        section_header("Visualización mensual", "Distribuciones del mes actual para ver proporciones y foco de gasto.")
         col_a, col_b = st.columns(2)
 
         with col_a:
@@ -481,15 +923,14 @@ if pagina == "Inicio":
                 resumen_tipos,
                 values="Monto",
                 names="Tipo",
-                title="Distribución de ingresos vs gastos",
-                hole=0.52
+                title="Ingresos vs gastos",
+                hole=0.58,
+                color="Tipo",
+                color_discrete_map={"Ingresos": "#22C55E", "Gastos": "#EF4444"}
             )
-            fig_tipos.update_layout(
-                paper_bgcolor="#0D0D0D",
-                plot_bgcolor="#0D0D0D",
-                font_color="white"
-            )
-            st.plotly_chart(fig_tipos, use_container_width=True)
+            fig_tipos.update_traces(textinfo="percent+label")
+            aplicar_estilo_plotly(fig_tipos, height=380)
+            st.plotly_chart(fig_tipos, use_container_width=True, config={"displayModeBar": False})
 
         with col_b:
             resumen_categoria = (
@@ -502,72 +943,113 @@ if pagina == "Inicio":
                 resumen_categoria,
                 values="monto",
                 names="categoria",
-                title="Categorías del mes"
+                title="Categorías del mes",
+                color_discrete_sequence=CHART_COLORS
             )
-            fig_cat.update_layout(
-                paper_bgcolor="#0D0D0D",
-                plot_bgcolor="#0D0D0D",
-                font_color="white"
-            )
-            st.plotly_chart(fig_cat, use_container_width=True)
+            fig_cat.update_traces(textinfo="percent+label")
+            aplicar_estilo_plotly(fig_cat, height=380)
+            st.plotly_chart(fig_cat, use_container_width=True, config={"displayModeBar": False})
     else:
-        st.info("Aún no hay movimientos este mes.")
+        empty_state(
+            "Aún no hay movimientos este mes",
+            "Empieza en Registrar para construir tu dashboard. Apenas ingreses datos, aquí aparecerán tus indicadores y gráficos."
+        )
+
 
 # ---------------- REGISTRAR ----------------
 if pagina == "Registrar":
-    st.subheader("➕ Agregar movimiento")
+    zentix_hero(nombre_usuario, saldo_disponible, total_ingresos, total_gastos)
+    section_header("Registrar movimiento", "Agrega ingresos y gastos con una experiencia más clara y visual.")
 
-    tipo = st.radio("Tipo de movimiento", ["Ingreso", "Gasto"], horizontal=True)
+    col_form, col_side = st.columns([1.15, 0.85])
 
-    if tipo == "Ingreso":
-        st.markdown('<div class="pill-ingreso">Ingreso seleccionado</div>', unsafe_allow_html=True)
-        categorias_disponibles = obtener_categorias_usuario(user_id, "Ingreso")
-    else:
-        st.markdown('<div class="pill-gasto">Gasto seleccionado</div>', unsafe_allow_html=True)
-        categorias_disponibles = obtener_categorias_usuario(user_id, "Gasto")
+    with col_form:
+        tipo = st.radio("Tipo de movimiento", ["Ingreso", "Gasto"], horizontal=True)
 
-    fecha = st.date_input("Fecha", value=date.today())
-    categoria = st.selectbox("Categoría", categorias_disponibles if categorias_disponibles else ["Sin categorías"])
-    monto = st.number_input("Monto", min_value=0.0, step=1000.0)
-    descripcion = st.text_input("Descripción")
+        if tipo == "Ingreso":
+            st.markdown('<div class="pill-ingreso">Ingreso seleccionado</div>', unsafe_allow_html=True)
+            categorias_disponibles = obtener_categorias_usuario(user_id, "Ingreso")
+        else:
+            st.markdown('<div class="pill-gasto">Gasto seleccionado</div>', unsafe_allow_html=True)
+            categorias_disponibles = obtener_categorias_usuario(user_id, "Gasto")
 
-    col1, col2 = st.columns(2)
+        if not categorias_disponibles:
+            st.warning(f"No tienes categorías de {tipo.lower()} configuradas. Completa tu onboarding o agrega categorías para registrar mejor.")
+            categorias_disponibles = ["Sin categorías"]
 
-    with col1:
-        if st.button("💾 Guardar"):
-            if not categoria.strip():
-                st.error("La categoría es obligatoria")
-            elif monto <= 0:
-                st.error("El monto debe ser mayor que 0")
-            else:
-                try:
-                    supabase.table("movimientos").insert({
-                        "usuario_id": user_id,
-                        "fecha": datetime.combine(fecha, datetime.min.time()).isoformat(),
-                        "tipo": tipo,
-                        "categoria": categoria.strip(),
-                        "monto": float(monto),
-                        "descripcion": descripcion.strip()
-                    }).execute()
-                    st.success("Guardado correctamente")
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"Error guardando movimiento: {e}")
+        fecha_mov = st.date_input("Fecha", value=date.today())
+        categoria = st.selectbox("Categoría", categorias_disponibles)
+        monto = st.number_input("Monto", min_value=0.0, step=1000.0)
+        descripcion = st.text_input("Descripción")
 
-    with col2:
-        if st.button("🗑️ Reset"):
-            st.rerun()
+        col_btn_1, col_btn_2 = st.columns(2)
+        with col_btn_1:
+            if st.button("Guardar movimiento", use_container_width=True):
+                if categoria.strip() == "Sin categorías":
+                    st.error("Necesitas al menos una categoría válida para guardar el movimiento.")
+                elif monto <= 0:
+                    st.error("El monto debe ser mayor que 0.")
+                else:
+                    try:
+                        supabase.table("movimientos").insert({
+                            "usuario_id": user_id,
+                            "fecha": datetime.combine(fecha_mov, datetime.min.time()).isoformat(),
+                            "tipo": tipo,
+                            "categoria": categoria.strip(),
+                            "monto": float(monto),
+                            "descripcion": descripcion.strip()
+                        }).execute()
+                        st.success("Movimiento guardado correctamente.")
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Error guardando movimiento: {e}")
 
-    render_avatar(pagina, nombre_usuario, total_ingresos, total_gastos, saldo_disponible, ultimo_tipo)
+        with col_btn_2:
+            if st.button("Resetear formulario", use_container_width=True):
+                st.rerun()
+
+    with col_side:
+        color_valor = "#4ADE80" if tipo == "Ingreso" else "#F87171"
+        st.markdown(
+            f"""
+            <div class="soft-card">
+                <div class="section-title">Vista previa</div>
+                <div class="section-caption">Así se interpreta el movimiento antes de guardar.</div>
+                <div class="tiny-muted">Tipo</div>
+                <div class="form-preview-value" style="color:{color_valor};">{tipo}</div>
+                <div class="tiny-muted" style="margin-top:0.7rem;">Categoría</div>
+                <div style="font-weight:700;">{categoria}</div>
+                <div class="tiny-muted" style="margin-top:0.7rem;">Monto</div>
+                <div style="font-weight:800;font-size:1.15rem;">{money(monto)}</div>
+                <div class="tiny-muted" style="margin-top:0.7rem;">Descripción</div>
+                <div style="font-weight:600;">{descripcion if descripcion else 'Sin descripción'}</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+        render_avatar(pagina, nombre_usuario, total_ingresos, total_gastos, saldo_disponible, ultimo_tipo)
+
 
 # ---------------- ANÁLISIS ----------------
 if pagina == "Análisis":
-    st.subheader("📈 Análisis")
-    render_avatar(pagina, nombre_usuario, total_ingresos, total_gastos, saldo_disponible, ultimo_tipo)
+    zentix_hero(nombre_usuario, saldo_disponible, total_ingresos, total_gastos)
+    section_header("Análisis del mes", "Explora movimientos, concentración por categoría y evolución diaria.")
+
+    col_a, col_b = st.columns([1.15, 0.85])
+    with col_a:
+        if not df_mes.empty:
+            vista_df = df_mes.copy().sort_values("fecha", ascending=False)
+            vista_df["fecha"] = vista_df["fecha"].dt.strftime("%Y-%m-%d")
+            st.dataframe(
+                vista_df[["fecha", "tipo", "categoria", "monto", "descripcion"]],
+                use_container_width=True
+            )
+        else:
+            empty_state("Todavía no hay datos", "Cuando registres movimientos este mes, aquí verás tablas y gráficos más útiles.")
+    with col_b:
+        render_avatar(pagina, nombre_usuario, total_ingresos, total_gastos, saldo_disponible, ultimo_tipo)
 
     if not df_mes.empty:
-        st.dataframe(df_mes, use_container_width=True)
-
         resumen = (
             df_mes.groupby("categoria")["monto"]
             .sum()
@@ -575,25 +1057,49 @@ if pagina == "Análisis":
             .reset_index()
         )
 
-        fig_bar = px.bar(
-            resumen,
-            x="categoria",
-            y="monto",
-            title="Movimientos por categoría",
-            text_auto=True
+        timeline = (
+            df_mes.groupby(["fecha", "tipo"])["monto"]
+            .sum()
+            .reset_index()
+            .sort_values("fecha")
         )
-        fig_bar.update_layout(
-            paper_bgcolor="#0D0D0D",
-            plot_bgcolor="#0D0D0D",
-            font_color="white"
-        )
-        st.plotly_chart(fig_bar, use_container_width=True)
+
+        col_chart_1, col_chart_2 = st.columns(2)
+
+        with col_chart_1:
+            fig_bar = px.bar(
+                resumen,
+                x="categoria",
+                y="monto",
+                title="Movimientos por categoría",
+                text_auto=True,
+                color="monto",
+                color_continuous_scale=["#1D4ED8", "#06B6D4", "#8B5CF6"]
+            )
+            fig_bar.update_coloraxes(showscale=False)
+            aplicar_estilo_plotly(fig_bar, height=390)
+            st.plotly_chart(fig_bar, use_container_width=True, config={"displayModeBar": False})
+
+        with col_chart_2:
+            fig_line = px.line(
+                timeline,
+                x="fecha",
+                y="monto",
+                color="tipo",
+                title="Evolución diaria",
+                markers=True,
+                color_discrete_map={"Ingreso": "#22C55E", "Gasto": "#EF4444"}
+            )
+            aplicar_estilo_plotly(fig_line, height=390)
+            st.plotly_chart(fig_line, use_container_width=True, config={"displayModeBar": False})
     else:
-        st.info("No hay datos este mes")
+        st.info("No hay datos este mes.")
+
 
 # ---------------- AHORRO ----------------
 if pagina == "Ahorro":
-    st.subheader("🎯 Plan de ahorro")
+    zentix_hero(nombre_usuario, saldo_disponible, total_ingresos, total_gastos)
+    section_header("Plan de ahorro", "Conecta tu meta con tu saldo disponible actual.")
 
     try:
         meta_result = obtener_meta(user_id)
@@ -611,52 +1117,75 @@ if pagina == "Ahorro":
         key="meta_ahorro_input"
     )
 
-    col_meta1, col_meta2 = st.columns(2)
-
-    with col_meta1:
-        if st.button("💾 Guardar meta", use_container_width=True):
-            try:
-                if meta_result:
-                    supabase.table("ahorro_meta").update({
-                        "meta": float(meta),
-                        "actualizado_en": datetime.now().isoformat()
-                    }).eq("usuario_id", user_id).execute()
-                else:
-                    supabase.table("ahorro_meta").insert({
-                        "usuario_id": user_id,
-                        "meta": float(meta),
-                        "actualizado_en": datetime.now().isoformat()
-                    }).execute()
-
-                st.success("Meta guardada correctamente")
-                st.rerun()
-            except Exception as e:
-                st.error(f"Error guardando meta: {e}")
-
-    with col_meta2:
-        if st.button("🗑️ Limpiar meta", use_container_width=True):
-            try:
-                supabase.table("ahorro_meta").delete().eq("usuario_id", user_id).execute()
-                st.warning("Meta eliminada correctamente")
-                st.rerun()
-            except Exception as e:
-                st.error(f"Error eliminando meta: {e}")
-
     ahorro_actual = float(saldo_disponible)
     faltante = max(0.0, float(meta) - max(ahorro_actual, 0.0))
+    progreso = max(0.0, ahorro_actual / float(meta)) if float(meta) > 0 else 0.0
 
-    st.write(f"💰 Dinero disponible actual: {ahorro_actual:,.0f}")
-    st.write(f"🎯 Meta de ahorro: {float(meta):,.0f}")
+    col_k1, col_k2, col_k3 = st.columns(3)
+    with col_k1:
+        kpi_card("Disponible actual", money(ahorro_actual), "Lo que hoy puedes destinar", "balance")
+    with col_k2:
+        kpi_card("Meta definida", money(meta), "Objetivo configurado", "saving")
+    with col_k3:
+        kpi_card("Faltante", money(faltante), "Lo que resta por cubrir", "expense" if faltante > 0 else "income")
 
-    if float(meta) > 0:
-        progreso = max(0.0, ahorro_actual / float(meta))
-        st.progress(min(progreso, 1.0))
+    col_meta1, col_meta2 = st.columns([1.1, 0.9])
 
-        if ahorro_actual >= float(meta):
-            st.success("Vas excelente: con tu disponible actual ya alcanzas tu meta de ahorro.")
+    with col_meta1:
+        col_btn_1, col_btn_2 = st.columns(2)
+
+        with col_btn_1:
+            if st.button("Guardar meta", use_container_width=True):
+                try:
+                    if meta_result:
+                        supabase.table("ahorro_meta").update({
+                            "meta": float(meta),
+                            "actualizado_en": datetime.now().isoformat()
+                        }).eq("usuario_id", user_id).execute()
+                    else:
+                        supabase.table("ahorro_meta").insert({
+                            "usuario_id": user_id,
+                            "meta": float(meta),
+                            "actualizado_en": datetime.now().isoformat()
+                        }).execute()
+
+                    st.success("Meta guardada correctamente.")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Error guardando meta: {e}")
+
+        with col_btn_2:
+            if st.button("Limpiar meta", use_container_width=True):
+                try:
+                    supabase.table("ahorro_meta").delete().eq("usuario_id", user_id).execute()
+                    st.warning("Meta eliminada correctamente.")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Error eliminando meta: {e}")
+
+        if float(meta) > 0:
+            st.progress(min(progreso, 1.0))
+            if ahorro_actual >= float(meta):
+                st.success("Vas excelente: con tu disponible actual ya alcanzas tu meta de ahorro.")
+            else:
+                st.info(f"Te faltan {money(faltante)} para cumplir tu meta.")
         else:
-            st.info(f"Te faltan {faltante:,.0f} para cumplir tu meta.")
-    else:
-        st.info("Define una meta para comenzar.")
+            st.info("Define una meta para comenzar.")
 
-    render_avatar(pagina, nombre_usuario, total_ingresos, total_gastos, saldo_disponible, ultimo_tipo)
+    with col_meta2:
+        st.markdown(
+            f"""
+            <div class="soft-card">
+                <div class="section-title">Lectura de tu objetivo</div>
+                <div class="section-caption">
+                    {("Tu saldo ya cubre la meta actual. Puedes subir el objetivo o mantenerlo." if float(meta) > 0 and ahorro_actual >= float(meta)
+                    else "Tu meta aún no está cubierta. Usa esta referencia para ajustar tu ritmo de gasto y ahorro." if float(meta) > 0
+                    else "Todavía no has definido una meta. Zentix puede acompañarte mejor cuando fijes un objetivo claro.")}
+                </div>
+                <div class="tiny-muted">Progreso actual</div>
+                <div class="form-preview-value">{round(min(progreso, 1.0) * 100, 1) if float(meta) > 0 else 0}%</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+        render_avatar(pagina, nombre_usuario, total_ingresos, total_gastos, saldo_disponible, ultimo_tipo)
