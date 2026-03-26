@@ -71,9 +71,33 @@ def aplicar_estilo_zentix():
     }
 
     .block-container {
-        max-width: 1220px;
-        padding-top: 1.2rem;
+        max-width: 100%;
+        padding-top: 4rem;
+        padding-right: 2rem;
+        padding-left: 2rem;
         padding-bottom: 2rem;
+    }
+
+    header[data-testid="stHeader"] {
+        background: rgba(4, 11, 21, 0.85);
+        backdrop-filter: blur(8px);
+    }
+
+    [data-testid="stToolbar"] {
+        display: none;
+    }
+
+    [data-testid="stDecoration"] {
+        display: none;
+    }
+
+    [data-testid="collapsedControl"] {
+        top: 0.75rem;
+        z-index: 999999;
+    }
+
+    [data-testid="stSidebarContent"] {
+        padding-top: 0.5rem;
     }
 
     [data-testid="stSidebar"] {
@@ -526,7 +550,7 @@ def kpi_card(label, value, foot="", variant="balance"):
         "income": "kpi-card kpi-income",
         "expense": "kpi-card kpi-expense",
         "balance": "kpi-card kpi-balance",
-        "saving": "kpi-card kpi-saving",
+        "saving": "saving": "kpi-card kpi-saving",
     }
     st.markdown(
         f"""
