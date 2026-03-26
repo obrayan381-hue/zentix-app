@@ -448,14 +448,15 @@ def zentix_brand_header():
 
 
 def zentix_hero(nombre, saldo_disponible, total_ingresos, total_gastos):
-    balance_label = "Balance positivo" if saldo_disponible >= 0 else "Balance ajustado"
+    balance_label = "Balance positivo" if saldo_disponible >= 0 else "Atención al balance"
+
     st.markdown(
         f"""
         <div class="hero-card">
-            <div class="hero-badge">Zentix · centro financiero personal</div>
+            <div class="hero-badge">Zentix · tu espacio financiero personal</div>
             <div class="hero-title">Hola, {nombre}</div>
             <div class="hero-subtitle">
-                Visualiza tu mes con claridad, registra movimientos en segundos y toma decisiones con una interfaz más sólida, limpia y premium.
+                Controla tus ingresos, ordena tus gastos y avanza hacia tus metas con una experiencia clara, rápida y elegante.
             </div>
             <div class="hero-pills">
                 <span class="hero-pill">Disponible: {money(saldo_disponible)}</span>
@@ -677,36 +678,26 @@ if st.session_state.user is None:
         st.markdown(
             """
             <div class="hero-card">
-                <div class="hero-badge">Fintech personal · Supabase powered</div>
-                <div class="hero-title">Controla tu dinero con una experiencia premium</div>
+                <div class="hero-badge">Finanzas personales · claridad total</div>
+                <div class="hero-title">Toma el control de tu dinero</div>
                 <div class="hero-subtitle">
-                    Zentix reúne registro, análisis y ahorro en un solo lugar con una interfaz más moderna, clara y enfocada en decisiones.
+                    Registra movimientos, analiza tus hábitos y construye un ahorro más sólido desde un solo lugar.
                 </div>
                 <div class="hero-pills">
-                    <span class="hero-pill">Login seguro</span>
-                    <span class="hero-pill">Dashboard ejecutivo</span>
-                    <span class="hero-pill">Análisis mensual</span>
+                    <span class="hero-pill">Control diario</span>
+                    <span class="hero-pill">Análisis visual</span>
                     <span class="hero-pill">Metas de ahorro</span>
+                    <span class="hero-pill">Todo en un panel</span>
                 </div>
             </div>
             """,
             unsafe_allow_html=True
         )
 
-        col_brand, col_copy = st.columns([1, 3])
-        with col_brand:
-            if icono_path.exists():
-                st.image(str(icono_path), width=120)
-        with col_copy:
-            st.markdown('<div class="section-title">Una capa visual más premium</div>', unsafe_allow_html=True)
-            st.markdown(
-                '<div class="section-caption">Misma base funcional, mejor jerarquía visual, más claridad en métricas y una identidad de marca más fuerte.</div>',
-                unsafe_allow_html=True
-            )
-
         if avatar_path.exists():
-            st.image(str(avatar_path), width=180)
-        st.caption("Avatar Zentix: tu asistente visual para leer mejor tu salud financiera.")
+            st.image(str(avatar_path), width=170)
+
+        st.caption("Zentix te acompaña a entender mejor tu panorama financiero.")
 
     with col_form:
         st.markdown('<div class="login-box">', unsafe_allow_html=True)
@@ -831,9 +822,9 @@ if not perfil or not perfil.get("onboarding_completo", False):
         st.markdown(
             """
             <div class="soft-card">
-                <div class="section-title">Qué mejoras trae esta versión</div>
+                <div class="section-title">Configura tu base financiera</div>
                 <div class="section-caption">
-                    Más presencia visual, métricas con mejor jerarquía, formularios más limpios y una experiencia más cercana a una fintech real.
+                    Elige cómo quieres que Zentix te acompañe y define tus categorías principales para empezar con orden desde el primer día.
                 </div>
             </div>
             """,
