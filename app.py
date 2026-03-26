@@ -460,7 +460,6 @@ def aplicar_estilo_zentix():
 
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
-    header {visibility: hidden;}
     </style>
     """, unsafe_allow_html=True)
 
@@ -1422,4 +1421,3 @@ if pagina == "Ahorro":
             unsafe_allow_html=True
         )
         render_avatar(pagina, nombre_usuario, total_ingresos, total_gastos, saldo_disponible, ultimo_tipo)
-
