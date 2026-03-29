@@ -93,8 +93,25 @@ def aplicar_estilo_zentix():
     }
 
     [data-testid="collapsedControl"] {
-        top: 0.75rem;
-        z-index: 999999;
+        position: fixed;
+        top: 0.85rem;
+        left: 0.85rem;
+        z-index: 999999 !important;
+        background: rgba(15,23,42,0.96);
+        border: 1px solid rgba(96,165,250,0.28);
+        border-radius: 14px;
+        padding: 0.2rem 0.3rem;
+        box-shadow: 0 10px 24px rgba(0,0,0,0.28);
+    }
+
+    [data-testid="collapsedControl"]:hover {
+        border-color: rgba(125,211,252,0.40);
+        box-shadow: 0 12px 28px rgba(37,99,235,0.22);
+    }
+
+    [data-testid="collapsedControl"] svg {
+        fill: #F8FAFC !important;
+        color: #F8FAFC !important;
     }
 
     [data-testid="stSidebarContent"] {
@@ -1006,6 +1023,11 @@ user_id = st.session_state.user.id
 perfil = obtener_perfil(user_id)
 nombre_usuario = perfil["nombre_mostrado"] if perfil and perfil.get("nombre_mostrado") else "usuario"
 
+paginas_disponibles = ["Inicio", "Registrar", "Análisis", "Ahorro"]
+
+if "pagina" not in st.session_state or st.session_state.pagina not in paginas_disponibles:
+    st.session_state.pagina = "Inicio"
+
 with st.sidebar:
     col_sb_icon, col_sb_text = st.columns([1, 3])
     with col_sb_icon:
@@ -1026,15 +1048,51 @@ with st.sidebar:
     )
 
     st.markdown("### Navegación")
-    pagina = st.radio(
+    pagina_sidebar = st.radio(
         "Ir a",
-        ["Inicio", "Registrar", "Análisis", "Ahorro"],
+        paginas_disponibles,
+        index=paginas_disponibles.index(st.session_state.pagina),
         label_visibility="collapsed"
     )
+    st.session_state.pagina = pagina_sidebar
 
     if st.button("Cerrar sesión", use_container_width=True):
         st.session_state.user = None
         st.rerun()
+
+st.markdown(
+    """
+    <div class="section-title" style="margin-top:0.2rem;">Navegación rápida</div>
+    <div class="section-caption">
+        Si el panel lateral se colapsa en Streamlit Cloud, usa estos accesos rápidos.
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
+nav1, nav2, nav3, nav4 = st.columns(4)
+
+with nav1:
+    if st.button("Inicio", key="nav_inicio_top", use_container_width=True):
+        st.session_state.pagina = "Inicio"
+        st.rerun()
+
+with nav2:
+    if st.button("Registrar", key="nav_registrar_top", use_container_width=True):
+        st.session_state.pagina = "Registrar"
+        st.rerun()
+
+with nav3:
+    if st.button("Análisis", key="nav_analisis_top", use_container_width=True):
+        st.session_state.pagina = "Análisis"
+        st.rerun()
+
+with nav4:
+    if st.button("Ahorro", key="nav_ahorro_top", use_container_width=True):
+        st.session_state.pagina = "Ahorro"
+        st.rerun()
+
+pagina = st.session_state.pagina
 
 
 if not perfil or not perfil.get("onboarding_completo", False):
