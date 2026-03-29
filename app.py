@@ -138,26 +138,60 @@ def aplicar_estilo_zentix():
 
     .stButton > button {
         width: 100%;
-        border-radius: 16px;
-        border: 1px solid rgba(125, 211, 252, 0.14);
-        background: linear-gradient(135deg, #2563EB, #0891B2);
-        color: white;
+        min-height: 56px;
+        border-radius: 20px;
+        border: 1px solid rgba(148, 163, 184, 0.20);
+        background:
+            radial-gradient(circle at top left, rgba(125, 211, 252, 0.18), transparent 34%),
+            radial-gradient(circle at bottom right, rgba(139, 92, 246, 0.14), transparent 28%),
+            linear-gradient(135deg, rgba(10,18,32,0.98), rgba(15,23,42,0.98));
+        color: #F8FAFC;
         font-weight: 800;
-        padding: 0.72rem 1rem;
-        box-shadow: 0 12px 24px rgba(37,99,235,0.18);
-        transition: all 0.18s ease;
+        font-size: 1rem;
+        letter-spacing: 0.01em;
+        padding: 0.95rem 1.15rem;
+        box-shadow:
+            inset 0 1px 0 rgba(255,255,255,0.05),
+            0 12px 28px rgba(0,0,0,0.30);
+        backdrop-filter: blur(10px);
+        transition:
+            transform 0.18s ease,
+            box-shadow 0.18s ease,
+            border-color 0.18s ease,
+            background 0.18s ease;
     }
 
     .stButton > button:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 16px 28px rgba(37,99,235,0.24);
-        border-color: rgba(125, 211, 252, 0.24);
+        transform: translateY(-2px);
+        border-color: rgba(96, 165, 250, 0.42);
+        background:
+            radial-gradient(circle at top left, rgba(125, 211, 252, 0.24), transparent 34%),
+            radial-gradient(circle at bottom right, rgba(167, 139, 250, 0.18), transparent 28%),
+            linear-gradient(135deg, rgba(13,22,38,1), rgba(20,28,48,1));
+        box-shadow:
+            inset 0 1px 0 rgba(255,255,255,0.06),
+            0 16px 34px rgba(37,99,235,0.16);
+    }
+
+    .stButton > button:active {
+        transform: translateY(0) scale(0.985);
+    }
+
+    .stButton > button:focus:not(:active) {
+        border-color: rgba(125, 211, 252, 0.50);
+        box-shadow:
+            0 0 0 1px rgba(125, 211, 252, 0.22),
+            0 14px 30px rgba(37,99,235,0.14);
     }
 
     .stButton > button[kind="secondary"] {
-        background: linear-gradient(135deg, #111827, #0F172A);
-        border: 1px solid rgba(148, 163, 184, 0.16);
-        box-shadow: none;
+        background:
+            radial-gradient(circle at top left, rgba(59,130,246,0.10), transparent 30%),
+            linear-gradient(135deg, rgba(17,24,39,0.98), rgba(15,23,42,0.98));
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        box-shadow:
+            inset 0 1px 0 rgba(255,255,255,0.04),
+            0 10px 22px rgba(0,0,0,0.24);
     }
 
     .stTextInput > div > div > input,
@@ -1504,3 +1538,4 @@ if pagina == "Ahorro":
             unsafe_allow_html=True
         )
         render_avatar(pagina, nombre_usuario, total_ingresos, total_gastos, saldo_disponible, ultimo_tipo)
+
