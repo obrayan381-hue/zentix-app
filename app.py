@@ -2,7 +2,7 @@ import os
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from pathlib import Path
 from supabase_config import supabase
 from openai import OpenAI
@@ -654,6 +654,509 @@ def empty_state(title, text):
     )
 
 
+def obtener_plan_default():
+    return {
+        "plan": "free",
+        "estado": "active",
+        "consultas_ia_dia": 10,
+        "categorias_extra": 10
+    }
+
+
+def obtener_o_crear_plan_usuario(user_id):
+    plan_default = obtener_plan_default()
+
+    try:
+        result = (
+            supabase.table("planes_usuario")
+            .select("*")
+            .eq("usuario_id", user_id)
+            .limit(1)
+            .execute()
+        )
+        if result.data:
+            plan = result.data[0]
+            return {
+                "plan": plan.get("plan", "free"),
+                "estado": plan.get("estado", "active"),
+                "consultas_ia_dia": int(plan.get("consultas_ia_dia", 10) or 10),
+                "categorias_extra": int(plan.get("categorias_extra", 10) or 10)
+            }
+
+        nuevo_plan = {
+            "usuario_id": user_id,
+            "plan": "free",
+            "estado": "active",
+            "consultas_ia_dia": 10,
+            "categorias_extra": 10,
+            "actualizado_en": datetime.now().isoformat()
+        }
+        supabase.table("planes_usuario").insert(nuevo_plan).execute()
+    except Exception:
+        pass
+
+    return plan_default
+
+
+def obtener_uso_ia_hoy(user_id):
+    hoy = date.today().isoformat()
+    session_key = f"uso_ia_local_{user_id}_{hoy}"
+
+    try:
+        result = (
+            supabase.table("uso_ia_diario")
+            .select("*")
+            .eq("usuario_id", user_id)
+            .eq("fecha", hoy)
+            .limit(1)
+            .execute()
+        )
+        if result.data:
+            return result.data[0]
+
+        nuevo_uso = {
+            "usuario_id": user_id,
+            "fecha": hoy,
+            "consultas_usadas": 0,
+            "actualizado_en": datetime.now().isoformat()
+        }
+        insert_result = supabase.table("uso_ia_diario").insert(nuevo_uso).execute()
+        if insert_result.data:
+            return insert_result.data[0]
+    except Exception:
+        pass
+
+    if session_key not in st.session_state:
+        st.session_state[session_key] = 0
+
+    return {"id": None, "usuario_id": user_id, "fecha": hoy, "consultas_usadas": st.session_state[session_key]}
+
+
+def puede_usar_ia(user_id):
+    plan = obtener_o_crear_plan_usuario(user_id)
+    uso = obtener_uso_ia_hoy(user_id)
+
+    limite = int(plan.get("consultas_ia_dia", 10) or 10)
+    usadas = int(uso.get("consultas_usadas", 0) or 0)
+    restantes = max(0, limite - usadas)
+
+    return usadas < limite, usadas, limite, restantes, plan
+
+
+def registrar_uso_ia(user_id):
+    hoy = date.today().isoformat()
+    session_key = f"uso_ia_local_{user_id}_{hoy}"
+    uso = obtener_uso_ia_hoy(user_id)
+    nuevas_usadas = int(uso.get("consultas_usadas", 0) or 0) + 1
+
+    try:
+        if uso.get("id") is not None:
+            (
+                supabase.table("uso_ia_diario")
+                .update({
+                    "consultas_usadas": nuevas_usadas,
+                    "actualizado_en": datetime.now().isoformat()
+                })
+                .eq("id", uso["id"])
+                .execute()
+            )
+        else:
+            st.session_state[session_key] = nuevas_usadas
+    except Exception:
+        st.session_state[session_key] = nuevas_usadas
+
+
+def insertar_movimiento_seguro(payload):
+    try:
+        return supabase.table("movimientos").insert(payload).execute()
+    except Exception:
+        payload_fallback = dict(payload)
+        payload_fallback.pop("emocion", None)
+        return supabase.table("movimientos").insert(payload_fallback).execute()
+
+
+def obtener_nombre_meta_guardado(user_id):
+    try:
+        result = (
+            supabase.table("ahorro_meta")
+            .select("nombre_meta")
+            .eq("usuario_id", user_id)
+            .limit(1)
+            .execute()
+        )
+        if result.data:
+            return result.data[0].get("nombre_meta") or ""
+    except Exception:
+        pass
+    return ""
+
+
+def guardar_meta_segura(user_id, meta_valor, nombre_meta, meta_result):
+    payload = {
+        "meta": float(meta_valor),
+        "actualizado_en": datetime.now().isoformat(),
+        "nombre_meta": (nombre_meta or "").strip() or None
+    }
+
+    try:
+        if meta_result:
+            return (
+                supabase.table("ahorro_meta")
+                .update(payload)
+                .eq("usuario_id", user_id)
+                .execute()
+            )
+        payload_insert = dict(payload)
+        payload_insert["usuario_id"] = user_id
+        return supabase.table("ahorro_meta").insert(payload_insert).execute()
+    except Exception:
+        payload_fallback = {
+            "meta": float(meta_valor),
+            "actualizado_en": datetime.now().isoformat()
+        }
+        if meta_result:
+            return (
+                supabase.table("ahorro_meta")
+                .update(payload_fallback)
+                .eq("usuario_id", user_id)
+                .execute()
+            )
+        payload_insert = dict(payload_fallback)
+        payload_insert["usuario_id"] = user_id
+        return supabase.table("ahorro_meta").insert(payload_insert).execute()
+
+
+def eliminar_meta_segura(user_id):
+    return supabase.table("ahorro_meta").delete().eq("usuario_id", user_id).execute()
+
+
+def calcular_ratio_fin_semana(df_base):
+    if df_base is None or df_base.empty:
+        return 0.0
+
+    gastos = df_base[df_base["tipo"] == "Gasto"].copy()
+    if gastos.empty:
+        return 0.0
+
+    gastos["dow"] = gastos["fecha"].dt.dayofweek
+    gasto_fin_semana = gastos[gastos["dow"] >= 5]["monto"].sum()
+    gasto_total = gastos["monto"].sum()
+    return float(gasto_fin_semana / gasto_total) if gasto_total else 0.0
+
+
+def obtener_top_categoria(df_base):
+    if df_base is None or df_base.empty:
+        return None, 0.0, 0.0
+
+    gastos = df_base[df_base["tipo"] == "Gasto"].copy()
+    if gastos.empty:
+        return None, 0.0, 0.0
+
+    resumen = gastos.groupby("categoria", dropna=False)["monto"].sum().sort_values(ascending=False)
+    if resumen.empty:
+        return None, 0.0, 0.0
+
+    top_nombre = resumen.index[0]
+    top_monto = float(resumen.iloc[0])
+    total = float(resumen.sum())
+    share = top_monto / total if total else 0.0
+    return top_nombre, top_monto, share
+
+
+def obtener_perfil_financiero(total_ingresos, total_gastos, saldo_disponible, df_mes_actual):
+    if df_mes_actual is None or df_mes_actual.empty:
+        return {
+            "titulo": "Perfil en construcción",
+            "descripcion": "Aún no hay suficiente información para definir tu estilo financiero. Sigue registrando y Zentix lo irá entendiendo.",
+            "microcopy": "Empieza con 5 a 10 movimientos para activar una lectura más personal."
+        }
+
+    if total_ingresos <= 0 and total_gastos > 0:
+        return {
+            "titulo": "Registro incompleto",
+            "descripcion": "Tienes gastos registrados, pero no ingresos en el periodo actual. Zentix necesita ambos para entender tu realidad financiera.",
+            "microcopy": "Registra al menos una fuente de ingreso para afinar recomendaciones."
+        }
+
+    ratio_gasto = (total_gastos / total_ingresos) if total_ingresos > 0 else 0.0
+    ratio_fin_semana = calcular_ratio_fin_semana(df_mes_actual)
+    top_categoria, _, top_share = obtener_top_categoria(df_mes_actual)
+
+    if ratio_gasto <= 0.45 and saldo_disponible >= 0:
+        return {
+            "titulo": "Ahorrador disciplinado",
+            "descripcion": "Mantienes tus gastos bajo control y dejas margen real para ahorro o colchón financiero.",
+            "microcopy": "Tu patrón sugiere buena disciplina y capacidad de planear."
+        }
+
+    if ratio_fin_semana >= 0.45 and total_gastos > 0:
+        return {
+            "titulo": "Impulsivo de fin de semana",
+            "descripcion": "Una parte importante de tus gastos se concentra en fines de semana, lo que puede afectar metas sin que lo notes.",
+            "microcopy": "Tu mejor ajuste está en sábado y domingo, no en toda la semana."
+        }
+
+    if top_share >= 0.45 and top_categoria:
+        return {
+            "titulo": "Concentrado en una categoría",
+            "descripcion": f"Tu gasto depende mucho de {top_categoria}. Eso te da foco, pero también un punto crítico de fuga.",
+            "microcopy": f"Si mejoras {top_categoria}, mejoras gran parte del panorama."
+        }
+
+    if ratio_gasto <= 0.75:
+        return {
+            "titulo": "Equilibrado estratégico",
+            "descripcion": "Tu nivel de gasto va acompasado con tus ingresos. No estás sobrado, pero sí en una zona sana.",
+            "microcopy": "Un par de ajustes bien hechos te acercan mucho a metas más ambiciosas."
+        }
+
+    if ratio_gasto <= 1.0:
+        return {
+            "titulo": "Activo con poco margen",
+            "descripcion": "Tus gastos están cerca de tus ingresos. No estás desbordado, pero cualquier exceso te deja sin aire.",
+            "microcopy": "Necesitas precisión más que recortes extremos."
+        }
+
+    return {
+        "titulo": "Desbordado financiero",
+        "descripcion": "Tus salidas ya están superando o presionando demasiado tus ingresos. Zentix detecta una zona de riesgo clara.",
+        "microcopy": "La prioridad no es ahorrar más todavía; es recuperar margen."
+    }
+
+
+def obtener_comparativa_periodos(df_base):
+    if df_base is None or df_base.empty:
+        return {
+            "gasto_semana_pct": 0.0,
+            "ingreso_semana_pct": 0.0,
+            "gasto_mes_pct": 0.0,
+            "ingreso_mes_pct": 0.0
+        }
+
+    hoy = pd.Timestamp.now().normalize()
+    inicio_semana = hoy - pd.Timedelta(days=hoy.weekday())
+    inicio_semana_anterior = inicio_semana - pd.Timedelta(days=7)
+
+    inicio_mes = hoy.replace(day=1)
+    inicio_mes_anterior = (inicio_mes - pd.Timedelta(days=1)).replace(day=1)
+
+    semana_actual = df_base[(df_base["fecha"] >= inicio_semana) & (df_base["fecha"] < inicio_semana + pd.Timedelta(days=7))]
+    semana_anterior = df_base[(df_base["fecha"] >= inicio_semana_anterior) & (df_base["fecha"] < inicio_semana)]
+
+    siguiente_mes = inicio_mes + pd.offsets.MonthBegin(1)
+    mes_actual = df_base[(df_base["fecha"] >= inicio_mes) & (df_base["fecha"] < siguiente_mes)]
+    mes_anterior = df_base[(df_base["fecha"] >= inicio_mes_anterior) & (df_base["fecha"] < inicio_mes)]
+
+    def cambio_pct(actual, anterior):
+        if anterior == 0:
+            return 0.0
+        return float(((actual - anterior) / anterior) * 100)
+
+    return {
+        "gasto_semana_pct": cambio_pct(
+            semana_actual[semana_actual["tipo"] == "Gasto"]["monto"].sum(),
+            semana_anterior[semana_anterior["tipo"] == "Gasto"]["monto"].sum()
+        ),
+        "ingreso_semana_pct": cambio_pct(
+            semana_actual[semana_actual["tipo"] == "Ingreso"]["monto"].sum(),
+            semana_anterior[semana_anterior["tipo"] == "Ingreso"]["monto"].sum()
+        ),
+        "gasto_mes_pct": cambio_pct(
+            mes_actual[mes_actual["tipo"] == "Gasto"]["monto"].sum(),
+            mes_anterior[mes_anterior["tipo"] == "Gasto"]["monto"].sum()
+        ),
+        "ingreso_mes_pct": cambio_pct(
+            mes_actual[mes_actual["tipo"] == "Ingreso"]["monto"].sum(),
+            mes_anterior[mes_anterior["tipo"] == "Ingreso"]["monto"].sum()
+        )
+    }
+
+
+def construir_resumen_semanal_premium(df_base, meta_actual, ahorro_actual):
+    if df_base is None or df_base.empty:
+        return {
+            "positivas": ["Aún no hay semana suficiente para resumir."],
+            "alertas": ["Registra algunos movimientos y Zentix activará tu resumen premium."],
+            "accion": "Empieza por registrar tus gastos e ingresos principales de esta semana."
+        }
+
+    hoy = pd.Timestamp.now().normalize()
+    inicio_semana = hoy - pd.Timedelta(days=hoy.weekday())
+    inicio_semana_anterior = inicio_semana - pd.Timedelta(days=7)
+
+    semana_actual = df_base[(df_base["fecha"] >= inicio_semana) & (df_base["fecha"] < inicio_semana + pd.Timedelta(days=7))]
+    semana_anterior = df_base[(df_base["fecha"] >= inicio_semana_anterior) & (df_base["fecha"] < inicio_semana)]
+
+    positivos = []
+    alertas = []
+
+    gasto_actual = semana_actual[semana_actual["tipo"] == "Gasto"]["monto"].sum()
+    gasto_anterior = semana_anterior[semana_anterior["tipo"] == "Gasto"]["monto"].sum()
+    ingreso_actual = semana_actual[semana_actual["tipo"] == "Ingreso"]["monto"].sum()
+
+    if gasto_anterior > 0 and gasto_actual < gasto_anterior:
+        positivos.append(f"Bajaste tus gastos semanales en {money(gasto_anterior - gasto_actual)} frente a la semana pasada.")
+    if ingreso_actual > 0:
+        positivos.append(f"Generaste {money(ingreso_actual)} en ingresos durante la semana actual.")
+    if len(semana_actual.index) >= 3:
+        positivos.append("Tu semana ya tiene suficiente registro para recomendaciones más precisas.")
+    if ahorro_actual > 0:
+        positivos.append(f"Tienes un disponible actual de {money(ahorro_actual)}, lo que te da margen de maniobra.")
+
+    top_categoria, top_monto, top_share = obtener_top_categoria(semana_actual)
+    if top_categoria and top_share >= 0.40:
+        alertas.append(f"{top_categoria} representa una parte muy alta de tu gasto semanal ({round(top_share * 100, 1)}%).")
+    if gasto_anterior > 0 and gasto_actual > gasto_anterior * 1.15:
+        alertas.append(f"Tus gastos subieron frente a la semana pasada en aproximadamente {money(gasto_actual - gasto_anterior)}.")
+    if calcular_ratio_fin_semana(semana_actual) >= 0.45:
+        alertas.append("Tus fines de semana concentran una gran parte de los gastos.")
+    if meta_actual > 0 and ahorro_actual < meta_actual:
+        alertas.append(f"Aún te faltan {money(meta_actual - max(ahorro_actual, 0))} para llegar a tu meta actual.")
+
+    if not positivos:
+        positivos = ["Tu panorama semanal está estable, pero aún necesita más datos para destacar avances claros."]
+    if not alertas:
+        alertas = ["No se detectan alertas críticas esta semana. Mantén consistencia en el registro."]
+
+    if top_categoria and top_monto > 0:
+        accion = f"Tu mejor siguiente paso es vigilar {top_categoria}. Si recortas alrededor de {money(top_monto * 0.15)}, notarás rápido el impacto."
+    elif meta_actual > 0 and ahorro_actual < meta_actual:
+        accion = f"Para acercarte a tu meta, prioriza conservar al menos {money((meta_actual - max(ahorro_actual, 0)) / 4)} por semana."
+    else:
+        accion = "Tu siguiente mejor acción es sostener el registro diario para que Zentix detecte tendencias más finas."
+
+    return {
+        "positivas": positivos[:3],
+        "alertas": alertas[:2],
+        "accion": accion
+    }
+
+
+def generar_alertas_proactivas(df_base, df_mes_actual, total_ingresos, total_gastos, saldo_disponible, meta_actual):
+    alertas = []
+
+    if total_ingresos > 0 and total_gastos >= total_ingresos * 0.9:
+        alertas.append("Vas muy cerca del límite de tus ingresos este mes.")
+    if saldo_disponible < 0:
+        alertas.append("Tu disponible actual está en negativo.")
+    top_categoria, _, top_share = obtener_top_categoria(df_mes_actual)
+    if top_categoria and top_share >= 0.40:
+        alertas.append(f"{top_categoria} domina tu gasto mensual.")
+    if calcular_ratio_fin_semana(df_mes_actual) >= 0.45:
+        alertas.append("Tus gastos se están concentrando en fines de semana.")
+    if meta_actual > 0 and saldo_disponible < meta_actual:
+        alertas.append("Todavía no alcanzas tu meta de ahorro actual.")
+
+    if not alertas:
+        alertas.append("Tu comportamiento actual no muestra alertas fuertes; mantén el ritmo.")
+
+    return alertas[:3]
+
+
+def generar_recomendacion_accionable(df_mes_actual, total_ingresos, total_gastos, ahorro_actual, meta_actual):
+    top_categoria, top_monto, _ = obtener_top_categoria(df_mes_actual)
+
+    if meta_actual > 0 and ahorro_actual < meta_actual:
+        faltante = meta_actual - max(ahorro_actual, 0)
+        if top_categoria and top_monto > 0:
+            ajuste = min(faltante / 4, top_monto * 0.20)
+            return f"Si recortas cerca de {money(max(ajuste, 0))} en {top_categoria} cada semana, te acercas mucho más rápido a tu meta."
+        return f"Si reservas alrededor de {money(max(faltante / 4, 0))} por semana, avanzas con más control hacia tu meta."
+
+    if total_ingresos > 0 and total_gastos > total_ingresos * 0.8 and top_categoria:
+        return f"Tu mayor palanca ahora está en {top_categoria}. Un ajuste pequeño ahí puede devolverte margen sin tocar todo lo demás."
+
+    return "Mantén el registro constante y usa las alertas para corregir solo una categoría a la vez."
+
+
+def detectar_patrones_comportamiento(df_base):
+    patrones = []
+
+    if df_base is None or df_base.empty:
+        return ["Aún no hay suficiente actividad para detectar patrones."]
+
+    ratio_fin_semana = calcular_ratio_fin_semana(df_base)
+    if ratio_fin_semana >= 0.45:
+        patrones.append("Tus fines de semana cargan gran parte del gasto.")
+
+    gastos = df_base[df_base["tipo"] == "Gasto"].copy()
+    if not gastos.empty:
+        gastos["dow"] = gastos["fecha"].dt.day_name()
+        top_day = gastos.groupby("dow")["monto"].sum().sort_values(ascending=False)
+        if not top_day.empty:
+            patrones.append(f"Tu día con mayor presión de gasto suele ser {top_day.index[0]}.")
+
+    if "emocion" in df_base.columns:
+        emociones = df_base[df_base["emocion"].fillna("") != ""]
+        if not emociones.empty:
+            emocion_top = emociones["emocion"].value_counts().idxmax()
+            patrones.append(f"La emoción más repetida en tus gastos es {emocion_top.lower()}.")
+
+    if not patrones:
+        patrones.append("Tu comportamiento luce estable, sin patrones dominantes todavía.")
+
+    return patrones[:3]
+
+
+def sugerir_categorias_inteligentes(df_base):
+    sugerencias = []
+
+    if df_base is None or df_base.empty:
+        return ["Sigue registrando y Zentix podrá sugerirte mejores categorías."]
+
+    gastos = df_base[df_base["tipo"] == "Gasto"].copy()
+    if gastos.empty:
+        return ["Aún no hay suficientes gastos para sugerir categorías inteligentes."]
+
+    otros = gastos[gastos["categoria"].fillna("").str.lower() == "otros"]
+    if not otros.empty and otros["monto"].sum() >= gastos["monto"].sum() * 0.15:
+        sugerencias.append("Tus registros en 'Otros' ya pesan bastante. Te convendría dividirlos en categorías más específicas.")
+
+    if gastos["descripcion"].fillna("").astype(str).str.strip().ne("").any():
+        desc_tmp = gastos[gastos["descripcion"].fillna("").astype(str).str.strip() != ""].copy()
+        desc_tmp["desc_norm"] = desc_tmp["descripcion"].astype(str).str.strip().str.lower()
+        top_desc = desc_tmp["desc_norm"].value_counts()
+        if not top_desc.empty and top_desc.iloc[0] >= 3:
+            sugerencias.append(f"Registras con frecuencia '{top_desc.index[0]}'. Podría merecer una categoría propia.")
+
+    top_categoria, _, top_share = obtener_top_categoria(gastos)
+    if top_categoria and top_share >= 0.45:
+        sugerencias.append(f"{top_categoria} domina tu gasto. Puedes crear subcategorías para tener mejor lectura.")
+
+    if not sugerencias:
+        sugerencias.append("Tus categorías actuales están bastante bien distribuidas.")
+
+    return sugerencias[:3]
+
+
+def construir_insight_personalizado(perfil_financiero, alertas, recomendacion, patrones):
+    base_desc = perfil_financiero.get("descripcion", "Sin insight disponible.")
+    alerta = alertas[0] if alertas else "Sin alertas críticas por ahora."
+    patron = patrones[0] if patrones else "Sin patrones dominantes detectados."
+    return f"{base_desc} Alerta principal: {alerta} Patrón clave: {patron} Recomendación: {recomendacion}"
+
+
+def money_delta(value):
+    prefix = "+" if value > 0 else ""
+    return f"{prefix}{round(value, 1)}%"
+
+
+def render_list_card(title, items, foot=""):
+    bullets = "".join([f"<li style='margin-bottom:0.35rem;'>{item}</li>" for item in items])
+    st.markdown(
+        f"""
+        <div class="soft-card">
+            <div class="section-title">{title}</div>
+            <div class="section-caption" style="margin-bottom:0.45rem;">
+                <ul style="padding-left:1.05rem;margin:0;">{bullets}</ul>
+            </div>
+            <div class="tiny-muted">{foot}</div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+
 def obtener_movimientos_recientes_para_ia(df_mes_actual, limite=8):
     if df_mes_actual is None or df_mes_actual.empty:
         return "No hay movimientos registrados este mes."
@@ -677,26 +1180,68 @@ def construir_contexto_zentix(pagina, nombre, total_ingresos, total_gastos, ahor
     meta_actual = float(globals().get("meta_guardada_global", 0.0) or 0.0)
     categoria_top_actual = globals().get("categoria_top", None)
     monto_top_actual = float(globals().get("monto_top", 0.0) or 0.0)
-    insight_actual = globals().get("insight_financiero", "Sin insight disponible.")
+    insight_actual = globals().get("insight_personalizado", globals().get("insight_financiero", "Sin insight disponible."))
+    perfil_actual = globals().get("perfil_financiero", {})
+    alertas_actuales = globals().get("alertas_proactivas", [])
+    resumen_semanal_actual = globals().get("resumen_semanal_premium", {})
+    comparativa_actual = globals().get("comparativa_periodos", {})
+    recomendacion_actual = globals().get("recomendacion_accionable", "")
+    patrones_actuales = globals().get("patrones_comportamiento", [])
+    sugerencias_actuales = globals().get("sugerencias_categoria", [])
+    plan_actual = globals().get("plan_usuario_actual", {})
+    consultas_restantes = globals().get("consultas_restantes_hoy", 0)
+    nombre_meta = globals().get("nombre_meta_guardado", "")
 
     movimientos_texto = obtener_movimientos_recientes_para_ia(df_mes_actual, limite=8)
+
+    positivas = "\n".join([f"- {x}" for x in resumen_semanal_actual.get("positivas", [])]) or "- Sin positivas registradas."
+    alertas = "\n".join([f"- {x}" for x in alertas_actuales]) or "- Sin alertas."
+    patrones = "\n".join([f"- {x}" for x in patrones_actuales]) or "- Sin patrones."
+    sugerencias = "\n".join([f"- {x}" for x in sugerencias_actuales]) or "- Sin sugerencias."
+    comparativa_linea = (
+        f"Gasto semana: {money_delta(comparativa_actual.get('gasto_semana_pct', 0.0))} | "
+        f"Ingreso semana: {money_delta(comparativa_actual.get('ingreso_semana_pct', 0.0))} | "
+        f"Gasto mes: {money_delta(comparativa_actual.get('gasto_mes_pct', 0.0))} | "
+        f"Ingreso mes: {money_delta(comparativa_actual.get('ingreso_mes_pct', 0.0))}"
+    )
 
     return f"""
 CONTEXTO DE ZENTIX
 - Página actual: {pagina}
 - Usuario: {nombre}
+- Plan actual: {plan_actual.get('plan', 'free')}
+- Consultas IA restantes hoy: {consultas_restantes}
+- Perfil financiero: {perfil_actual.get('titulo', 'Sin perfil')}
+- Descripción del perfil: {perfil_actual.get('descripcion', 'Sin descripción')}
 - Ingresos del mes: {money(total_ingresos)}
 - Gastos del mes: {money(total_gastos)}
 - Saldo disponible actual: {money(ahorro_actual)}
 - Meta de ahorro actual: {money(meta_actual)}
+- Nombre de la meta: {nombre_meta if nombre_meta else 'Sin nombre definido'}
 - Categoría con mayor peso: {categoria_top_actual if categoria_top_actual else 'Sin datos'}
 - Monto de categoría top: {money(monto_top_actual)}
 - Último tipo de movimiento: {ultimo_tipo if ultimo_tipo else 'Sin movimientos'}
 - Insight financiero actual: {insight_actual}
+- Recomendación accionable: {recomendacion_actual}
+- Comparativas: {comparativa_linea}
+
+RESUMEN SEMANAL PREMIUM
+{positivas}
+- Acción recomendada: {resumen_semanal_actual.get('accion', 'Sigue registrando movimientos.')}
+
+ALERTAS PROACTIVAS
+{alertas}
+
+PATRONES DE COMPORTAMIENTO
+{patrones}
+
+SUGERENCIAS DE CATEGORÍAS
+{sugerencias}
 
 MOVIMIENTOS RECIENTES DEL MES
 {movimientos_texto}
 """.strip()
+
 
 
 def consultar_ia_zentix(pregunta, contexto):
@@ -710,16 +1255,19 @@ def consultar_ia_zentix(pregunta, contexto):
                 {
                     "role": "system",
                     "content": (
-                        "Eres Avatar Zentix, un copiloto financiero dentro de una app de finanzas personales. "
+                        "Eres Avatar Zentix, un coach financiero premium dentro de una app de finanzas personales. "
                         "Hablas siempre en español. "
-                        "Tu tono es premium, claro, útil y cercano. "
+                        "Tu tono es elegante, claro, cálido, útil y muy personalizado. "
+                        "No hablas como un banco; hablas como un asistente inteligente que entiende hábitos y comportamiento. "
                         "Usa únicamente el contexto recibido. "
                         "Nunca inventes cifras, categorías o movimientos. "
                         "Si algo no está en el contexto, dilo con honestidad. "
                         "No des asesoría financiera profesional, legal ni tributaria. "
                         "Responde de forma breve pero valiosa, idealmente entre 4 y 8 líneas. "
-                        "Cuando corresponda, entrega viñetas cortas. "
-                        "Cierra con una recomendación concreta."
+                        "Cuando convenga, usa viñetas cortas. "
+                        "Da recomendaciones aterrizadas, accionables y humanas. "
+                        "Si detectas oportunidad de mejora, exprésala con tacto. "
+                        "Adapta tu voz al perfil financiero del usuario."
                     )
                 },
                 {
@@ -748,15 +1296,26 @@ def consultar_ia_zentix(pregunta, contexto):
     except Exception as e:
         return f"No pude responder ahora mismo. Error: {e}"
 
+
+
 def render_avatar(pagina, nombre, total_ingresos, total_gastos, ahorro_actual, ultimo_tipo):
+    perfil_actual = globals().get("perfil_financiero", {})
+    plan_actual = globals().get("plan_usuario_actual", {})
+    consultas_usadas = globals().get("consultas_usadas_hoy", 0)
+    consultas_limite = globals().get("consultas_limite_hoy", 10)
+    alertas_actuales = globals().get("alertas_proactivas", [])
+    recomendacion_actual = globals().get("recomendacion_accionable", "Sigue registrando para obtener una recomendación más precisa.")
+
+    tono_base = perfil_actual.get("titulo", "Perfil en construcción")
+
     if pagina == "Inicio":
-        mensaje = f"{nombre}, tu panorama mensual ya está listo. Ahora también puedes preguntarme por tus números."
+        mensaje = f"{nombre}, ya entendí mejor tu panorama. Hoy te leo como: {tono_base.lower()}."
     elif pagina == "Registrar":
-        mensaje = f"{nombre}, puedo ayudarte a interpretar lo que registras y darte contexto financiero al instante."
+        mensaje = f"{nombre}, cada nuevo movimiento me ayuda a entender mejor tu comportamiento financiero y a personalizar tus recomendaciones."
     elif pagina == "Análisis":
-        mensaje = f"{nombre}, aquí puedo explicarte patrones, concentración por categoría y alertas simples."
+        mensaje = f"{nombre}, aquí puedo explicarte patrones, comparar periodos y detectar señales que a simple vista se escapan."
     else:
-        mensaje = f"{nombre}, también puedo ayudarte a leer tu meta de ahorro contra tu saldo actual."
+        mensaje = f"{nombre}, tu meta no es solo un número. También puedo decirte qué ajuste te acercaría más rápido a ella."
 
     estado = (
         "🟢 Último movimiento: ingreso" if ultimo_tipo == "Ingreso"
@@ -778,10 +1337,10 @@ def render_avatar(pagina, nombre, total_ingresos, total_gastos, ahorro_actual, u
     clear_key = f"zentix_clear_{pagina}"
 
     mensajes_iniciales = {
-        "Inicio": f"Hola, {nombre}. Puedo resumirte tu mes, detectar alertas y decirte en qué estás gastando más.",
-        "Registrar": f"Hola, {nombre}. Puedo ayudarte a revisar el impacto de tus registros en tu panorama financiero.",
-        "Análisis": f"Hola, {nombre}. Pregúntame por tendencias, categorías dominantes o señales de gasto.",
-        "Ahorro": f"Hola, {nombre}. Puedo ayudarte a leer tu progreso de ahorro y qué te falta para tu meta."
+        "Inicio": f"Hola, {nombre}. Soy Zentix. Detecté un perfil tipo '{tono_base}' y puedo resumirte tu mes, tus alertas y tu mejor siguiente paso.",
+        "Registrar": f"Hola, {nombre}. Si registras con constancia, puedo volverte recomendaciones mucho más personales.",
+        "Análisis": f"Hola, {nombre}. Pregúntame por patrones, alertas, comparativas o categorías dominantes.",
+        "Ahorro": f"Hola, {nombre}. Puedo ayudarte a leer tu progreso, cuánto te falta y qué ajuste haría más diferencia."
     }
 
     if chat_key not in st.session_state:
@@ -809,7 +1368,17 @@ def render_avatar(pagina, nombre, total_ingresos, total_gastos, ahorro_actual, u
         st.markdown(f'<div class="assistant-text">{mensaje}</div>', unsafe_allow_html=True)
         st.markdown(f'<div class="assistant-mini">{estado}</div>', unsafe_allow_html=True)
         st.markdown(
-            f'<div class="assistant-mini">Ingresos: {money(total_ingresos)} · Gastos: {money(total_gastos)} · Disponible: {money(ahorro_actual)}</div>',
+            f'<div class="assistant-mini">Plan: {plan_actual.get("plan", "free").upper()} · IA hoy: {consultas_usadas}/{consultas_limite}</div>',
+            unsafe_allow_html=True
+        )
+        st.markdown(
+            f'<div class="assistant-mini">Perfil: {perfil_actual.get("titulo", "Sin perfil")} · Disponible: {money(ahorro_actual)}</div>',
+            unsafe_allow_html=True
+        )
+
+    if alertas_actuales:
+        st.markdown(
+            f'<div class="assistant-mini">Alerta actual: {alertas_actuales[0]}</div>',
             unsafe_allow_html=True
         )
 
@@ -817,28 +1386,28 @@ def render_avatar(pagina, nombre, total_ingresos, total_gastos, ahorro_actual, u
 
     preguntas_rapidas = {
         "Inicio": [
-            "Resúmeme mi mes en 3 puntos",
-            "¿En qué estoy gastando más?",
-            "¿Ves alguna alerta este mes?",
-            "¿Cómo voy frente a mi ahorro?"
+            "Resúmeme mi semana premium",
+            "¿Cuál es mi perfil financiero?",
+            "¿Qué alerta debería vigilar hoy?",
+            "Dame una acción concreta para mejorar"
         ],
         "Registrar": [
-            "¿Qué debería vigilar al registrar gastos?",
-            "¿Cómo impactan mis gastos en mi balance?",
-            "Dame una recomendación rápida para registrar mejor",
-            "¿Qué categoría conviene vigilar más?"
+            "¿Qué emoción conviene vigilar en mis gastos?",
+            "¿Cómo impacta este hábito en mi balance?",
+            "Dame una recomendación para registrar mejor",
+            "¿Qué categoría debería separar más?"
         ],
         "Análisis": [
             "Interpreta mis patrones de gasto",
-            "¿Cuál es mi categoría más pesada?",
-            "¿Qué tendencia ves este mes?",
-            "Dame 3 insights claros"
+            "Compárame esta semana con la pasada",
+            "¿Qué categoría domina mi mes?",
+            "Dame 3 insights personalizados"
         ],
         "Ahorro": [
             "Explícame mi progreso de ahorro",
             "¿Cuánto me falta realmente?",
-            "¿Qué ajuste simple me recomiendas?",
-            "Dame un plan corto para acercarme a mi meta"
+            "¿Qué ajuste me acerca más rápido?",
+            "Convierte mi meta en un plan corto"
         ]
     }
 
@@ -873,7 +1442,7 @@ def render_avatar(pagina, nombre, total_ingresos, total_gastos, ahorro_actual, u
         "Pregúntale a Zentix",
         key=input_key,
         label_visibility="collapsed",
-        placeholder="Ej: ¿Cómo voy este mes? ¿Dónde debería ajustar gastos?"
+        placeholder="Ej: ¿Cómo voy este mes? ¿Qué patrón estás viendo? ¿Cuál es mi siguiente mejor paso?"
     )
 
     c1, c2 = st.columns([3, 1])
@@ -894,15 +1463,31 @@ def render_avatar(pagina, nombre, total_ingresos, total_gastos, ahorro_actual, u
     if pregunta_final:
         st.session_state[chat_key].append({"role": "user", "content": pregunta_final})
 
-        with st.spinner("Zentix está analizando tu información..."):
-            respuesta = consultar_ia_zentix(pregunta_final, contexto_ia)
+        permitido, usadas, limite, _, plan = puede_usar_ia(st.session_state.user.id)
+
+        if not permitido:
+            respuesta = (
+                f"Has alcanzado tu límite diario de IA ({limite} consultas) en el plan "
+                f"{plan.get('plan', 'free')}. Pásate a Pro para tener más acceso y análisis más profundos."
+            )
+        else:
+            with st.spinner("Zentix está analizando tu información..."):
+                respuesta = consultar_ia_zentix(pregunta_final, contexto_ia)
+            registrar_uso_ia(st.session_state.user.id)
 
         st.session_state[chat_key].append({"role": "assistant", "content": respuesta})
         st.session_state[clear_key] = True
         st.rerun()
 
+    if recomendacion_actual:
+        st.markdown(
+            f'<div class="assistant-mini" style="margin-top:0.65rem;">Siguiente mejor paso: {recomendacion_actual}</div>',
+            unsafe_allow_html=True
+        )
+
     st.markdown('</div>', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
+
 
 
 def obtener_insight_financiero(total_ingresos, total_gastos, saldo_disponible, df_mes):
@@ -1093,11 +1678,15 @@ if st.session_state.user is None:
     st.stop()
 
 
+
 zentix_brand_header()
 
 user_id = st.session_state.user.id
 perfil = obtener_perfil(user_id)
 nombre_usuario = perfil["nombre_mostrado"] if perfil and perfil.get("nombre_mostrado") else "usuario"
+
+plan_usuario_actual = obtener_o_crear_plan_usuario(user_id)
+_, consultas_usadas_hoy, consultas_limite_hoy, consultas_restantes_hoy, _ = puede_usar_ia(user_id)
 
 paginas_disponibles = ["Inicio", "Registrar", "Análisis", "Ahorro"]
 
@@ -1118,6 +1707,18 @@ with st.sidebar:
         <div class="sidebar-user-card">
             <div class="sidebar-user-label">Sesión activa</div>
             <div class="sidebar-user-name">{nombre_usuario}</div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    st.markdown(
+        f"""
+        <div class="sidebar-user-card">
+            <div class="sidebar-user-label">Plan actual</div>
+            <div class="sidebar-user-name">{plan_usuario_actual.get('plan', 'free').upper()}</div>
+            <div class="tiny-muted" style="margin-top:0.35rem;">IA hoy: {consultas_usadas_hoy}/{consultas_limite_hoy}</div>
+            <div class="tiny-muted">Restantes: {consultas_restantes_hoy}</div>
         </div>
         """,
         unsafe_allow_html=True
@@ -1279,6 +1880,22 @@ ahorro_actual = float(saldo_disponible)
 insight_financiero = obtener_insight_financiero(total_ingresos, total_gastos, saldo_disponible, df_mes)
 categoria_top, monto_top = obtener_categoria_top(df_mes)
 
+nombre_meta_guardado = obtener_nombre_meta_guardado(user_id)
+perfil_financiero = obtener_perfil_financiero(total_ingresos, total_gastos, saldo_disponible, df_mes)
+comparativa_periodos = obtener_comparativa_periodos(df if not df.empty else pd.DataFrame())
+resumen_semanal_premium = construir_resumen_semanal_premium(df if not df.empty else pd.DataFrame(), meta_guardada_global, ahorro_actual)
+alertas_proactivas = generar_alertas_proactivas(df if not df.empty else pd.DataFrame(), df_mes, total_ingresos, total_gastos, saldo_disponible, meta_guardada_global)
+recomendacion_accionable = generar_recomendacion_accionable(df_mes, total_ingresos, total_gastos, ahorro_actual, meta_guardada_global)
+patrones_comportamiento = detectar_patrones_comportamiento(df if not df.empty else pd.DataFrame())
+sugerencias_categoria = sugerir_categorias_inteligentes(df if not df.empty else pd.DataFrame())
+insight_personalizado = construir_insight_personalizado(
+    perfil_financiero,
+    alertas_proactivas,
+    recomendacion_accionable,
+    patrones_comportamiento
+)
+_, consultas_usadas_hoy, consultas_limite_hoy, consultas_restantes_hoy, plan_usuario_actual = puede_usar_ia(user_id)
+
 
 if pagina == "Inicio":
     zentix_hero(nombre_usuario, saldo_disponible, total_ingresos, total_gastos)
@@ -1291,23 +1908,44 @@ if pagina == "Inicio":
     with col3:
         kpi_card("Disponible", money(saldo_disponible), "Resultado neto actual", "balance")
     with col4:
-        kpi_card("Meta de ahorro", money(meta_guardada_global), "Objetivo configurado", "saving")
+        kpi_card("Meta de ahorro", money(meta_guardada_global), nombre_meta_guardado if nombre_meta_guardado else "Objetivo configurado", "saving")
 
-    col_info, col_avatar = st.columns([1.2, 0.8])
+    col_info, col_avatar = st.columns([1.15, 0.85])
     with col_info:
-        section_header("Lectura rápida del mes", "Una interpretación simple para tomar mejores decisiones.")
+        section_header("Lectura inteligente del mes", "Zentix interpreta tu comportamiento, no solo tus cifras.")
         st.markdown(
             f"""
             <div class="soft-card">
-                <div class="section-title">Salud financiera</div>
-                <div class="section-caption">{insight_financiero}</div>
-                <div class="tiny-muted">Categoría más representativa: {categoria_top if categoria_top else 'Sin datos'} {f'· {money(monto_top)}' if categoria_top else ''}</div>
+                <div class="section-title">{perfil_financiero.get('titulo', 'Perfil en construcción')}</div>
+                <div class="section-caption">{insight_personalizado}</div>
+                <div class="tiny-muted">Microlectura: {perfil_financiero.get('microcopy', 'Sigue registrando para personalizar más.')}</div>
             </div>
             """,
             unsafe_allow_html=True
         )
+
     with col_avatar:
         render_avatar(pagina, nombre_usuario, total_ingresos, total_gastos, saldo_disponible, ultimo_tipo)
+
+    section_header("Resumen premium de tu comportamiento", "Lo bueno, lo que debes vigilar y tu mejor siguiente paso.")
+    s1, s2, s3 = st.columns(3)
+    with s1:
+        render_list_card("Lo que hiciste bien", resumen_semanal_premium.get("positivas", []), "Zentix detecta avances para reforzar hábitos sanos.")
+    with s2:
+        render_list_card("Alertas proactivas", alertas_proactivas, "Alertas simples para actuar antes de que el mes se complique.")
+    with s3:
+        render_list_card("Patrones + acción", patrones_comportamiento, recomendacion_accionable)
+
+    section_header("Experiencia personalizada", "Comparativas inteligentes y sugerencias de organización.")
+    c1, c2, c3, c4 = st.columns(4)
+    with c1:
+        render_list_card("Semana vs pasada", [f"Gasto: {money_delta(comparativa_periodos.get('gasto_semana_pct', 0.0))}", f"Ingreso: {money_delta(comparativa_periodos.get('ingreso_semana_pct', 0.0))}"], "Comparativa semanal.")
+    with c2:
+        render_list_card("Mes vs anterior", [f"Gasto: {money_delta(comparativa_periodos.get('gasto_mes_pct', 0.0))}", f"Ingreso: {money_delta(comparativa_periodos.get('ingreso_mes_pct', 0.0))}"], "Comparativa mensual.")
+    with c3:
+        render_list_card("Categorías inteligentes", sugerencias_categoria, "Ideas para que tus categorías te den más claridad.")
+    with c4:
+        render_list_card("Plan y IA", [f"Plan actual: {plan_usuario_actual.get('plan', 'free').upper()}", f"IA hoy: {consultas_usadas_hoy}/{consultas_limite_hoy}", f"Restantes: {consultas_restantes_hoy}"], "El plan Pro tendrá más IA, alertas y profundidad.")
 
     if not df_mes.empty:
         section_header("Visualización mensual", "Distribuciones del mes actual para ver proporciones y foco de gasto.")
@@ -1351,13 +1989,12 @@ if pagina == "Inicio":
     else:
         empty_state(
             "Aún no hay movimientos este mes",
-            "Empieza en Registrar para construir tu dashboard. Apenas ingreses datos, aquí aparecerán tus indicadores y gráficos."
+            "Empieza en Registrar para construir tu dashboard. Apenas ingreses datos, aquí aparecerán tus indicadores, perfil y análisis personalizados."
         )
-
 
 if pagina == "Registrar":
     zentix_hero(nombre_usuario, saldo_disponible, total_ingresos, total_gastos)
-    section_header("Registrar movimiento", "Agrega ingresos y gastos con una experiencia más clara y visual.")
+    section_header("Registrar movimiento", "Agrega ingresos y gastos con una experiencia más clara, emocional y visual.")
 
     col_form, col_side = st.columns([1.15, 0.85])
 
@@ -1380,6 +2017,14 @@ if pagina == "Registrar":
         monto = st.number_input("Monto", min_value=0.0, step=1000.0)
         descripcion = st.text_input("Descripción")
 
+        emocion = ""
+        if tipo == "Gasto":
+            emocion = st.selectbox(
+                "¿Cómo te sentías al hacer este gasto?",
+                ["", "Tranquilidad", "Impulso", "Estrés", "Recompensa", "Urgencia", "Antojo"],
+                format_func=lambda x: "No registrar emoción" if x == "" else x
+            )
+
         col_btn_1, col_btn_2 = st.columns(2)
         with col_btn_1:
             if st.button("Guardar movimiento", use_container_width=True):
@@ -1389,14 +2034,16 @@ if pagina == "Registrar":
                     st.error("El monto debe ser mayor que 0.")
                 else:
                     try:
-                        supabase.table("movimientos").insert({
+                        payload = {
                             "usuario_id": user_id,
                             "fecha": datetime.combine(fecha_mov, datetime.min.time()).isoformat(),
                             "tipo": tipo,
                             "categoria": categoria.strip(),
                             "monto": float(monto),
-                            "descripcion": descripcion.strip()
-                        }).execute()
+                            "descripcion": descripcion.strip(),
+                            "emocion": emocion if tipo == "Gasto" else None
+                        }
+                        insertar_movimiento_seguro(payload)
                         st.success("Movimiento guardado correctamente.")
                         st.rerun()
                     except Exception as e:
@@ -1421,30 +2068,50 @@ if pagina == "Registrar":
                 <div style="font-weight:800;font-size:1.15rem;">{money(monto)}</div>
                 <div class="tiny-muted" style="margin-top:0.7rem;">Descripción</div>
                 <div style="font-weight:600;">{descripcion if descripcion else 'Sin descripción'}</div>
+                <div class="tiny-muted" style="margin-top:0.7rem;">Emoción</div>
+                <div style="font-weight:600;">{emocion if emocion else 'No registrada'}</div>
             </div>
             """,
             unsafe_allow_html=True
         )
         render_avatar(pagina, nombre_usuario, total_ingresos, total_gastos, saldo_disponible, ultimo_tipo)
 
-
 if pagina == "Análisis":
     zentix_hero(nombre_usuario, saldo_disponible, total_ingresos, total_gastos)
-    section_header("Análisis del mes", "Explora movimientos, concentración por categoría y evolución diaria.")
+    section_header("Análisis del mes", "Explora movimientos, concentración por categoría, evolución diaria y lectura personalizada.")
 
     col_a, col_b = st.columns([1.15, 0.85])
     with col_a:
         if not df_mes.empty:
             vista_df = df_mes.copy().sort_values("fecha", ascending=False)
             vista_df["fecha"] = vista_df["fecha"].dt.strftime("%Y-%m-%d")
+            columnas = ["fecha", "tipo", "categoria", "monto", "descripcion"]
+            if "emocion" in vista_df.columns:
+                columnas.append("emocion")
             st.dataframe(
-                vista_df[["fecha", "tipo", "categoria", "monto", "descripcion"]],
+                vista_df[columnas],
                 use_container_width=True
             )
         else:
             empty_state("Todavía no hay datos", "Cuando registres movimientos este mes, aquí verás tablas y gráficos más útiles.")
     with col_b:
         render_avatar(pagina, nombre_usuario, total_ingresos, total_gastos, saldo_disponible, ultimo_tipo)
+
+    section_header("Comparativas y patrones", "Así viene cambiando tu comportamiento financiero.")
+    a1, a2, a3 = st.columns(3)
+    with a1:
+        render_list_card("Comparativa semanal", [f"Gasto: {money_delta(comparativa_periodos.get('gasto_semana_pct', 0.0))}", f"Ingreso: {money_delta(comparativa_periodos.get('ingreso_semana_pct', 0.0))}"], "Semana actual vs anterior.")
+    with a2:
+        render_list_card("Comparativa mensual", [f"Gasto: {money_delta(comparativa_periodos.get('gasto_mes_pct', 0.0))}", f"Ingreso: {money_delta(comparativa_periodos.get('ingreso_mes_pct', 0.0))}"], "Mes actual vs anterior.")
+    with a3:
+        render_list_card("Patrones detectados", patrones_comportamiento, "Zentix busca hábitos que explican tu comportamiento.")
+
+    section_header("Insights personalizados", "Tu perfil, tus alertas y tus mejores mejoras.")
+    b1, b2 = st.columns(2)
+    with b1:
+        render_list_card("Perfil financiero", [perfil_financiero.get("descripcion", "Sin perfil disponible."), perfil_financiero.get("microcopy", "")], "Identidad financiera detectada automáticamente.")
+    with b2:
+        render_list_card("Alertas + categorías", alertas_proactivas + sugerencias_categoria, recomendacion_accionable)
 
     if not df_mes.empty:
         resumen = (
@@ -1492,10 +2159,9 @@ if pagina == "Análisis":
     else:
         st.info("No hay datos este mes.")
 
-
 if pagina == "Ahorro":
     zentix_hero(nombre_usuario, saldo_disponible, total_ingresos, total_gastos)
-    section_header("Plan de ahorro", "Conecta tu meta con tu saldo disponible actual.")
+    section_header("Plan de ahorro", "Conecta tu meta con tu saldo disponible actual y dale identidad.")
 
     try:
         meta_result = obtener_meta(user_id)
@@ -1504,6 +2170,12 @@ if pagina == "Ahorro":
         st.error(f"Error cargando meta de ahorro: {e}")
         meta_result = None
         meta_guardada = 0.0
+
+    nombre_meta_input = st.text_input(
+        "Ponle nombre a tu meta",
+        value=nombre_meta_guardado,
+        placeholder="Ej: Viaje a Medellín, Fondo de calma, Moto"
+    )
 
     meta = st.number_input(
         "¿Cuánto quieres ahorrar?",
@@ -1521,7 +2193,7 @@ if pagina == "Ahorro":
     with col_k1:
         kpi_card("Disponible actual", money(ahorro_actual), "Lo que hoy puedes destinar", "balance")
     with col_k2:
-        kpi_card("Meta definida", money(meta), "Objetivo configurado", "saving")
+        kpi_card("Meta definida", money(meta), nombre_meta_input if nombre_meta_input else "Objetivo configurado", "saving")
     with col_k3:
         kpi_card("Faltante", money(faltante), "Lo que resta por cubrir", "expense" if faltante > 0 else "income")
 
@@ -1533,18 +2205,7 @@ if pagina == "Ahorro":
         with col_btn_1:
             if st.button("Guardar meta", use_container_width=True):
                 try:
-                    if meta_result:
-                        supabase.table("ahorro_meta").update({
-                            "meta": float(meta),
-                            "actualizado_en": datetime.now().isoformat()
-                        }).eq("usuario_id", user_id).execute()
-                    else:
-                        supabase.table("ahorro_meta").insert({
-                            "usuario_id": user_id,
-                            "meta": float(meta),
-                            "actualizado_en": datetime.now().isoformat()
-                        }).execute()
-
+                    guardar_meta_segura(user_id, meta, nombre_meta_input, meta_result)
                     st.success("Meta guardada correctamente.")
                     st.rerun()
                 except Exception as e:
@@ -1553,7 +2214,7 @@ if pagina == "Ahorro":
         with col_btn_2:
             if st.button("Limpiar meta", use_container_width=True):
                 try:
-                    supabase.table("ahorro_meta").delete().eq("usuario_id", user_id).execute()
+                    eliminar_meta_segura(user_id)
                     st.warning("Meta eliminada correctamente.")
                     st.rerun()
                 except Exception as e:
@@ -1572,7 +2233,7 @@ if pagina == "Ahorro":
         st.markdown(
             f"""
             <div class="soft-card">
-                <div class="section-title">Lectura de tu objetivo</div>
+                <div class="section-title">{nombre_meta_input if nombre_meta_input else 'Lectura de tu objetivo'}</div>
                 <div class="section-caption">
                     {("Tu saldo ya cubre la meta actual. Puedes subir el objetivo o mantenerlo." if float(meta) > 0 and ahorro_actual >= float(meta)
                     else "Tu meta aún no está cubierta. Usa esta referencia para ajustar tu ritmo de gasto y ahorro." if float(meta) > 0
@@ -1580,6 +2241,8 @@ if pagina == "Ahorro":
                 </div>
                 <div class="tiny-muted">Progreso actual</div>
                 <div class="form-preview-value">{round(min(progreso, 1.0) * 100, 1) if float(meta) > 0 else 0}%</div>
+                <div class="tiny-muted" style="margin-top:0.7rem;">Plan sugerido</div>
+                <div style="font-weight:700;line-height:1.5;">{recomendacion_accionable}</div>
             </div>
             """,
             unsafe_allow_html=True
