@@ -33,20 +33,10 @@ if not icono_path.exists():
 avatar_path = Path("avatar_zentix.png")
 
 GEMINI_API_KEY = st.secrets.get("GEMINI_API_KEY") or os.getenv("GEMINI_API_KEY")
-OPENAI_API_KEY = st.secrets.get("OPENAI_API_KEY") or os.getenv("OPENAI_API_KEY")
-
-if GEMINI_API_KEY:
-    IA_PROVIDER = "gemini"
-    openai_client = OpenAI(
-        api_key=GEMINI_API_KEY,
-        base_url="https://generativelanguage.googleapis.com/v1beta/openai/"
-    )
-elif OPENAI_API_KEY:
-    IA_PROVIDER = "openai"
-    openai_client = OpenAI(api_key=OPENAI_API_KEY)
-else:
-    IA_PROVIDER = None
-    openai_client = None
+openai_client = OpenAI(
+    api_key=GEMINI_API_KEY,
+    base_url="https://generativelanguage.googleapis.com/v1beta/openai/"
+) if GEMINI_API_KEY else None
 
 
 def aplicar_estilo_zentix():
@@ -106,8 +96,25 @@ def aplicar_estilo_zentix():
     }
 
     [data-testid="collapsedControl"] {
-        top: 0.75rem;
-        z-index: 999999;
+        position: fixed;
+        top: 0.85rem;
+        left: 0.85rem;
+        z-index: 999999 !important;
+        background: rgba(15,23,42,0.96);
+        border: 1px solid rgba(96,165,250,0.28);
+        border-radius: 14px;
+        padding: 0.2rem 0.3rem;
+        box-shadow: 0 10px 24px rgba(0,0,0,0.28);
+    }
+
+    [data-testid="collapsedControl"]:hover {
+        border-color: rgba(125,211,252,0.40);
+        box-shadow: 0 12px 28px rgba(37,99,235,0.22);
+    }
+
+    [data-testid="collapsedControl"] svg {
+        fill: #F8FAFC !important;
+        color: #F8FAFC !important;
     }
 
     [data-testid="stSidebarContent"] {
@@ -134,26 +141,83 @@ def aplicar_estilo_zentix():
 
     .stButton > button {
         width: 100%;
-        border-radius: 16px;
-        border: 1px solid rgba(125, 211, 252, 0.14);
-        background: linear-gradient(135deg, #2563EB, #0891B2);
-        color: white;
+        min-height: 58px;
+        border-radius: 22px;
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        background:
+            radial-gradient(circle at top left, rgba(125, 211, 252, 0.10), transparent 34%),
+            radial-gradient(circle at bottom right, rgba(139, 92, 246, 0.08), transparent 28%),
+            linear-gradient(135deg, rgba(10,18,32,0.98), rgba(15,23,42,0.98));
+        color: #F8FAFC;
         font-weight: 800;
-        padding: 0.72rem 1rem;
-        box-shadow: 0 12px 24px rgba(37,99,235,0.18);
-        transition: all 0.18s ease;
+        font-size: 1rem;
+        letter-spacing: 0.01em;
+        padding: 0.95rem 1.15rem;
+        box-shadow:
+            inset 0 1px 0 rgba(255,255,255,0.04),
+            0 10px 24px rgba(0,0,0,0.26);
+        backdrop-filter: blur(10px);
+        transition:
+            transform 0.18s ease,
+            box-shadow 0.18s ease,
+            border-color 0.18s ease,
+            background 0.18s ease,
+            filter 0.18s ease;
     }
 
     .stButton > button:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 16px 28px rgba(37,99,235,0.24);
-        border-color: rgba(125, 211, 252, 0.24);
+        transform: translateY(-2px);
+        border-color: rgba(125, 211, 252, 0.32);
+        box-shadow:
+            inset 0 1px 0 rgba(255,255,255,0.05),
+            0 14px 30px rgba(16,24,40,0.34);
+        filter: brightness(1.03);
+    }
+
+    .stButton > button:active {
+        transform: translateY(0) scale(0.985);
+    }
+
+    .stButton > button:focus:not(:active) {
+        border-color: rgba(125, 211, 252, 0.48);
+        box-shadow:
+            0 0 0 1px rgba(125, 211, 252, 0.20),
+            0 14px 30px rgba(37,99,235,0.14);
+    }
+
+    .stButton > button[kind="primary"] {
+        background:
+            radial-gradient(circle at top left, rgba(125, 211, 252, 0.26), transparent 34%),
+            radial-gradient(circle at bottom right, rgba(167, 139, 250, 0.22), transparent 30%),
+            linear-gradient(135deg, rgba(18,35,72,0.98), rgba(27,46,95,0.98));
+        border: 1px solid rgba(96, 165, 250, 0.34);
+        color: #FFFFFF;
+        box-shadow:
+            inset 0 1px 0 rgba(255,255,255,0.07),
+            0 16px 34px rgba(29,78,216,0.20),
+            0 0 0 1px rgba(125,211,252,0.08);
+    }
+
+    .stButton > button[kind="primary"]:hover {
+        transform: translateY(-2px);
+        border-color: rgba(125, 211, 252, 0.52);
+        background:
+            radial-gradient(circle at top left, rgba(125, 211, 252, 0.32), transparent 34%),
+            radial-gradient(circle at bottom right, rgba(192, 132, 252, 0.24), transparent 30%),
+            linear-gradient(135deg, rgba(22,41,84,1), rgba(34,56,110,1));
+        box-shadow:
+            inset 0 1px 0 rgba(255,255,255,0.08),
+            0 20px 40px rgba(37,99,235,0.24);
     }
 
     .stButton > button[kind="secondary"] {
-        background: linear-gradient(135deg, #111827, #0F172A);
+        background:
+            radial-gradient(circle at top left, rgba(59,130,246,0.08), transparent 30%),
+            linear-gradient(135deg, rgba(13,20,36,0.98), rgba(15,23,42,0.98));
         border: 1px solid rgba(148, 163, 184, 0.16);
-        box-shadow: none;
+        box-shadow:
+            inset 0 1px 0 rgba(255,255,255,0.04),
+            0 10px 22px rgba(0,0,0,0.24);
     }
 
     .stTextInput > div > div > input,
@@ -427,62 +491,6 @@ def aplicar_estilo_zentix():
         margin-top: 0.12rem;
     }
 
-    .plan-status-card {
-        background: linear-gradient(180deg, rgba(12,20,36,0.88), rgba(10,18,32,0.98));
-        border: 1px solid rgba(148,163,184,0.14);
-        border-radius: 18px;
-        padding: 0.9rem;
-        margin: 0.6rem 0 1rem 0;
-    }
-
-    .plan-pill-free,
-    .plan-pill-pro {
-        display: inline-block;
-        padding: 0.28rem 0.62rem;
-        border-radius: 999px;
-        font-size: 0.72rem;
-        font-weight: 800;
-        margin-bottom: 0.5rem;
-    }
-
-    .plan-pill-free {
-        background: rgba(34,197,94,0.14);
-        border: 1px solid rgba(34,197,94,0.24);
-        color: #86EFAC;
-    }
-
-    .plan-pill-pro {
-        background: rgba(139,92,246,0.14);
-        border: 1px solid rgba(139,92,246,0.24);
-        color: #C4B5FD;
-    }
-
-    .plan-title {
-        font-size: 0.92rem;
-        font-weight: 800;
-        color: var(--text);
-        margin-bottom: 0.25rem;
-    }
-
-    .plan-sub {
-        color: var(--muted);
-        font-size: 0.8rem;
-        margin-bottom: 0.45rem;
-    }
-
-    .plan-metric {
-        color: var(--text);
-        font-size: 1.15rem;
-        font-weight: 900;
-        line-height: 1.1;
-    }
-
-    .plan-note {
-        color: var(--muted);
-        font-size: 0.78rem;
-        margin-top: 0.45rem;
-    }
-
     .form-preview-value {
         font-size: 1.45rem;
         font-weight: 900;
@@ -693,61 +701,42 @@ MOVIMIENTOS RECIENTES DEL MES
 
 def consultar_ia_zentix(pregunta, contexto):
     if not openai_client:
-        return "La IA todavía no está activa. Agrega GEMINI_API_KEY o OPENAI_API_KEY en los secrets de Streamlit Cloud para habilitar al avatar."
+        return "La IA todavía no está activa. Agrega GEMINI_API_KEY en los secrets de Streamlit Cloud para habilitar al avatar."
 
     try:
-        if IA_PROVIDER == "gemini":
-            response = openai_client.chat.completions.create(
-                model="gemini-2.5-flash",
-                messages=[
-                    {
-                        "role": "system",
-                        "content": (
-                            "Eres Avatar Zentix, un copiloto financiero dentro de una app de finanzas personales. "
-                            "Hablas siempre en español. "
-                            "Tu tono es premium, claro, útil y cercano. "
-                            "Usa únicamente el contexto recibido. "
-                            "Nunca inventes cifras, categorías o movimientos. "
-                            "Si algo no está en el contexto, dilo con honestidad. "
-                            "No des asesoría financiera profesional, legal ni tributaria. "
-                            "Responde de forma breve pero valiosa, idealmente entre 4 y 8 líneas. "
-                            "Cuando corresponda, entrega viñetas cortas. "
-                            "Cierra con una recomendación concreta."
-                        )
-                    },
-                    {
-                        "role": "user",
-                        "content": f"{contexto}\n\nPREGUNTA DEL USUARIO:\n{pregunta}"
-                    }
-                ]
-            )
+        response = openai_client.chat.completions.create(
+            model="gemini-2.5-flash",
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "Eres Avatar Zentix, un copiloto financiero dentro de una app de finanzas personales. "
+                        "Hablas siempre en español. "
+                        "Tu tono es premium, claro, útil y cercano. "
+                        "Usa únicamente el contexto recibido. "
+                        "Nunca inventes cifras, categorías o movimientos. "
+                        "Si algo no está en el contexto, dilo con honestidad. "
+                        "No des asesoría financiera profesional, legal ni tributaria. "
+                        "Responde de forma breve pero valiosa, idealmente entre 4 y 8 líneas. "
+                        "Cuando corresponda, entrega viñetas cortas. "
+                        "Cierra con una recomendación concreta."
+                    )
+                },
+                {
+                    "role": "user",
+                    "content": f"{contexto}\n\nPREGUNTA DEL USUARIO:\n{pregunta}"
+                }
+            ]
+        )
 
-            texto = response.choices[0].message.content
+        texto = response.choices[0].message.content
 
-            if isinstance(texto, list):
-                partes = []
-                for item in texto:
-                    if isinstance(item, dict) and item.get("type") == "text":
-                        partes.append(item.get("text", ""))
-                texto = "".join(partes)
-        else:
-            response = openai_client.responses.create(
-                model="gpt-5.4",
-                instructions=(
-                    "Eres Avatar Zentix, un copiloto financiero dentro de una app de finanzas personales. "
-                    "Hablas siempre en español. "
-                    "Tu tono es premium, claro, útil y cercano. "
-                    "Usa únicamente el contexto recibido. "
-                    "Nunca inventes cifras, categorías o movimientos. "
-                    "Si algo no está en el contexto, dilo con honestidad. "
-                    "No des asesoría financiera profesional, legal ni tributaria. "
-                    "Responde de forma breve pero valiosa, idealmente entre 4 y 8 líneas. "
-                    "Cuando corresponda, entrega viñetas cortas. "
-                    "Cierra con una recomendación concreta."
-                ),
-                input=f"{contexto}\n\nPREGUNTA DEL USUARIO:\n{pregunta}"
-            )
-            texto = response.output_text
+        if isinstance(texto, list):
+            partes = []
+            for item in texto:
+                if isinstance(item, dict) and item.get("type") == "text":
+                    partes.append(item.get("text", ""))
+            texto = "".join(partes)
 
         texto = (texto or "").strip()
 
@@ -759,146 +748,6 @@ def consultar_ia_zentix(pregunta, contexto):
     except Exception as e:
         return f"No pude responder ahora mismo. Error: {e}"
 
-
-def obtener_o_crear_plan_usuario(user_id):
-    plan_default = {
-        "usuario_id": user_id,
-        "plan": "free",
-        "estado": "active",
-        "consultas_ia_dia": 10,
-        "categorias_extra": 10
-    }
-
-    try:
-        result = (
-            supabase.table("planes_usuario")
-            .select("*")
-            .eq("usuario_id", user_id)
-            .limit(1)
-            .execute()
-        )
-
-        if result.data:
-            plan = result.data[0]
-            for clave, valor in plan_default.items():
-                if clave not in plan or plan.get(clave) is None:
-                    plan[clave] = valor
-            return plan
-
-        try:
-            insert_result = supabase.table("planes_usuario").insert(plan_default).execute()
-            if insert_result.data:
-                return insert_result.data[0]
-        except Exception:
-            pass
-
-        return plan_default
-    except Exception:
-        return plan_default
-
-
-def obtener_uso_ia_hoy(user_id):
-    hoy = date.today().isoformat()
-    session_key = f"uso_ia_diario_{user_id}_{hoy}"
-
-    uso_default = {
-        "id": None,
-        "usuario_id": user_id,
-        "fecha": hoy,
-        "consultas_usadas": st.session_state.get(session_key, 0),
-        "_session_fallback": True
-    }
-
-    try:
-        result = (
-            supabase.table("uso_ia_diario")
-            .select("*")
-            .eq("usuario_id", user_id)
-            .eq("fecha", hoy)
-            .limit(1)
-            .execute()
-        )
-
-        if result.data:
-            uso = result.data[0]
-            uso["_session_fallback"] = False
-            return uso
-
-        try:
-            insert_result = supabase.table("uso_ia_diario").insert({
-                "usuario_id": user_id,
-                "fecha": hoy,
-                "consultas_usadas": 0,
-                "actualizado_en": datetime.now().isoformat()
-            }).execute()
-
-            if insert_result.data:
-                uso = insert_result.data[0]
-                uso["_session_fallback"] = False
-                return uso
-        except Exception:
-            pass
-
-        return uso_default
-    except Exception:
-        return uso_default
-
-
-def puede_usar_ia(user_id):
-    plan = obtener_o_crear_plan_usuario(user_id)
-    uso = obtener_uso_ia_hoy(user_id)
-
-    limite = int(plan.get("consultas_ia_dia", 10) or 10)
-    usadas = int(uso.get("consultas_usadas", 0) or 0)
-
-    return usadas < limite, usadas, limite, plan
-
-
-def registrar_uso_ia(user_id):
-    hoy = date.today().isoformat()
-    session_key = f"uso_ia_diario_{user_id}_{hoy}"
-
-    uso = obtener_uso_ia_hoy(user_id)
-    usadas = int(uso.get("consultas_usadas", 0) or 0) + 1
-
-    if uso.get("_session_fallback") or not uso.get("id"):
-        st.session_state[session_key] = usadas
-        return usadas
-
-    try:
-        (
-            supabase.table("uso_ia_diario")
-            .update({
-                "consultas_usadas": usadas,
-                "actualizado_en": datetime.now().isoformat()
-            })
-            .eq("id", uso["id"])
-            .execute()
-        )
-        return usadas
-    except Exception:
-        st.session_state[session_key] = usadas
-        return usadas
-
-
-def render_plan_status(plan, usadas, limite):
-    plan_nombre_raw = str(plan.get("plan", "free")).strip().lower()
-    plan_nombre = "Pro" if plan_nombre_raw in ["pro", "premium"] else "Free"
-    pill_class = "plan-pill-pro" if plan_nombre == "Pro" else "plan-pill-free"
-    restantes = max(0, int(limite) - int(usadas))
-
-    st.markdown(
-        f"""
-        <div class="plan-status-card">
-            <div class="{pill_class}">Plan {plan_nombre}</div>
-            <div class="plan-title">Uso diario de IA</div>
-            <div class="plan-sub">Consultas disponibles hoy</div>
-            <div class="plan-metric">{restantes}/{limite}</div>
-            <div class="plan-note">Usadas hoy: {usadas}. Cambia a Pro para ampliar el acceso y preparar funciones premium.</div>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
 def render_avatar(pagina, nombre, total_ingresos, total_gastos, ahorro_actual, ultimo_tipo):
     if pagina == "Inicio":
         mensaje = f"{nombre}, tu panorama mensual ya está listo. Ahora también puedes preguntarme por tus números."
@@ -1045,26 +894,8 @@ def render_avatar(pagina, nombre, total_ingresos, total_gastos, ahorro_actual, u
     if pregunta_final:
         st.session_state[chat_key].append({"role": "user", "content": pregunta_final})
 
-        usuario_actual_id = st.session_state.user.id if st.session_state.get("user") else None
-
-        if usuario_actual_id:
-            permitido, usadas, limite, plan = puede_usar_ia(usuario_actual_id)
-        else:
-            permitido, usadas, limite, plan = True, 0, 10, {"plan": "free"}
-
-        if not permitido:
-            plan_nombre = "Pro" if str(plan.get("plan", "free")).strip().lower() in ["pro", "premium"] else "Free"
-            respuesta = (
-                f"Has alcanzado tu límite diario de IA ({limite} consultas) en el plan {plan_nombre}. "
-                f"Pásate a Pro para tener más acceso y opciones premium."
-            )
-        else:
-            with st.spinner("Zentix está analizando tu información..."):
-                respuesta = consultar_ia_zentix(pregunta_final, contexto_ia)
-
-            if usuario_actual_id and respuesta:
-                if "La IA todavía no está activa" not in respuesta and not respuesta.startswith("No pude responder ahora mismo. Error:"):
-                    registrar_uso_ia(usuario_actual_id)
+        with st.spinner("Zentix está analizando tu información..."):
+            respuesta = consultar_ia_zentix(pregunta_final, contexto_ia)
 
         st.session_state[chat_key].append({"role": "assistant", "content": respuesta})
         st.session_state[clear_key] = True
@@ -1268,11 +1099,6 @@ user_id = st.session_state.user.id
 perfil = obtener_perfil(user_id)
 nombre_usuario = perfil["nombre_mostrado"] if perfil and perfil.get("nombre_mostrado") else "usuario"
 
-plan_usuario = obtener_o_crear_plan_usuario(user_id)
-uso_ia_actual = obtener_uso_ia_hoy(user_id)
-limite_ia_diario = int(plan_usuario.get("consultas_ia_dia", 10) or 10)
-usadas_ia_hoy = int(uso_ia_actual.get("consultas_usadas", 0) or 0)
-
 paginas_disponibles = ["Inicio", "Registrar", "Análisis", "Ahorro"]
 
 if "pagina" not in st.session_state or st.session_state.pagina not in paginas_disponibles:
@@ -1297,8 +1123,6 @@ with st.sidebar:
         unsafe_allow_html=True
     )
 
-    render_plan_status(plan_usuario, usadas_ia_hoy, limite_ia_diario)
-
     st.markdown("### Navegación")
     pagina_sidebar = st.radio(
         "Ir a",
@@ -1322,25 +1146,30 @@ st.markdown(
     unsafe_allow_html=True
 )
 
+tipo_inicio = "primary" if st.session_state.pagina == "Inicio" else "secondary"
+tipo_registrar = "primary" if st.session_state.pagina == "Registrar" else "secondary"
+tipo_analisis = "primary" if st.session_state.pagina == "Análisis" else "secondary"
+tipo_ahorro = "primary" if st.session_state.pagina == "Ahorro" else "secondary"
+
 nav1, nav2, nav3, nav4 = st.columns(4)
 
 with nav1:
-    if st.button("Inicio", key="nav_inicio_top", use_container_width=True):
+    if st.button("Inicio", key="nav_inicio_top", use_container_width=True, type=tipo_inicio):
         st.session_state.pagina = "Inicio"
         st.rerun()
 
 with nav2:
-    if st.button("Registrar", key="nav_registrar_top", use_container_width=True):
+    if st.button("Registrar", key="nav_registrar_top", use_container_width=True, type=tipo_registrar):
         st.session_state.pagina = "Registrar"
         st.rerun()
 
 with nav3:
-    if st.button("Análisis", key="nav_analisis_top", use_container_width=True):
+    if st.button("Análisis", key="nav_analisis_top", use_container_width=True, type=tipo_analisis):
         st.session_state.pagina = "Análisis"
         st.rerun()
 
 with nav4:
-    if st.button("Ahorro", key="nav_ahorro_top", use_container_width=True):
+    if st.button("Ahorro", key="nav_ahorro_top", use_container_width=True, type=tipo_ahorro):
         st.session_state.pagina = "Ahorro"
         st.rerun()
 
