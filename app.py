@@ -992,10 +992,27 @@ def obtener_comparativa_periodos(df_base):
             mes_anterior[mes_anterior["tipo"] == "Ingreso"]["monto"].sum()
         )
     }
-
-
 def construir_resumen_semanal_premium(df_base, meta_actual, ahorro_actual):
-    if df_base is None or df_base.empty:
+    if df_base is None or df_base.empty or "fecha" not in df_base.columns:
+        return {
+            "positivas": ["Aún no hay semana suficiente para resumir."],
+            "alertas": ["Registra algunos movimientos y Zentix activará tu resumen premium."],
+            "accion": "Empieza por registrar tus gastos e ingresos principales de esta semana."
+        }
+
+    df_tmp = df_base.copy()
+    df_tmp["fecha"] = pd.to_datetime(df_tmp["fecha"], errors="coerce")
+    df_tmp = df_tmp.dropna(subset=["fecha"]).copy()
+
+    try:
+        if getattr(df_tmp["fecha"].dt, "tz", None) is not None:
+            df_tmp["fecha"] = df_tmp["fecha"].dt.tz_localize(None)
+    except Exception:
+        pass
+
+    df_tmp["fecha"] = df_tmp["fecha"].dt.normalize()
+
+    if df_tmp.empty:
         return {
             "positivas": ["Aún no hay semana suficiente para resumir."],
             "alertas": ["Registra algunos movimientos y Zentix activará tu resumen premium."],
@@ -1004,17 +1021,18 @@ def construir_resumen_semanal_premium(df_base, meta_actual, ahorro_actual):
 
     hoy = pd.Timestamp.now().normalize()
     inicio_semana = hoy - pd.Timedelta(days=hoy.weekday())
+    fin_semana = inicio_semana + pd.Timedelta(days=7)
     inicio_semana_anterior = inicio_semana - pd.Timedelta(days=7)
 
-    semana_actual = df_base[(df_base["fecha"] >= inicio_semana) & (df_base["fecha"] < inicio_semana + pd.Timedelta(days=7))]
-    semana_anterior = df_base[(df_base["fecha"] >= inicio_semana_anterior) & (df_base["fecha"] < inicio_semana)]
+    semana_actual = df_tmp[(df_tmp["fecha"] >= inicio_semana) & (df_tmp["fecha"] < fin_semana)]
+    semana_anterior = df_tmp[(df_tmp["fecha"] >= inicio_semana_anterior) & (df_tmp["fecha"] < inicio_semana)]
 
     positivos = []
     alertas = []
 
-    gasto_actual = semana_actual[semana_actual["tipo"] == "Gasto"]["monto"].sum()
-    gasto_anterior = semana_anterior[semana_anterior["tipo"] == "Gasto"]["monto"].sum()
-    ingreso_actual = semana_actual[semana_actual["tipo"] == "Ingreso"]["monto"].sum()
+    gasto_actual = float(semana_actual[semana_actual["tipo"] == "Gasto"]["monto"].sum() or 0)
+    gasto_anterior = float(semana_anterior[semana_anterior["tipo"] == "Gasto"]["monto"].sum() or 0)
+    ingreso_actual = float(semana_actual[semana_actual["tipo"] == "Ingreso"]["monto"].sum() or 0)
 
     if gasto_anterior > 0 and gasto_actual < gasto_anterior:
         positivos.append(f"Bajaste tus gastos semanales en {money(gasto_anterior - gasto_actual)} frente a la semana pasada.")
@@ -1029,31 +1047,29 @@ def construir_resumen_semanal_premium(df_base, meta_actual, ahorro_actual):
     if top_categoria and top_share >= 0.40:
         alertas.append(f"{top_categoria} representa una parte muy alta de tu gasto semanal ({round(top_share * 100, 1)}%).")
     if gasto_anterior > 0 and gasto_actual > gasto_anterior * 1.15:
-        alertas.append(f"Tus gastos subieron frente a la semana pasada en aproximadamente {money(gasto_actual - gasto_anterior)}.")
-    if calcular_ratio_fin_semana(semana_actual) >= 0.45:
-        alertas.append("Tus fines de semana concentran una gran parte de los gastos.")
-    if meta_actual > 0 and ahorro_actual < meta_actual:
-        alertas.append(f"Aún te faltan {money(meta_actual - max(ahorro_actual, 0))} para llegar a tu meta actual.")
+        alertas.append("Tus gastos subieron con fuerza frente a la semana pasada.")
+    if meta_actual > 0 and ahorro_actual < meta_actual * 0.4:
+        alertas.append("Tu meta aún va por debajo del ritmo esperado.")
+    if ingreso_actual == 0 and gasto_actual > 0:
+        alertas.append("Esta semana tienes salidas, pero no ingresos registrados.")
 
     if not positivos:
-        positivos = ["Tu panorama semanal está estable, pero aún necesita más datos para destacar avances claros."]
+        positivos.append("Tu actividad semanal sigue siendo estable.")
     if not alertas:
-        alertas = ["No se detectan alertas críticas esta semana. Mantén consistencia en el registro."]
+        alertas.append("No se detectan alertas fuertes en esta semana.")
 
-    if top_categoria and top_monto > 0:
-        accion = f"Tu mejor siguiente paso es vigilar {top_categoria}. Si recortas alrededor de {money(top_monto * 0.15)}, notarás rápido el impacto."
+    if alertas and "subieron" in " ".join(alertas).lower():
+        accion = "Reduce una sola categoría dominante esta semana para recuperar control sin sentir recorte extremo."
     elif meta_actual > 0 and ahorro_actual < meta_actual:
-        accion = f"Para acercarte a tu meta, prioriza conservar al menos {money((meta_actual - max(ahorro_actual, 0)) / 4)} por semana."
+        accion = "Haz un ajuste pequeño en tu gasto variable para acercarte más rápido a tu meta."
     else:
-        accion = "Tu siguiente mejor acción es sostener el registro diario para que Zentix detecte tendencias más finas."
+        accion = "Mantén tu ritmo actual y sigue registrando para que Zentix afine mejor sus recomendaciones."
 
     return {
         "positivas": positivos[:3],
         "alertas": alertas[:2],
         "accion": accion
     }
-
-
 def generar_alertas_proactivas(df_base, df_mes_actual, total_ingresos, total_gastos, saldo_disponible, meta_actual):
     alertas = []
 
