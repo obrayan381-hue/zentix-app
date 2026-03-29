@@ -32,8 +32,11 @@ if not icono_path.exists():
 
 avatar_path = Path("avatar_zentix.png")
 
-OPENAI_API_KEY = st.secrets.get("OPENAI_API_KEY") or os.getenv("OPENAI_API_KEY")
-openai_client = OpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
+GEMINI_API_KEY = st.secrets.get("GEMINI_API_KEY") or os.getenv("GEMINI_API_KEY")
+openai_client = OpenAI(
+    api_key=GEMINI_API_KEY,
+    base_url="https://generativelanguage.googleapis.com/v1beta/openai/"
+) if GEMINI_API_KEY else None
 
 
 def aplicar_estilo_zentix():
@@ -675,27 +678,44 @@ MOVIMIENTOS RECIENTES DEL MES
 
 def consultar_ia_zentix(pregunta, contexto):
     if not openai_client:
-        return "La IA todavía no está activa. Agrega OPENAI_API_KEY en los secrets de Streamlit Cloud para habilitar al avatar."
+        return "La IA todavía no está activa. Agrega GEMINI_API_KEY en los secrets de Streamlit Cloud para habilitar al avatar."
 
     try:
-        response = openai_client.responses.create(
-            model="gpt-5.4",
-            instructions=(
-                "Eres Avatar Zentix, un copiloto financiero dentro de una app de finanzas personales. "
-                "Hablas siempre en español. "
-                "Tu tono es premium, claro, útil y cercano. "
-                "Usa únicamente el contexto recibido. "
-                "Nunca inventes cifras, categorías o movimientos. "
-                "Si algo no está en el contexto, dilo con honestidad. "
-                "No des asesoría financiera profesional, legal ni tributaria. "
-                "Responde de forma breve pero valiosa, idealmente entre 4 y 8 líneas. "
-                "Cuando corresponda, entrega viñetas cortas. "
-                "Cierra con una recomendación concreta."
-            ),
-            input=f"{contexto}\n\nPREGUNTA DEL USUARIO:\n{pregunta}"
+        response = openai_client.chat.completions.create(
+            model="gemini-2.5-flash",
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "Eres Avatar Zentix, un copiloto financiero dentro de una app de finanzas personales. "
+                        "Hablas siempre en español. "
+                        "Tu tono es premium, claro, útil y cercano. "
+                        "Usa únicamente el contexto recibido. "
+                        "Nunca inventes cifras, categorías o movimientos. "
+                        "Si algo no está en el contexto, dilo con honestidad. "
+                        "No des asesoría financiera profesional, legal ni tributaria. "
+                        "Responde de forma breve pero valiosa, idealmente entre 4 y 8 líneas. "
+                        "Cuando corresponda, entrega viñetas cortas. "
+                        "Cierra con una recomendación concreta."
+                    )
+                },
+                {
+                    "role": "user",
+                    "content": f"{contexto}\n\nPREGUNTA DEL USUARIO:\n{pregunta}"
+                }
+            ]
         )
 
-        texto = (response.output_text or "").strip()
+        texto = response.choices[0].message.content
+
+        if isinstance(texto, list):
+            partes = []
+            for item in texto:
+                if isinstance(item, dict) and item.get("type") == "text":
+                    partes.append(item.get("text", ""))
+            texto = "".join(partes)
+
+        texto = (texto or "").strip()
 
         if not texto:
             return "No pude generar una respuesta útil en este momento."
@@ -704,7 +724,6 @@ def consultar_ia_zentix(pregunta, contexto):
 
     except Exception as e:
         return f"No pude responder ahora mismo. Error: {e}"
-
 
 def render_avatar(pagina, nombre, total_ingresos, total_gastos, ahorro_actual, ultimo_tipo):
     if pagina == "Inicio":
