@@ -925,7 +925,27 @@ def obtener_perfil_financiero(total_ingresos, total_gastos, saldo_disponible, df
 
 
 def obtener_comparativa_periodos(df_base):
-    if df_base is None or df_base.empty:
+    if df_base is None or df_base.empty or "fecha" not in df_base.columns:
+        return {
+            "gasto_semana_pct": 0.0,
+            "ingreso_semana_pct": 0.0,
+            "gasto_mes_pct": 0.0,
+            "ingreso_mes_pct": 0.0
+        }
+
+    df_tmp = df_base.copy()
+    df_tmp["fecha"] = pd.to_datetime(df_tmp["fecha"], errors="coerce")
+    df_tmp = df_tmp.dropna(subset=["fecha"]).copy()
+
+    try:
+        if getattr(df_tmp["fecha"].dt, "tz", None) is not None:
+            df_tmp["fecha"] = df_tmp["fecha"].dt.tz_localize(None)
+    except Exception:
+        pass
+
+    df_tmp["fecha"] = df_tmp["fecha"].dt.normalize()
+
+    if df_tmp.empty:
         return {
             "gasto_semana_pct": 0.0,
             "ingreso_semana_pct": 0.0,
@@ -935,19 +955,21 @@ def obtener_comparativa_periodos(df_base):
 
     hoy = pd.Timestamp.now().normalize()
     inicio_semana = hoy - pd.Timedelta(days=hoy.weekday())
+    fin_semana = inicio_semana + pd.Timedelta(days=7)
     inicio_semana_anterior = inicio_semana - pd.Timedelta(days=7)
 
     inicio_mes = hoy.replace(day=1)
+    siguiente_mes = inicio_mes + pd.offsets.MonthBegin(1)
     inicio_mes_anterior = (inicio_mes - pd.Timedelta(days=1)).replace(day=1)
 
-    semana_actual = df_base[(df_base["fecha"] >= inicio_semana) & (df_base["fecha"] < inicio_semana + pd.Timedelta(days=7))]
-    semana_anterior = df_base[(df_base["fecha"] >= inicio_semana_anterior) & (df_base["fecha"] < inicio_semana)]
-
-    siguiente_mes = inicio_mes + pd.offsets.MonthBegin(1)
-    mes_actual = df_base[(df_base["fecha"] >= inicio_mes) & (df_base["fecha"] < siguiente_mes)]
-    mes_anterior = df_base[(df_base["fecha"] >= inicio_mes_anterior) & (df_base["fecha"] < inicio_mes)]
+    semana_actual = df_tmp[(df_tmp["fecha"] >= inicio_semana) & (df_tmp["fecha"] < fin_semana)]
+    semana_anterior = df_tmp[(df_tmp["fecha"] >= inicio_semana_anterior) & (df_tmp["fecha"] < inicio_semana)]
+    mes_actual = df_tmp[(df_tmp["fecha"] >= inicio_mes) & (df_tmp["fecha"] < siguiente_mes)]
+    mes_anterior = df_tmp[(df_tmp["fecha"] >= inicio_mes_anterior) & (df_tmp["fecha"] < inicio_mes)]
 
     def cambio_pct(actual, anterior):
+        actual = float(actual or 0)
+        anterior = float(anterior or 0)
         if anterior == 0:
             return 0.0
         return float(((actual - anterior) / anterior) * 100)
