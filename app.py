@@ -1273,6 +1273,11 @@ uso_ia_actual = obtener_uso_ia_hoy(user_id)
 limite_ia_diario = int(plan_usuario.get("consultas_ia_dia", 10) or 10)
 usadas_ia_hoy = int(uso_ia_actual.get("consultas_usadas", 0) or 0)
 
+paginas_disponibles = ["Inicio", "Registrar", "Análisis", "Ahorro"]
+
+if "pagina" not in st.session_state or st.session_state.pagina not in paginas_disponibles:
+    st.session_state.pagina = "Inicio"
+
 with st.sidebar:
     col_sb_icon, col_sb_text = st.columns([1, 3])
     with col_sb_icon:
@@ -1295,15 +1300,51 @@ with st.sidebar:
     render_plan_status(plan_usuario, usadas_ia_hoy, limite_ia_diario)
 
     st.markdown("### Navegación")
-    pagina = st.radio(
+    pagina_sidebar = st.radio(
         "Ir a",
-        ["Inicio", "Registrar", "Análisis", "Ahorro"],
+        paginas_disponibles,
+        index=paginas_disponibles.index(st.session_state.pagina),
         label_visibility="collapsed"
     )
+    st.session_state.pagina = pagina_sidebar
 
     if st.button("Cerrar sesión", use_container_width=True):
         st.session_state.user = None
         st.rerun()
+
+st.markdown(
+    """
+    <div class="section-title" style="margin-top:0.2rem;">Navegación rápida</div>
+    <div class="section-caption">
+        Si el panel lateral se colapsa en Streamlit Cloud, usa estos accesos rápidos.
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
+nav1, nav2, nav3, nav4 = st.columns(4)
+
+with nav1:
+    if st.button("Inicio", key="nav_inicio_top", use_container_width=True):
+        st.session_state.pagina = "Inicio"
+        st.rerun()
+
+with nav2:
+    if st.button("Registrar", key="nav_registrar_top", use_container_width=True):
+        st.session_state.pagina = "Registrar"
+        st.rerun()
+
+with nav3:
+    if st.button("Análisis", key="nav_analisis_top", use_container_width=True):
+        st.session_state.pagina = "Análisis"
+        st.rerun()
+
+with nav4:
+    if st.button("Ahorro", key="nav_ahorro_top", use_container_width=True):
+        st.session_state.pagina = "Ahorro"
+        st.rerun()
+
+pagina = st.session_state.pagina
 
 
 if not perfil or not perfil.get("onboarding_completo", False):
@@ -1715,4 +1756,3 @@ if pagina == "Ahorro":
             unsafe_allow_html=True
         )
         render_avatar(pagina, nombre_usuario, total_ingresos, total_gastos, saldo_disponible, ultimo_tipo)
-
