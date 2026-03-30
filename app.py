@@ -560,6 +560,37 @@ def aplicar_estilo_zentix():
         margin-bottom: 0.45rem;
     }
 
+
+    .pill-debt {
+        display: inline-block;
+        padding: 0.45rem 0.88rem;
+        border-radius: 999px;
+        background: rgba(59,130,246,0.14);
+        border: 1px solid rgba(59,130,246,0.28);
+        color: #93C5FD;
+        font-weight: 800;
+        margin-bottom: 0.8rem;
+    }
+
+    .pill-pay {
+        display: inline-block;
+        padding: 0.45rem 0.88rem;
+        border-radius: 999px;
+        background: rgba(245,158,11,0.14);
+        border: 1px solid rgba(245,158,11,0.28);
+        color: #FCD34D;
+        font-weight: 800;
+        margin-bottom: 0.8rem;
+    }
+
+    .mini-soft-card {
+        background: linear-gradient(180deg, rgba(12,20,36,0.74), rgba(10,18,32,0.90));
+        border: 1px solid rgba(148,163,184,0.12);
+        border-radius: 18px;
+        padding: 0.9rem 1rem;
+        margin-bottom: 0.8rem;
+    }
+
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     </style>
@@ -767,12 +798,328 @@ def registrar_uso_ia(user_id):
 
 
 def insertar_movimiento_seguro(payload):
+    candidatos = [
+        dict(payload),
+        {k: v for k, v in payload.items() if k not in {
+            "es_recurrente", "frecuencia_recurrencia", "proxima_fecha_recurrencia",
+            "fecha_fin_recurrencia", "recurrente_activo"
+        }},
+        {k: v for k, v in payload.items() if k not in {
+            "deuda_id", "deuda_nombre", "prestamista", "fecha_limite_deuda",
+            "es_recurrente", "frecuencia_recurrencia", "proxima_fecha_recurrencia",
+            "fecha_fin_recurrencia", "recurrente_activo"
+        }},
+        {k: v for k, v in payload.items() if k not in {
+            "emocion", "deuda_id", "deuda_nombre", "prestamista", "fecha_limite_deuda",
+            "es_recurrente", "frecuencia_recurrencia", "proxima_fecha_recurrencia",
+            "fecha_fin_recurrencia", "recurrente_activo"
+        }},
+    ]
+
+    last_error = None
+    for candidate in candidatos:
+        try:
+            return supabase.table("movimientos").insert(candidate).execute()
+        except Exception as e:
+            last_error = e
+
+    raise last_error
+
+
+def obtener_preferencias_default(email_contacto=""):
+    return {
+        "usuario_id": None,
+        "recordatorio_email": True,
+        "recordatorio_sms": False,
+        "frecuencia_recordatorios": "suave",
+        "recordatorio_registro": True,
+        "recordatorio_meta": False,
+        "resumen_semanal": False,
+        "silencio_activado": False,
+        "silencio_inicio": "21:00",
+        "silencio_fin": "07:00",
+        "email_contacto": email_contacto or "",
+        "telefono": "",
+        "ultimo_recordatorio_en": None,
+        "actualizado_en": None
+    }
+
+
+def obtener_preferencias_usuario(user_id, email_contacto=""):
+    prefs = obtener_preferencias_default(email_contacto)
+
     try:
-        return supabase.table("movimientos").insert(payload).execute()
+        result = (
+            supabase.table("preferencias_usuario")
+            .select("*")
+            .eq("usuario_id", user_id)
+            .limit(1)
+            .execute()
+        )
+        if result.data:
+            row = result.data[0]
+            prefs.update({
+                "usuario_id": user_id,
+                "recordatorio_email": bool(row.get("recordatorio_email", prefs["recordatorio_email"])),
+                "recordatorio_sms": bool(row.get("recordatorio_sms", prefs["recordatorio_sms"])),
+                "frecuencia_recordatorios": row.get("frecuencia_recordatorios", prefs["frecuencia_recordatorios"]) or "suave",
+                "recordatorio_registro": bool(row.get("recordatorio_registro", prefs["recordatorio_registro"])),
+                "recordatorio_meta": bool(row.get("recordatorio_meta", prefs["recordatorio_meta"])),
+                "resumen_semanal": bool(row.get("resumen_semanal", prefs["resumen_semanal"])),
+                "silencio_activado": bool(row.get("silencio_activado", prefs["silencio_activado"])),
+                "silencio_inicio": row.get("silencio_inicio", prefs["silencio_inicio"]) or "21:00",
+                "silencio_fin": row.get("silencio_fin", prefs["silencio_fin"]) or "07:00",
+                "email_contacto": row.get("email_contacto", email_contacto) or email_contacto or "",
+                "telefono": row.get("telefono", "") or "",
+                "ultimo_recordatorio_en": row.get("ultimo_recordatorio_en"),
+                "actualizado_en": row.get("actualizado_en")
+            })
     except Exception:
-        payload_fallback = dict(payload)
-        payload_fallback.pop("emocion", None)
-        return supabase.table("movimientos").insert(payload_fallback).execute()
+        prefs["usuario_id"] = user_id
+
+    return prefs
+
+
+def guardar_preferencias_usuario(user_id, payload):
+    base = {
+        "usuario_id": user_id,
+        "recordatorio_email": bool(payload.get("recordatorio_email", True)),
+        "recordatorio_sms": bool(payload.get("recordatorio_sms", False)),
+        "frecuencia_recordatorios": payload.get("frecuencia_recordatorios", "suave"),
+        "recordatorio_registro": bool(payload.get("recordatorio_registro", True)),
+        "recordatorio_meta": bool(payload.get("recordatorio_meta", False)),
+        "resumen_semanal": bool(payload.get("resumen_semanal", False)),
+        "silencio_activado": bool(payload.get("silencio_activado", False)),
+        "silencio_inicio": payload.get("silencio_inicio", "21:00"),
+        "silencio_fin": payload.get("silencio_fin", "07:00"),
+        "email_contacto": payload.get("email_contacto", "") or "",
+        "telefono": payload.get("telefono", "") or "",
+        "actualizado_en": datetime.now().isoformat()
+    }
+
+    try:
+        return supabase.table("preferencias_usuario").upsert(base, on_conflict="usuario_id").execute()
+    except Exception:
+        try:
+            existe = (
+                supabase.table("preferencias_usuario")
+                .select("usuario_id")
+                .eq("usuario_id", user_id)
+                .limit(1)
+                .execute()
+            )
+            if existe.data:
+                return (
+                    supabase.table("preferencias_usuario")
+                    .update(base)
+                    .eq("usuario_id", user_id)
+                    .execute()
+                )
+            return supabase.table("preferencias_usuario").insert(base).execute()
+        except Exception:
+            return None
+
+
+def obtener_deudas_usuario(user_id):
+    columnas = [
+        "id", "usuario_id", "nombre", "prestamista", "monto_total",
+        "saldo_pendiente", "fecha", "fecha_limite", "descripcion",
+        "estado", "creado_en", "actualizado_en"
+    ]
+
+    try:
+        result = (
+            supabase.table("deudas")
+            .select("*")
+            .eq("usuario_id", user_id)
+            .order("fecha", desc=True)
+            .execute()
+        )
+        data = result.data if result.data else []
+    except Exception:
+        data = []
+
+    df_local = pd.DataFrame(data)
+
+    for col in columnas:
+        if col not in df_local.columns:
+            df_local[col] = None
+
+    if not df_local.empty:
+        for date_col in ["fecha", "fecha_limite", "creado_en", "actualizado_en"]:
+            if date_col in df_local.columns:
+                df_local[date_col] = pd.to_datetime(df_local[date_col], errors="coerce")
+        for num_col in ["monto_total", "saldo_pendiente"]:
+            if num_col in df_local.columns:
+                df_local[num_col] = pd.to_numeric(df_local[num_col], errors="coerce").fillna(0)
+        df_local["nombre"] = df_local["nombre"].fillna("Deuda sin nombre")
+        df_local["prestamista"] = df_local["prestamista"].fillna("Sin prestamista")
+        if "estado" in df_local.columns:
+            df_local["estado"] = df_local["estado"].fillna("pendiente")
+    else:
+        df_local = pd.DataFrame(columns=columnas)
+
+    return df_local
+
+
+def crear_deuda_segura(payload):
+    candidatos = [
+        dict(payload),
+        {k: v for k, v in payload.items() if k not in {"descripcion", "actualizado_en", "estado"}},
+        {k: v for k, v in payload.items() if k in {"usuario_id", "nombre", "prestamista", "monto_total", "saldo_pendiente", "fecha", "fecha_limite"}},
+    ]
+
+    for candidate in candidatos:
+        try:
+            result = supabase.table("deudas").insert(candidate).execute()
+            if result.data:
+                return result.data[0]
+            return candidate
+        except Exception:
+            continue
+
+    return None
+
+
+def actualizar_deuda_pago_seguro(deuda_id, nuevo_saldo):
+    payload = {
+        "saldo_pendiente": float(max(nuevo_saldo, 0)),
+        "estado": "pagada" if float(max(nuevo_saldo, 0)) <= 0 else "pendiente",
+        "actualizado_en": datetime.now().isoformat()
+    }
+
+    try:
+        return (
+            supabase.table("deudas")
+            .update(payload)
+            .eq("id", deuda_id)
+            .execute()
+        )
+    except Exception:
+        try:
+            return (
+                supabase.table("deudas")
+                .update({"saldo_pendiente": float(max(nuevo_saldo, 0))})
+                .eq("id", deuda_id)
+                .execute()
+            )
+        except Exception:
+            return None
+
+
+def obtener_categorias_favoritas(df_base, limite=4):
+    if df_base is None or df_base.empty or "categoria" not in df_base.columns:
+        return []
+
+    df_tmp = df_base.copy()
+    df_tmp["categoria"] = df_tmp["categoria"].fillna("").astype(str).str.strip()
+    df_tmp = df_tmp[df_tmp["categoria"] != ""]
+    if df_tmp.empty:
+        return []
+
+    favoritos = (
+        df_tmp["categoria"]
+        .value_counts()
+        .head(limite)
+        .index
+        .tolist()
+    )
+    return favoritos
+
+
+def estimar_aporte_semanal_meta(df_base):
+    if df_base is None or df_base.empty or "fecha" not in df_base.columns:
+        return 0.0
+
+    df_tmp = df_base.copy()
+    df_tmp["fecha"] = pd.to_datetime(df_tmp["fecha"], errors="coerce")
+    df_tmp = df_tmp.dropna(subset=["fecha"]).copy()
+    if df_tmp.empty:
+        return 0.0
+
+    hoy = pd.Timestamp.now().normalize()
+    inicio = hoy - pd.Timedelta(days=27)
+    reciente = df_tmp[df_tmp["fecha"].dt.normalize() >= inicio].copy()
+    if reciente.empty:
+        reciente = df_tmp.copy()
+
+    ingresos_reales = reciente[reciente["tipo"] == "Ingreso"]["monto"].sum()
+    gastos_operativos = reciente[reciente["tipo"] == "Gasto"]["monto"].sum()
+    pagos_deuda = reciente[reciente["tipo"] == "Pago de deuda"]["monto"].sum()
+
+    aporte = float((ingresos_reales - gastos_operativos - pagos_deuda) / 4.0)
+    return max(aporte, 0.0)
+
+
+def calcular_proyeccion_meta(meta_objetivo, ahorro_actual, aporte_semanal):
+    meta_objetivo = float(meta_objetivo or 0)
+    ahorro_actual = float(max(ahorro_actual, 0))
+    aporte_semanal = float(max(aporte_semanal, 0))
+
+    if meta_objetivo <= 0:
+        return {
+            "aporte_semanal": aporte_semanal,
+            "semanas": None,
+            "fecha_estimada": None,
+            "mensaje": "Define una meta y Zentix estimará un ritmo de llegada."
+        }
+
+    faltante = max(meta_objetivo - ahorro_actual, 0)
+    if faltante <= 0:
+        return {
+            "aporte_semanal": aporte_semanal,
+            "semanas": 0,
+            "fecha_estimada": date.today(),
+            "mensaje": "Con tu disponible actual ya alcanzaste esta meta."
+        }
+
+    if aporte_semanal <= 0:
+        return {
+            "aporte_semanal": 0.0,
+            "semanas": None,
+            "fecha_estimada": None,
+            "mensaje": "Aún no hay un ritmo semanal positivo suficiente para estimar llegada."
+        }
+
+    semanas = int((faltante + aporte_semanal - 1) // aporte_semanal)
+    fecha_estimada = date.today() + timedelta(days=semanas * 7)
+
+    return {
+        "aporte_semanal": aporte_semanal,
+        "semanas": semanas,
+        "fecha_estimada": fecha_estimada,
+        "mensaje": f"Si ahorras {money(aporte_semanal)} por semana, llegas en ~{semanas} semana(s), hacia {fecha_estimada.strftime('%Y-%m-%d')}."
+    }
+
+
+def construir_resumen_recordatorios(df_base, preferencias):
+    dias_inactividad = None
+    ultimo_mov = None
+
+    if df_base is not None and not df_base.empty and "fecha" in df_base.columns:
+        df_tmp = df_base.copy()
+        df_tmp["fecha"] = pd.to_datetime(df_tmp["fecha"], errors="coerce")
+        df_tmp = df_tmp.dropna(subset=["fecha"]).copy()
+        if not df_tmp.empty:
+            ultimo_mov = df_tmp["fecha"].max().date()
+            dias_inactividad = (date.today() - ultimo_mov).days
+
+    umbral = 4 if preferencias.get("frecuencia_recordatorios") == "normal" else 5
+    sugerencia = "Sin envíos pendientes."
+    if preferencias.get("recordatorio_email") and preferencias.get("recordatorio_registro"):
+        if dias_inactividad is None:
+            sugerencia = "Cuando empieces a registrar, Zentix podrá medir inactividad y sugerir recordatorios suaves."
+        elif dias_inactividad >= umbral:
+            sugerencia = f"Ya podrías disparar un recordatorio suave por inactividad ({dias_inactividad} días sin registrar)."
+        else:
+            sugerencia = f"No hace falta recordar todavía. Llevas {dias_inactividad} día(s) desde tu último registro."
+
+    return {
+        "ultimo_movimiento": ultimo_mov.isoformat() if ultimo_mov else "Sin movimientos",
+        "dias_inactividad": dias_inactividad,
+        "umbral": umbral,
+        "sugerencia": sugerencia
+    }
 
 
 def obtener_nombre_meta_guardado(user_id):
@@ -1205,10 +1552,20 @@ def obtener_movimientos_recientes_para_ia(df_mes_actual, limite=8):
     for _, row in vista.iterrows():
         fecha_txt = row["fecha"].strftime("%Y-%m-%d") if pd.notna(row["fecha"]) else "Sin fecha"
         tipo = row.get("tipo", "Sin tipo")
-        categoria = row.get("categoria", "Sin categoría")
+        categoria = row.get("categoria", "Sin categoría") or "Sin categoría"
         monto = money(row.get("monto", 0))
         descripcion = row.get("descripcion", "") or "Sin descripción"
-        lineas.append(f"- {fecha_txt} | {tipo} | {categoria} | {monto} | {descripcion}")
+        deuda_txt = row.get("deuda_nombre", "") or ""
+        prestamista_txt = row.get("prestamista", "") or ""
+
+        extras = []
+        if deuda_txt:
+            extras.append(f"deuda: {deuda_txt}")
+        if prestamista_txt:
+            extras.append(f"prestamista: {prestamista_txt}")
+
+        extra_texto = f" | {' | '.join(extras)}" if extras else ""
+        lineas.append(f"- {fecha_txt} | {tipo} | {categoria} | {monto} | {descripcion}{extra_texto}")
 
     return "\n".join(lineas)
 
@@ -1229,6 +1586,13 @@ def construir_contexto_zentix(pagina, nombre, total_ingresos, total_gastos, ahor
     plan_actual = globals().get("plan_usuario_actual", {})
     consultas_restantes = globals().get("consultas_restantes_hoy", 0)
     nombre_meta = globals().get("nombre_meta_guardado", "")
+    entradas_deuda = float(globals().get("total_entradas_deuda_mes", 0.0) or 0.0)
+    pagos_deuda = float(globals().get("total_pagos_deuda_mes", 0.0) or 0.0)
+    saldo_pendiente_deudas = float(globals().get("saldo_pendiente_deudas_global", 0.0) or 0.0)
+    categorias_favoritas = globals().get("categorias_favoritas_global", [])
+    proyeccion_meta = globals().get("proyeccion_meta_global", {})
+    resumen_recordatorios = globals().get("resumen_recordatorios_global", {})
+    preferencias_usuario = globals().get("preferencias_usuario_actual", {})
 
     movimientos_texto = obtener_movimientos_recientes_para_ia(df_mes_actual, limite=8)
 
@@ -1236,6 +1600,7 @@ def construir_contexto_zentix(pagina, nombre, total_ingresos, total_gastos, ahor
     alertas = "\n".join([f"- {x}" for x in alertas_actuales]) or "- Sin alertas."
     patrones = "\n".join([f"- {x}" for x in patrones_actuales]) or "- Sin patrones."
     sugerencias = "\n".join([f"- {x}" for x in sugerencias_actuales]) or "- Sin sugerencias."
+    favoritas = ", ".join(categorias_favoritas) if categorias_favoritas else "Sin favoritas todavía"
     comparativa_linea = (
         f"Gasto semana: {money_delta(comparativa_actual.get('gasto_semana_pct', 0.0))} | "
         f"Ingreso semana: {money_delta(comparativa_actual.get('ingreso_semana_pct', 0.0))} | "
@@ -1251,17 +1616,31 @@ CONTEXTO DE ZENTIX
 - Consultas IA restantes hoy: {consultas_restantes}
 - Perfil financiero: {perfil_actual.get('titulo', 'Sin perfil')}
 - Descripción del perfil: {perfil_actual.get('descripcion', 'Sin descripción')}
-- Ingresos del mes: {money(total_ingresos)}
-- Gastos del mes: {money(total_gastos)}
+- Ingresos reales del mes: {money(total_ingresos)}
+- Gastos operativos del mes: {money(total_gastos)}
+- Entradas por deuda del mes: {money(entradas_deuda)}
+- Pagos de deuda del mes: {money(pagos_deuda)}
 - Saldo disponible actual: {money(ahorro_actual)}
+- Saldo pendiente de deudas: {money(saldo_pendiente_deudas)}
 - Meta de ahorro actual: {money(meta_actual)}
 - Nombre de la meta: {nombre_meta if nombre_meta else 'Sin nombre definido'}
+- Proyección de meta: {proyeccion_meta.get('mensaje', 'Sin proyección')}
+- Categorías favoritas: {favoritas}
 - Categoría con mayor peso: {categoria_top_actual if categoria_top_actual else 'Sin datos'}
 - Monto de categoría top: {money(monto_top_actual)}
 - Último tipo de movimiento: {ultimo_tipo if ultimo_tipo else 'Sin movimientos'}
 - Insight financiero actual: {insight_actual}
 - Recomendación accionable: {recomendacion_actual}
 - Comparativas: {comparativa_linea}
+
+PREFERENCIAS Y RECORDATORIOS
+- Email activado: {preferencias_usuario.get('recordatorio_email', False)}
+- SMS activado: {preferencias_usuario.get('recordatorio_sms', False)}
+- Frecuencia recordatorios: {preferencias_usuario.get('frecuencia_recordatorios', 'suave')}
+- Recordatorio de registro: {preferencias_usuario.get('recordatorio_registro', False)}
+- Alertas de meta: {preferencias_usuario.get('recordatorio_meta', False)}
+- Resumen semanal: {preferencias_usuario.get('resumen_semanal', False)}
+- Resumen motor recordatorios: {resumen_recordatorios.get('sugerencia', 'Sin evaluación')}
 
 RESUMEN SEMANAL PREMIUM
 {positivas}
@@ -1279,7 +1658,6 @@ SUGERENCIAS DE CATEGORÍAS
 MOVIMIENTOS RECIENTES DEL MES
 {movimientos_texto}
 """.strip()
-
 
 
 def consultar_ia_zentix(pregunta, contexto):
@@ -1343,23 +1721,29 @@ def render_avatar(pagina, nombre, total_ingresos, total_gastos, ahorro_actual, u
     consultas_limite = globals().get("consultas_limite_hoy", 10)
     alertas_actuales = globals().get("alertas_proactivas", [])
     recomendacion_actual = globals().get("recomendacion_accionable", "Sigue registrando para obtener una recomendación más precisa.")
+    entradas_deuda = float(globals().get("total_entradas_deuda_mes", 0.0) or 0.0)
+    pagos_deuda = float(globals().get("total_pagos_deuda_mes", 0.0) or 0.0)
+    saldo_pendiente_deudas = float(globals().get("saldo_pendiente_deudas_global", 0.0) or 0.0)
 
     tono_base = perfil_actual.get("titulo", "Perfil en construcción")
 
     if pagina == "Inicio":
         mensaje = f"{nombre}, ya entendí mejor tu panorama. Hoy te leo como: {tono_base.lower()}."
     elif pagina == "Registrar":
-        mensaje = f"{nombre}, cada nuevo movimiento me ayuda a entender mejor tu comportamiento financiero y a personalizar tus recomendaciones."
+        mensaje = f"{nombre}, cada nuevo movimiento me ayuda a entender mejor tu comportamiento financiero, incluidas tus deudas y recurrencias."
     elif pagina == "Análisis":
-        mensaje = f"{nombre}, aquí puedo explicarte patrones, comparar periodos y detectar señales que a simple vista se escapan."
+        mensaje = f"{nombre}, aquí puedo explicarte patrones, comparar periodos y leer con claridad tus ingresos reales versus tus flujos por deuda."
+    elif pagina == "Perfil":
+        mensaje = f"{nombre}, desde aquí afinamos tu experiencia: plan, IA, recordatorios y preferencias sin recargar la interfaz."
     else:
         mensaje = f"{nombre}, tu meta no es solo un número. También puedo decirte qué ajuste te acercaría más rápido a ella."
 
-    estado = (
-        "🟢 Último movimiento: ingreso" if ultimo_tipo == "Ingreso"
-        else "🔴 Último movimiento: gasto" if ultimo_tipo == "Gasto"
-        else "⚪ Aún no hay movimientos"
-    )
+    estado = {
+        "Ingreso": "🟢 Último movimiento: ingreso",
+        "Gasto": "🔴 Último movimiento: gasto",
+        "Ingreso (Deuda)": "🔵 Último movimiento: ingreso por deuda",
+        "Pago de deuda": "🟠 Último movimiento: pago de deuda"
+    }.get(ultimo_tipo, "⚪ Aún no hay movimientos")
 
     contexto_ia = construir_contexto_zentix(
         pagina=pagina,
@@ -1375,10 +1759,11 @@ def render_avatar(pagina, nombre, total_ingresos, total_gastos, ahorro_actual, u
     clear_key = f"zentix_clear_{pagina}"
 
     mensajes_iniciales = {
-        "Inicio": f"Hola, {nombre}. Soy Zentix. Detecté un perfil tipo '{tono_base}' y puedo resumirte tu mes, tus alertas y tu mejor siguiente paso.",
-        "Registrar": f"Hola, {nombre}. Si registras con constancia, puedo volverte recomendaciones mucho más personales.",
-        "Análisis": f"Hola, {nombre}. Pregúntame por patrones, alertas, comparativas o categorías dominantes.",
-        "Ahorro": f"Hola, {nombre}. Puedo ayudarte a leer tu progreso, cuánto te falta y qué ajuste haría más diferencia."
+        "Inicio": f"Hola, {nombre}. Soy Zentix. Ya distingo tus ingresos reales de tus movimientos por deuda y puedo resumirte tu panorama.",
+        "Registrar": f"Hola, {nombre}. Registra ingresos, gastos, deudas y recurrencias sin contaminar tus KPIs reales.",
+        "Análisis": f"Hola, {nombre}. Pregúntame por patrones, alertas, comparativas, deuda pendiente o categorías dominantes.",
+        "Ahorro": f"Hola, {nombre}. Puedo ayudarte a leer tu progreso, cuánto te falta y cuál sería un ritmo semanal razonable.",
+        "Perfil": f"Hola, {nombre}. Aquí también puedo ayudarte a decidir qué recordatorios activar y cómo aprovechar mejor tu plan."
     }
 
     if chat_key not in st.session_state:
@@ -1413,6 +1798,10 @@ def render_avatar(pagina, nombre, total_ingresos, total_gastos, ahorro_actual, u
             f'<div class="assistant-mini">Perfil: {perfil_actual.get("titulo", "Sin perfil")} · Disponible: {money(ahorro_actual)}</div>',
             unsafe_allow_html=True
         )
+        st.markdown(
+            f'<div class="assistant-mini">Deuda recibida: {money(entradas_deuda)} · Pagos deuda: {money(pagos_deuda)} · Pendiente: {money(saldo_pendiente_deudas)}</div>',
+            unsafe_allow_html=True
+        )
 
     if alertas_actuales:
         st.markdown(
@@ -1430,15 +1819,15 @@ def render_avatar(pagina, nombre, total_ingresos, total_gastos, ahorro_actual, u
             "Dame una acción concreta para mejorar"
         ],
         "Registrar": [
-            "¿Qué emoción conviene vigilar en mis gastos?",
-            "¿Cómo impacta este hábito en mi balance?",
+            "¿Cómo registrar bien una deuda?",
+            "¿Qué impacto tienen mis pagos de deuda?",
             "Dame una recomendación para registrar mejor",
-            "¿Qué categoría debería separar más?"
+            "¿Cómo usar recurrentes sin desorden?"
         ],
         "Análisis": [
             "Interpreta mis patrones de gasto",
             "Compárame esta semana con la pasada",
-            "¿Qué categoría domina mi mes?",
+            "¿Cómo van mis deudas?",
             "Dame 3 insights personalizados"
         ],
         "Ahorro": [
@@ -1446,6 +1835,12 @@ def render_avatar(pagina, nombre, total_ingresos, total_gastos, ahorro_actual, u
             "¿Cuánto me falta realmente?",
             "¿Qué ajuste me acerca más rápido?",
             "Convierte mi meta en un plan corto"
+        ],
+        "Perfil": [
+            "¿Cómo aprovechar mejor mi plan actual?",
+            "Resume mis recordatorios activos",
+            "¿Qué diferencia elegante hay entre Free y Pro?",
+            "¿Qué debería configurar primero?"
         ]
     }
 
@@ -1469,7 +1864,7 @@ def render_avatar(pagina, nombre, total_ingresos, total_gastos, ahorro_actual, u
 
     historial = st.session_state[chat_key][-6:]
     for item in historial:
-        contenido = html.escape(item["content"]).replace("\\n", "<br>").replace("\n", "<br>")
+        contenido = html.escape(item["content"]).replace("\n", "<br>")
         if item["role"] == "assistant":
             st.markdown(f'<div class="chat-bubble-ai"><strong>Zentix:</strong><br>{contenido}</div>', unsafe_allow_html=True)
         else:
@@ -1480,7 +1875,7 @@ def render_avatar(pagina, nombre, total_ingresos, total_gastos, ahorro_actual, u
         "Pregúntale a Zentix",
         key=input_key,
         label_visibility="collapsed",
-        placeholder="Ej: ¿Cómo voy este mes? ¿Qué patrón estás viendo? ¿Cuál es mi siguiente mejor paso?"
+        placeholder="Ej: ¿Cómo voy este mes? ¿Qué patrón estás viendo? ¿Qué debería activar primero?"
     )
 
     c1, c2 = st.columns([3, 1])
@@ -1525,7 +1920,6 @@ def render_avatar(pagina, nombre, total_ingresos, total_gastos, ahorro_actual, u
 
     st.markdown('</div>', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
-
 
 
 def obtener_insight_financiero(total_ingresos, total_gastos, saldo_disponible, df_mes):
@@ -1575,9 +1969,31 @@ def obtener_movimientos(user_id):
     data = result.data if result.data else []
     df_local = pd.DataFrame(data)
 
+    columnas_esperadas = [
+        "usuario_id", "fecha", "tipo", "categoria", "monto", "descripcion", "emocion",
+        "deuda_id", "deuda_nombre", "prestamista", "fecha_limite_deuda",
+        "es_recurrente", "frecuencia_recurrencia", "proxima_fecha_recurrencia",
+        "fecha_fin_recurrencia", "recurrente_activo"
+    ]
+    for col in columnas_esperadas:
+        if col not in df_local.columns:
+            df_local[col] = None
+
     if not df_local.empty:
         df_local["fecha"] = pd.to_datetime(df_local["fecha"], errors="coerce")
         df_local["monto"] = pd.to_numeric(df_local["monto"], errors="coerce").fillna(0)
+
+        for date_col in ["fecha_limite_deuda", "proxima_fecha_recurrencia", "fecha_fin_recurrencia"]:
+            if date_col in df_local.columns:
+                df_local[date_col] = pd.to_datetime(df_local[date_col], errors="coerce")
+
+        for bool_col in ["es_recurrente", "recurrente_activo"]:
+            if bool_col in df_local.columns:
+                df_local[bool_col] = df_local[bool_col].fillna(False).astype(bool)
+
+        for text_col in ["categoria", "descripcion", "emocion", "deuda_nombre", "prestamista", "frecuencia_recurrencia"]:
+            if text_col in df_local.columns:
+                df_local[text_col] = df_local[text_col].fillna("")
 
     return df_local
 
@@ -1726,7 +2142,7 @@ nombre_usuario = perfil["nombre_mostrado"] if perfil and perfil.get("nombre_most
 plan_usuario_actual = obtener_o_crear_plan_usuario(user_id)
 _, consultas_usadas_hoy, consultas_limite_hoy, consultas_restantes_hoy, _ = puede_usar_ia(user_id)
 
-paginas_disponibles = ["Inicio", "Registrar", "Análisis", "Ahorro"]
+paginas_disponibles = ["Inicio", "Registrar", "Análisis", "Ahorro", "Perfil"]
 
 if "pagina" not in st.session_state or st.session_state.pagina not in paginas_disponibles:
     st.session_state.pagina = "Inicio"
@@ -1789,8 +2205,9 @@ tipo_inicio = "primary" if st.session_state.pagina == "Inicio" else "secondary"
 tipo_registrar = "primary" if st.session_state.pagina == "Registrar" else "secondary"
 tipo_analisis = "primary" if st.session_state.pagina == "Análisis" else "secondary"
 tipo_ahorro = "primary" if st.session_state.pagina == "Ahorro" else "secondary"
+tipo_perfil = "primary" if st.session_state.pagina == "Perfil" else "secondary"
 
-nav1, nav2, nav3, nav4 = st.columns(4)
+nav1, nav2, nav3, nav4, nav5 = st.columns(5)
 
 with nav1:
     if st.button("Inicio", key="nav_inicio_top", use_container_width=True, type=tipo_inicio):
@@ -1810,6 +2227,11 @@ with nav3:
 with nav4:
     if st.button("Ahorro", key="nav_ahorro_top", use_container_width=True, type=tipo_ahorro):
         st.session_state.pagina = "Ahorro"
+        st.rerun()
+
+with nav5:
+    if st.button("Perfil", key="nav_perfil_top", use_container_width=True, type=tipo_perfil):
+        st.session_state.pagina = "Perfil"
         st.rerun()
 
 pagina = st.session_state.pagina
@@ -1907,23 +2329,35 @@ else:
     ultimo_tipo = None
 
 if not df_mes.empty:
-    total_gastos = df_mes[df_mes["tipo"] == "Gasto"]["monto"].sum()
-    total_ingresos = df_mes[df_mes["tipo"] == "Ingreso"]["monto"].sum()
+    total_gastos = float(df_mes[df_mes["tipo"] == "Gasto"]["monto"].sum())
+    total_ingresos = float(df_mes[df_mes["tipo"] == "Ingreso"]["monto"].sum())
+    total_entradas_deuda_mes = float(df_mes[df_mes["tipo"] == "Ingreso (Deuda)"]["monto"].sum())
+    total_pagos_deuda_mes = float(df_mes[df_mes["tipo"] == "Pago de deuda"]["monto"].sum())
 else:
-    total_gastos = 0
-    total_ingresos = 0
+    total_gastos = 0.0
+    total_ingresos = 0.0
+    total_entradas_deuda_mes = 0.0
+    total_pagos_deuda_mes = 0.0
 
-saldo_disponible = total_ingresos - total_gastos
+df_deudas = obtener_deudas_usuario(user_id)
+if not df_deudas.empty:
+    saldo_pendiente_deudas_global = float(df_deudas["saldo_pendiente"].sum())
+    deudas_activas_global = int((df_deudas["saldo_pendiente"] > 0).sum())
+else:
+    saldo_pendiente_deudas_global = 0.0
+    deudas_activas_global = 0
+
+saldo_disponible = total_ingresos + total_entradas_deuda_mes - total_gastos - total_pagos_deuda_mes
 ahorro_actual = float(saldo_disponible)
 insight_financiero = obtener_insight_financiero(total_ingresos, total_gastos, saldo_disponible, df_mes)
-categoria_top, monto_top = obtener_categoria_top(df_mes)
+categoria_top, monto_top = obtener_categoria_top(df_mes[df_mes["tipo"] == "Gasto"].copy() if not df_mes.empty else pd.DataFrame())
 
 nombre_meta_guardado = obtener_nombre_meta_guardado(user_id)
 perfil_financiero = obtener_perfil_financiero(total_ingresos, total_gastos, saldo_disponible, df_mes)
 comparativa_periodos = obtener_comparativa_periodos(df if not df.empty else pd.DataFrame())
 resumen_semanal_premium = construir_resumen_semanal_premium(df if not df.empty else pd.DataFrame(), meta_guardada_global, ahorro_actual)
 alertas_proactivas = generar_alertas_proactivas(df if not df.empty else pd.DataFrame(), df_mes, total_ingresos, total_gastos, saldo_disponible, meta_guardada_global)
-recomendacion_accionable = generar_recomendacion_accionable(df_mes, total_ingresos, total_gastos, ahorro_actual, meta_guardada_global)
+recomendacion_accionable = generar_recomendacion_accionable(df_mes[df_mes["tipo"].isin(["Ingreso", "Gasto"])] if not df_mes.empty else pd.DataFrame(), total_ingresos, total_gastos, ahorro_actual, meta_guardada_global)
 patrones_comportamiento = detectar_patrones_comportamiento(df if not df.empty else pd.DataFrame())
 sugerencias_categoria = sugerir_categorias_inteligentes(df if not df.empty else pd.DataFrame())
 insight_personalizado = construir_insight_personalizado(
@@ -1932,21 +2366,33 @@ insight_personalizado = construir_insight_personalizado(
     recomendacion_accionable,
     patrones_comportamiento
 )
+categorias_favoritas_global = obtener_categorias_favoritas(df if not df.empty else pd.DataFrame())
+preferencias_usuario_actual = obtener_preferencias_usuario(user_id, getattr(st.session_state.user, "email", ""))
+resumen_recordatorios_global = construir_resumen_recordatorios(df if not df.empty else pd.DataFrame(), preferencias_usuario_actual)
+aporte_semanal_estimado_global = estimar_aporte_semanal_meta(df if not df.empty else pd.DataFrame())
+proyeccion_meta_global = calcular_proyeccion_meta(meta_guardada_global, ahorro_actual, aporte_semanal_estimado_global)
 _, consultas_usadas_hoy, consultas_limite_hoy, consultas_restantes_hoy, plan_usuario_actual = puede_usar_ia(user_id)
-
 
 if pagina == "Inicio":
     zentix_hero(nombre_usuario, saldo_disponible, total_ingresos, total_gastos)
 
     col1, col2, col3, col4 = st.columns(4)
     with col1:
-        kpi_card("Ingresos del mes", money(total_ingresos), "Entradas registradas", "income")
+        kpi_card("Ingresos reales", money(total_ingresos), "Sin préstamos ni deuda", "income")
     with col2:
-        kpi_card("Gastos del mes", money(total_gastos), "Salidas registradas", "expense")
+        kpi_card("Gastos del mes", money(total_gastos), "Salidas operativas", "expense")
     with col3:
-        kpi_card("Disponible", money(saldo_disponible), "Resultado neto actual", "balance")
+        kpi_card("Disponible", money(saldo_disponible), "Caja real incluyendo deuda", "balance")
     with col4:
         kpi_card("Meta de ahorro", money(meta_guardada_global), nombre_meta_guardado if nombre_meta_guardado else "Objetivo configurado", "saving")
+
+    d1, d2, d3 = st.columns(3)
+    with d1:
+        kpi_card("Entradas por deuda", money(total_entradas_deuda_mes), "No cuentan como ingreso real", "balance")
+    with d2:
+        kpi_card("Pagos de deuda", money(total_pagos_deuda_mes), "Seguimiento de devolución", "expense")
+    with d3:
+        kpi_card("Saldo pendiente", money(saldo_pendiente_deudas_global), f"Deudas activas: {deudas_activas_global}", "saving")
 
     col_info, col_avatar = st.columns([1.15, 0.85])
     with col_info:
@@ -1957,6 +2403,7 @@ if pagina == "Inicio":
                 <div class="section-title">{perfil_financiero.get('titulo', 'Perfil en construcción')}</div>
                 <div class="section-caption">{insight_personalizado}</div>
                 <div class="tiny-muted">Microlectura: {perfil_financiero.get('microcopy', 'Sigue registrando para personalizar más.')}</div>
+                <div class="tiny-muted" style="margin-top:0.55rem;">Deuda pendiente actual: {money(saldo_pendiente_deudas_global)} · Proyección meta: {proyeccion_meta_global.get("mensaje", "Sin proyección")}</div>
             </div>
             """,
             unsafe_allow_html=True
@@ -1972,7 +2419,7 @@ if pagina == "Inicio":
     with s2:
         render_list_card("Alertas proactivas", alertas_proactivas, "Alertas simples para actuar antes de que el mes se complique.")
     with s3:
-        render_list_card("Patrones + acción", patrones_comportamiento, recomendacion_accionable)
+        render_list_card("Patrones + acción", patrones_comportamiento + [f"Saldo pendiente de deudas: {money(saldo_pendiente_deudas_global)}"], recomendacion_accionable)
 
     section_header("Experiencia personalizada", "Comparativas inteligentes y sugerencias de organización.")
     c1, c2, c3, c4 = st.columns(4)
@@ -1981,27 +2428,49 @@ if pagina == "Inicio":
     with c2:
         render_list_card("Mes vs anterior", [f"Gasto: {money_delta(comparativa_periodos.get('gasto_mes_pct', 0.0))}", f"Ingreso: {money_delta(comparativa_periodos.get('ingreso_mes_pct', 0.0))}"], "Comparativa mensual.")
     with c3:
-        render_list_card("Categorías inteligentes", sugerencias_categoria, "Ideas para que tus categorías te den más claridad.")
+        render_list_card("Categorías inteligentes", sugerencias_categoria if sugerencias_categoria else ["Sigue registrando para refinar tus categorías."], "Ideas para que tus categorías te den más claridad.")
     with c4:
-        render_list_card("Plan y IA", [f"Plan actual: {plan_usuario_actual.get('plan', 'free').upper()}", f"IA hoy: {consultas_usadas_hoy}/{consultas_limite_hoy}", f"Restantes: {consultas_restantes_hoy}"], "El plan Pro tendrá más IA, alertas y profundidad.")
+        render_list_card(
+            "Plan, IA y recordatorios",
+            [
+                f"Plan actual: {plan_usuario_actual.get('plan', 'free').upper()}",
+                f"IA hoy: {consultas_usadas_hoy}/{consultas_limite_hoy}",
+                f"Recordatorios: {'email activo' if preferencias_usuario_actual.get('recordatorio_email') else 'email apagado'}"
+            ],
+            "El plan Pro tendrá más IA, alertas y profundidad."
+        )
 
     if not df_mes.empty:
-        section_header("Visualización mensual", "Distribuciones del mes actual para ver proporciones y foco de gasto.")
+        section_header("Visualización mensual", "Distribuciones del mes actual para ver ingresos reales, deuda y pagos con claridad.")
         col_a, col_b = st.columns(2)
 
         with col_a:
             resumen_tipos = pd.DataFrame({
-                "Tipo": ["Ingresos", "Gastos"],
-                "Monto": [float(total_ingresos), float(total_gastos)]
+                "Tipo": ["Ingreso", "Gasto", "Ingreso (Deuda)", "Pago de deuda"],
+                "Monto": [
+                    float(total_ingresos),
+                    float(total_gastos),
+                    float(total_entradas_deuda_mes),
+                    float(total_pagos_deuda_mes)
+                ]
             })
+            resumen_tipos = resumen_tipos[resumen_tipos["Monto"] > 0]
+            if resumen_tipos.empty:
+                resumen_tipos = pd.DataFrame({"Tipo": ["Sin datos"], "Monto": [1]})
             fig_tipos = px.pie(
                 resumen_tipos,
                 values="Monto",
                 names="Tipo",
-                title="Ingresos vs gastos",
+                title="Flujo mensual por naturaleza",
                 hole=0.58,
                 color="Tipo",
-                color_discrete_map={"Ingresos": "#22C55E", "Gastos": "#EF4444"}
+                color_discrete_map={
+                    "Ingreso": "#22C55E",
+                    "Gasto": "#EF4444",
+                    "Ingreso (Deuda)": "#3B82F6",
+                    "Pago de deuda": "#F59E0B",
+                    "Sin datos": "#334155"
+                }
             )
             fig_tipos.update_traces(textinfo="percent+label")
             aplicar_estilo_plotly(fig_tipos, height=380)
@@ -2014,6 +2483,7 @@ if pagina == "Inicio":
                 .reset_index()
                 .sort_values("monto", ascending=False)
             )
+            resumen_categoria["categoria"] = resumen_categoria["categoria"].fillna("Sin categoría")
             fig_cat = px.pie(
                 resumen_categoria,
                 values="monto",
@@ -2032,56 +2502,213 @@ if pagina == "Inicio":
 
 if pagina == "Registrar":
     zentix_hero(nombre_usuario, saldo_disponible, total_ingresos, total_gastos)
-    section_header("Registrar movimiento", "Agrega ingresos y gastos con una experiencia más clara, emocional y visual.")
+    section_header("Registrar movimiento", "Agrega ingresos, gastos, deuda y recurrencias con una experiencia dinámica, limpia y premium.")
 
     col_form, col_side = st.columns([1.15, 0.85])
 
     with col_form:
-        tipo = st.radio("Tipo de movimiento", ["Ingreso", "Gasto"], horizontal=True)
+        tipo = st.radio(
+            "Tipo de movimiento",
+            ["Ingreso", "Gasto", "Ingreso (Deuda)", "Pago de deuda"],
+            horizontal=True
+        )
 
         if tipo == "Ingreso":
-            st.markdown('<div class="pill-ingreso">Ingreso seleccionado</div>', unsafe_allow_html=True)
-            categorias_disponibles = obtener_categorias_usuario(user_id, "Ingreso")
-        else:
+            st.markdown('<div class="pill-ingreso">Ingreso real seleccionado</div>', unsafe_allow_html=True)
+        elif tipo == "Gasto":
             st.markdown('<div class="pill-gasto">Gasto seleccionado</div>', unsafe_allow_html=True)
-            categorias_disponibles = obtener_categorias_usuario(user_id, "Gasto")
+        elif tipo == "Ingreso (Deuda)":
+            st.markdown('<div class="pill-debt">Ingreso por deuda seleccionado</div>', unsafe_allow_html=True)
+        else:
+            st.markdown('<div class="pill-pay">Pago de deuda seleccionado</div>', unsafe_allow_html=True)
 
-        if not categorias_disponibles:
-            st.warning(f"No tienes categorías de {tipo.lower()} configuradas. Completa tu onboarding o agrega categorías para registrar mejor.")
-            categorias_disponibles = ["Sin categorías"]
+        fecha_mov = st.date_input("Fecha", value=date.today(), key="registrar_fecha_mov")
+        descripcion = st.text_input("Descripción", key="registrar_descripcion")
 
-        fecha_mov = st.date_input("Fecha", value=date.today())
-        categoria = st.selectbox("Categoría", categorias_disponibles)
-        monto = st.number_input("Monto", min_value=0.0, step=1000.0)
-        descripcion = st.text_input("Descripción")
+        es_recurrente = st.checkbox("Hacer recurrente", key="registrar_recurrente")
+        frecuencia_recurrencia = ""
+        proxima_fecha_recurrencia = None
+        fecha_fin_recurrencia = None
+        recurrente_activo = False
 
+        if es_recurrente:
+            with st.expander("🔁 Configuración recurrente", expanded=True):
+                frecuencia_recurrencia = st.selectbox(
+                    "Frecuencia",
+                    ["Semanal", "Quincenal", "Mensual"],
+                    key="registrar_frecuencia"
+                )
+                delta_map = {"Semanal": 7, "Quincenal": 15, "Mensual": 30}
+                proxima_fecha_recurrencia = st.date_input(
+                    "Próxima fecha",
+                    value=fecha_mov + timedelta(days=delta_map.get(frecuencia_recurrencia, 7)),
+                    key="registrar_proxima_fecha"
+                )
+                activar_fecha_fin = st.checkbox("Definir fecha fin", key="registrar_fin_toggle")
+                if activar_fecha_fin:
+                    fecha_fin_recurrencia = st.date_input(
+                        "Fecha fin",
+                        value=proxima_fecha_recurrencia,
+                        key="registrar_fecha_fin"
+                    )
+                recurrente_activo = st.checkbox("Mantener activa", value=True, key="registrar_recurrente_activo")
+
+        categoria = ""
+        monto = 0.0
         emocion = ""
-        if tipo == "Gasto":
-            emocion = st.selectbox(
-                "¿Cómo te sentías al hacer este gasto?",
-                ["", "Tranquilidad", "Impulso", "Estrés", "Recompensa", "Urgencia", "Antojo"],
-                format_func=lambda x: "No registrar emoción" if x == "" else x
-            )
+        deuda_id = None
+        deuda_nombre = ""
+        prestamista = ""
+        fecha_limite_deuda = None
+        saldo_deuda_actual = 0.0
+
+        if tipo == "Ingreso":
+            categorias_disponibles = obtener_categorias_usuario(user_id, "Ingreso")
+            if not categorias_disponibles:
+                st.warning("No tienes categorías de ingreso configuradas. Completa tu onboarding o agrega categorías para registrar mejor.")
+                categorias_disponibles = ["Sin categorías"]
+            categoria = st.selectbox("Categoría", categorias_disponibles, key="registrar_categoria_ingreso")
+            monto = st.number_input("Monto recibido", min_value=0.0, step=1000.0, key="registrar_monto_ingreso")
+
+        elif tipo == "Gasto":
+            categorias_disponibles = obtener_categorias_usuario(user_id, "Gasto")
+            if not categorias_disponibles:
+                st.warning("No tienes categorías de gasto configuradas. Completa tu onboarding o agrega categorías para registrar mejor.")
+                categorias_disponibles = ["Sin categorías"]
+            categoria = st.selectbox("Categoría", categorias_disponibles, key="registrar_categoria_gasto")
+            monto = st.number_input("Monto gastado", min_value=0.0, step=1000.0, key="registrar_monto_gasto")
+
+            with st.expander("Emoción asociada (opcional)", expanded=False):
+                emocion = st.selectbox(
+                    "¿Cómo te sentías al hacer este gasto?",
+                    ["", "Tranquilidad", "Impulso", "Estrés", "Recompensa", "Urgencia", "Antojo"],
+                    format_func=lambda x: "No registrar emoción" if x == "" else x,
+                    key="registrar_emocion"
+                )
+
+        elif tipo == "Ingreso (Deuda)":
+            categoria = "Deuda"
+            with st.expander("💳 Bloque específico de deuda", expanded=True):
+                deuda_nombre = st.text_input(
+                    "Nombre de la deuda",
+                    placeholder="Ej: Préstamo de emergencia, Préstamo Juan",
+                    key="registrar_deuda_nombre"
+                )
+                prestamista = st.text_input(
+                    "Quién prestó",
+                    placeholder="Ej: Banco, mamá, Juan",
+                    key="registrar_prestamista"
+                )
+                monto = st.number_input("Monto recibido", min_value=0.0, step=1000.0, key="registrar_monto_deuda")
+                activar_fecha_limite = st.checkbox("Agregar fecha límite", key="registrar_deuda_limite_toggle")
+                if activar_fecha_limite:
+                    fecha_limite_deuda = st.date_input(
+                        "Fecha límite",
+                        value=fecha_mov + timedelta(days=30),
+                        key="registrar_deuda_limite"
+                    )
+                st.caption("Este movimiento entra a caja, pero no contaminará tus KPIs de ingresos reales.")
+
+        else:
+            categoria = "Pago de deuda"
+            deudas_activas_df = df_deudas[df_deudas["saldo_pendiente"] > 0].copy() if not df_deudas.empty else pd.DataFrame()
+            if deudas_activas_df.empty:
+                st.info("Aún no tienes deudas activas registradas. Primero crea un 'Ingreso (Deuda)'.")
+            else:
+                deudas_activas_df["label"] = deudas_activas_df.apply(
+                    lambda row: f"{row['nombre']} · {row['prestamista']} · pendiente {money(row['saldo_pendiente'])}",
+                    axis=1
+                )
+                deuda_label = st.selectbox(
+                    "Selecciona una deuda",
+                    deudas_activas_df["label"].tolist(),
+                    key="registrar_pago_deuda_select"
+                )
+                deuda_row = deudas_activas_df[deudas_activas_df["label"] == deuda_label].iloc[0]
+                deuda_id = deuda_row["id"]
+                deuda_nombre = deuda_row["nombre"]
+                prestamista = deuda_row["prestamista"]
+                saldo_deuda_actual = float(deuda_row["saldo_pendiente"] or 0)
+                fecha_limite_deuda = deuda_row["fecha_limite"].date() if pd.notna(deuda_row["fecha_limite"]) else None
+                monto = st.number_input(
+                    "Monto a pagar",
+                    min_value=0.0,
+                    max_value=float(saldo_deuda_actual) if saldo_deuda_actual > 0 else None,
+                    step=1000.0,
+                    key="registrar_pago_deuda_monto"
+                )
+                st.caption(f"Pendiente actual: {money(saldo_deuda_actual)}")
 
         col_btn_1, col_btn_2 = st.columns(2)
         with col_btn_1:
             if st.button("Guardar movimiento", use_container_width=True):
-                if categoria.strip() == "Sin categorías":
-                    st.error("Necesitas al menos una categoría válida para guardar el movimiento.")
-                elif monto <= 0:
-                    st.error("El monto debe ser mayor que 0.")
+                errores = []
+
+                if tipo in ("Ingreso", "Gasto") and (not categoria or categoria.strip() == "Sin categorías"):
+                    errores.append("Necesitas al menos una categoría válida para guardar el movimiento.")
+                if monto <= 0:
+                    errores.append("El monto debe ser mayor que 0.")
+                if tipo == "Ingreso (Deuda)" and not deuda_nombre.strip():
+                    errores.append("Escribe un nombre para la deuda.")
+                if tipo == "Ingreso (Deuda)" and not prestamista.strip():
+                    errores.append("Indica quién prestó.")
+                if tipo == "Pago de deuda" and not deuda_id:
+                    errores.append("Selecciona una deuda activa para registrar el pago.")
+                if tipo == "Pago de deuda" and saldo_deuda_actual > 0 and monto > saldo_deuda_actual:
+                    errores.append("El pago no puede superar el saldo pendiente de la deuda.")
+                if es_recurrente and proxima_fecha_recurrencia and proxima_fecha_recurrencia < fecha_mov:
+                    errores.append("La próxima fecha recurrente no puede ser anterior al movimiento.")
+                if es_recurrente and fecha_fin_recurrencia and proxima_fecha_recurrencia and fecha_fin_recurrencia < proxima_fecha_recurrencia:
+                    errores.append("La fecha fin recurrente no puede ser anterior a la próxima fecha.")
+
+                if errores:
+                    for err in errores:
+                        st.error(err)
                 else:
                     try:
+                        deuda_creada = None
+                        deuda_id_mov = deuda_id
+
+                        if tipo == "Ingreso (Deuda)":
+                            deuda_creada = crear_deuda_segura({
+                                "usuario_id": user_id,
+                                "nombre": deuda_nombre.strip(),
+                                "prestamista": prestamista.strip(),
+                                "monto_total": float(monto),
+                                "saldo_pendiente": float(monto),
+                                "fecha": datetime.combine(fecha_mov, datetime.min.time()).isoformat(),
+                                "fecha_limite": datetime.combine(fecha_limite_deuda, datetime.min.time()).isoformat() if fecha_limite_deuda else None,
+                                "descripcion": descripcion.strip(),
+                                "estado": "pendiente",
+                                "actualizado_en": datetime.now().isoformat()
+                            })
+                            if deuda_creada and isinstance(deuda_creada, dict):
+                                deuda_id_mov = deuda_creada.get("id")
+
                         payload = {
                             "usuario_id": user_id,
                             "fecha": datetime.combine(fecha_mov, datetime.min.time()).isoformat(),
                             "tipo": tipo,
-                            "categoria": categoria.strip(),
+                            "categoria": categoria.strip() if categoria else None,
                             "monto": float(monto),
                             "descripcion": descripcion.strip(),
-                            "emocion": emocion if tipo == "Gasto" else None
+                            "emocion": emocion if tipo == "Gasto" else None,
+                            "deuda_id": deuda_id_mov,
+                            "deuda_nombre": deuda_nombre.strip() if deuda_nombre else None,
+                            "prestamista": prestamista.strip() if prestamista else None,
+                            "fecha_limite_deuda": datetime.combine(fecha_limite_deuda, datetime.min.time()).isoformat() if fecha_limite_deuda else None,
+                            "es_recurrente": bool(es_recurrente),
+                            "frecuencia_recurrencia": frecuencia_recurrencia if es_recurrente else None,
+                            "proxima_fecha_recurrencia": datetime.combine(proxima_fecha_recurrencia, datetime.min.time()).isoformat() if es_recurrente and proxima_fecha_recurrencia else None,
+                            "fecha_fin_recurrencia": datetime.combine(fecha_fin_recurrencia, datetime.min.time()).isoformat() if es_recurrente and fecha_fin_recurrencia else None,
+                            "recurrente_activo": bool(recurrente_activo) if es_recurrente else False
                         }
+
                         insertar_movimiento_seguro(payload)
+
+                        if tipo == "Pago de deuda" and deuda_id:
+                            actualizar_deuda_pago_seguro(deuda_id, saldo_deuda_actual - float(monto))
+
                         st.success("Movimiento guardado correctamente.")
                         st.rerun()
                     except Exception as e:
@@ -2092,31 +2719,62 @@ if pagina == "Registrar":
                 st.rerun()
 
     with col_side:
-        color_valor = "#4ADE80" if tipo == "Ingreso" else "#F87171"
+        color_map = {
+            "Ingreso": "#4ADE80",
+            "Gasto": "#F87171",
+            "Ingreso (Deuda)": "#93C5FD",
+            "Pago de deuda": "#FCD34D"
+        }
+        color_valor = color_map.get(tipo, "#E2E8F0")
+        deuda_preview = deuda_nombre if deuda_nombre else "Sin deuda asociada"
+        frecuencia_preview = frecuencia_recurrencia if es_recurrente and frecuencia_recurrencia else "No recurrente"
+        proxima_preview = proxima_fecha_recurrencia.strftime("%Y-%m-%d") if es_recurrente and proxima_fecha_recurrencia else "No aplica"
+        fecha_limite_preview = fecha_limite_deuda.strftime("%Y-%m-%d") if isinstance(fecha_limite_deuda, date) else "No definida"
+
         st.markdown(
             f"""
             <div class="soft-card">
-                <div class="section-title">Vista previa</div>
-                <div class="section-caption">Así se interpreta el movimiento antes de guardar.</div>
+                <div class="section-title">Vista previa contextual</div>
+                <div class="section-caption">Aparece solo lo necesario según el tipo de movimiento.</div>
                 <div class="tiny-muted">Tipo</div>
                 <div class="form-preview-value" style="color:{color_valor};">{tipo}</div>
-                <div class="tiny-muted" style="margin-top:0.7rem;">Categoría</div>
-                <div style="font-weight:700;">{categoria}</div>
+                <div class="tiny-muted" style="margin-top:0.7rem;">Categoría / naturaleza</div>
+                <div style="font-weight:700;">{categoria if categoria else 'Contextual'}</div>
                 <div class="tiny-muted" style="margin-top:0.7rem;">Monto</div>
                 <div style="font-weight:800;font-size:1.15rem;">{money(monto)}</div>
                 <div class="tiny-muted" style="margin-top:0.7rem;">Descripción</div>
                 <div style="font-weight:600;">{descripcion if descripcion else 'Sin descripción'}</div>
+                <div class="tiny-muted" style="margin-top:0.7rem;">Deuda</div>
+                <div style="font-weight:600;">{deuda_preview}</div>
+                <div class="tiny-muted" style="margin-top:0.7rem;">Prestamista</div>
+                <div style="font-weight:600;">{prestamista if prestamista else 'No aplica'}</div>
+                <div class="tiny-muted" style="margin-top:0.7rem;">Fecha límite deuda</div>
+                <div style="font-weight:600;">{fecha_limite_preview}</div>
                 <div class="tiny-muted" style="margin-top:0.7rem;">Emoción</div>
                 <div style="font-weight:600;">{emocion if emocion else 'No registrada'}</div>
+                <div class="tiny-muted" style="margin-top:0.7rem;">Recurrencia</div>
+                <div style="font-weight:600;">{frecuencia_preview} · próxima: {proxima_preview}</div>
             </div>
             """,
             unsafe_allow_html=True
         )
+
+        if tipo == "Pago de deuda" and saldo_deuda_actual > 0:
+            st.markdown(
+                f"""
+                <div class="mini-soft-card">
+                    <div class="tiny-muted">Saldo pendiente luego del pago</div>
+                    <div style="font-weight:800;font-size:1.05rem;">{money(max(saldo_deuda_actual - float(monto or 0), 0))}</div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
         render_avatar(pagina, nombre_usuario, total_ingresos, total_gastos, saldo_disponible, ultimo_tipo)
 
 if pagina == "Análisis":
     zentix_hero(nombre_usuario, saldo_disponible, total_ingresos, total_gastos)
-    section_header("Análisis del mes", "Explora movimientos, concentración por categoría, evolución diaria y lectura personalizada.")
+    section_header("Análisis del mes", "Explora movimientos, deuda, recurrencias, concentración por categoría y evolución diaria.")
 
     col_a, col_b = st.columns([1.15, 0.85])
     with col_a:
@@ -2124,8 +2782,14 @@ if pagina == "Análisis":
             vista_df = df_mes.copy().sort_values("fecha", ascending=False)
             vista_df["fecha"] = vista_df["fecha"].dt.strftime("%Y-%m-%d")
             columnas = ["fecha", "tipo", "categoria", "monto", "descripcion"]
-            if "emocion" in vista_df.columns:
-                columnas.append("emocion")
+
+            for extra_col in ["deuda_nombre", "prestamista", "emocion", "frecuencia_recurrencia", "proxima_fecha_recurrencia"]:
+                if extra_col in vista_df.columns:
+                    columnas.append(extra_col)
+
+            if "proxima_fecha_recurrencia" in vista_df.columns:
+                vista_df["proxima_fecha_recurrencia"] = pd.to_datetime(vista_df["proxima_fecha_recurrencia"], errors="coerce").dt.strftime("%Y-%m-%d")
+
             st.dataframe(
                 vista_df[columnas],
                 use_container_width=True
@@ -2133,6 +2797,23 @@ if pagina == "Análisis":
         else:
             empty_state("Todavía no hay datos", "Cuando registres movimientos este mes, aquí verás tablas y gráficos más útiles.")
     with col_b:
+        st.markdown(
+            f"""
+            <div class="soft-card">
+                <div class="section-title">Lectura de deuda y recurrencia</div>
+                <div class="section-caption">Separando caja, ingresos reales y obligaciones pendientes.</div>
+                <div class="tiny-muted">Entradas por deuda</div>
+                <div class="form-preview-value">{money(total_entradas_deuda_mes)}</div>
+                <div class="tiny-muted" style="margin-top:0.6rem;">Pagos de deuda</div>
+                <div style="font-weight:800;font-size:1.1rem;">{money(total_pagos_deuda_mes)}</div>
+                <div class="tiny-muted" style="margin-top:0.6rem;">Saldo pendiente total</div>
+                <div style="font-weight:800;font-size:1.1rem;">{money(saldo_pendiente_deudas_global)}</div>
+                <div class="tiny-muted" style="margin-top:0.6rem;">Recurrentes activos</div>
+                <div style="font-weight:800;font-size:1.1rem;">{int(df[df["recurrente_activo"] == True].shape[0]) if not df.empty and "recurrente_activo" in df.columns else 0}</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
         render_avatar(pagina, nombre_usuario, total_ingresos, total_gastos, saldo_disponible, ultimo_tipo)
 
     section_header("Comparativas y patrones", "Así viene cambiando tu comportamiento financiero.")
@@ -2142,14 +2823,14 @@ if pagina == "Análisis":
     with a2:
         render_list_card("Comparativa mensual", [f"Gasto: {money_delta(comparativa_periodos.get('gasto_mes_pct', 0.0))}", f"Ingreso: {money_delta(comparativa_periodos.get('ingreso_mes_pct', 0.0))}"], "Mes actual vs anterior.")
     with a3:
-        render_list_card("Patrones detectados", patrones_comportamiento, "Zentix busca hábitos que explican tu comportamiento.")
+        render_list_card("Patrones detectados", patrones_comportamiento + [f"Deudas activas: {deudas_activas_global}"], "Zentix busca hábitos que explican tu comportamiento.")
 
     section_header("Insights personalizados", "Tu perfil, tus alertas y tus mejores mejoras.")
     b1, b2 = st.columns(2)
     with b1:
         render_list_card("Perfil financiero", [perfil_financiero.get("descripcion", "Sin perfil disponible."), perfil_financiero.get("microcopy", "")], "Identidad financiera detectada automáticamente.")
     with b2:
-        render_list_card("Alertas + categorías", alertas_proactivas + sugerencias_categoria, recomendacion_accionable)
+        render_list_card("Alertas + categorías", alertas_proactivas + sugerencias_categoria + [f"Saldo deuda pendiente: {money(saldo_pendiente_deudas_global)}"], recomendacion_accionable)
 
     if not df_mes.empty:
         resumen = (
@@ -2158,6 +2839,7 @@ if pagina == "Análisis":
             .sort_values(ascending=False)
             .reset_index()
         )
+        resumen["categoria"] = resumen["categoria"].fillna("Sin categoría")
 
         timeline = (
             df_mes.groupby(["fecha", "tipo"])["monto"]
@@ -2190,7 +2872,12 @@ if pagina == "Análisis":
                 color="tipo",
                 title="Evolución diaria",
                 markers=True,
-                color_discrete_map={"Ingreso": "#22C55E", "Gasto": "#EF4444"}
+                color_discrete_map={
+                    "Ingreso": "#22C55E",
+                    "Gasto": "#EF4444",
+                    "Ingreso (Deuda)": "#3B82F6",
+                    "Pago de deuda": "#F59E0B"
+                }
             )
             aplicar_estilo_plotly(fig_line, height=390)
             st.plotly_chart(fig_line, use_container_width=True, config={"displayModeBar": False})
@@ -2212,7 +2899,7 @@ if pagina == "Ahorro":
     nombre_meta_input = st.text_input(
         "Ponle nombre a tu meta",
         value=nombre_meta_guardado,
-        placeholder="Ej: Viaje a Medellín, Fondo de calma, Moto"
+        placeholder="Ej: Viaje, Moto, Fondo de calma"
     )
 
     meta = st.number_input(
@@ -2226,6 +2913,8 @@ if pagina == "Ahorro":
     ahorro_actual = float(saldo_disponible)
     faltante = max(0.0, float(meta) - max(ahorro_actual, 0.0))
     progreso = max(0.0, ahorro_actual / float(meta)) if float(meta) > 0 else 0.0
+    aporte_semanal_estimado = estimar_aporte_semanal_meta(df if not df.empty else pd.DataFrame())
+    proyeccion_meta = calcular_proyeccion_meta(meta, ahorro_actual, aporte_semanal_estimado)
 
     col_k1, col_k2, col_k3 = st.columns(3)
     with col_k1:
@@ -2267,6 +2956,16 @@ if pagina == "Ahorro":
         else:
             st.info("Define una meta para comenzar.")
 
+        st.markdown(
+            f"""
+            <div class="mini-soft-card">
+                <div class="tiny-muted">Proyección estimada</div>
+                <div style="font-weight:800;line-height:1.5;">{proyeccion_meta.get('mensaje', 'Sin proyección')}</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
     with col_meta2:
         st.markdown(
             f"""
@@ -2279,8 +2978,143 @@ if pagina == "Ahorro":
                 </div>
                 <div class="tiny-muted">Progreso actual</div>
                 <div class="form-preview-value">{round(min(progreso, 1.0) * 100, 1) if float(meta) > 0 else 0}%</div>
+                <div class="tiny-muted" style="margin-top:0.7rem;">Aporte semanal estimado</div>
+                <div style="font-weight:700;line-height:1.5;">{money(proyeccion_meta.get('aporte_semanal', 0))}</div>
                 <div class="tiny-muted" style="margin-top:0.7rem;">Plan sugerido</div>
                 <div style="font-weight:700;line-height:1.5;">{recomendacion_accionable}</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+        render_avatar(pagina, nombre_usuario, total_ingresos, total_gastos, saldo_disponible, ultimo_tipo)
+
+if pagina == "Perfil":
+    zentix_hero(nombre_usuario, saldo_disponible, total_ingresos, total_gastos)
+    section_header("Centro de perfil y plan", "Gestiona identidad, IA, meta principal y recordatorios suaves desde un solo lugar.")
+
+    plan_nombre = plan_usuario_actual.get("plan", "free").upper()
+    col_k1, col_k2, col_k3, col_k4 = st.columns(4)
+    with col_k1:
+        kpi_card("Plan actual", plan_nombre, "Experiencia activa", "balance")
+    with col_k2:
+        kpi_card("Límite IA diario", str(consultas_limite_hoy), "Consultas por día", "saving")
+    with col_k3:
+        kpi_card("IA usada hoy", str(consultas_usadas_hoy), "Consumo acumulado", "expense" if consultas_usadas_hoy >= consultas_limite_hoy else "income")
+    with col_k4:
+        kpi_card("Meta principal", nombre_meta_guardado if nombre_meta_guardado else "Sin nombre", money(meta_guardada_global), "saving")
+
+    col_main, col_side = st.columns([1.15, 0.85])
+
+    with col_main:
+        st.markdown(
+            f"""
+            <div class="soft-card">
+                <div class="section-title">Identidad financiera</div>
+                <div class="section-caption">Tu perfil visible, tu meta principal y un vistazo elegante a tu estado actual.</div>
+                <div class="tiny-muted">Nombre mostrado</div>
+                <div class="form-preview-value" style="font-size:1.2rem;">{nombre_usuario}</div>
+                <div class="tiny-muted" style="margin-top:0.7rem;">Correo de acceso</div>
+                <div style="font-weight:700;">{getattr(st.session_state.user, "email", "Sin correo")}</div>
+                <div class="tiny-muted" style="margin-top:0.7rem;">Meta principal</div>
+                <div style="font-weight:700;">{nombre_meta_guardado if nombre_meta_guardado else 'Aún sin nombre'} · {money(meta_guardada_global)}</div>
+                <div class="tiny-muted" style="margin-top:0.7rem;">Categorías favoritas</div>
+                <div style="font-weight:700;">{", ".join(categorias_favoritas_global) if categorias_favoritas_global else 'Se irán detectando con tu uso'}</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+        with st.expander("🔔 Recordatorios y preferencias", expanded=True):
+            pref_email = st.checkbox("Recibir recordatorios por correo", value=bool(preferencias_usuario_actual.get("recordatorio_email", True)))
+            pref_sms = st.checkbox("Preparar SMS para futuro", value=bool(preferencias_usuario_actual.get("recordatorio_sms", False)))
+            pref_frecuencia = st.selectbox(
+                "Frecuencia",
+                ["suave", "normal"],
+                index=["suave", "normal"].index(preferencias_usuario_actual.get("frecuencia_recordatorios", "suave"))
+                if preferencias_usuario_actual.get("frecuencia_recordatorios", "suave") in ["suave", "normal"] else 0
+            )
+            pref_registro = st.checkbox("Recordatorio por inactividad", value=bool(preferencias_usuario_actual.get("recordatorio_registro", True)))
+            pref_meta = st.checkbox("Alertas de meta", value=bool(preferencias_usuario_actual.get("recordatorio_meta", False)))
+            pref_resumen = st.checkbox("Resumen semanal", value=bool(preferencias_usuario_actual.get("resumen_semanal", False)))
+            pref_silencio = st.checkbox("Activar horario silencioso", value=bool(preferencias_usuario_actual.get("silencio_activado", False)))
+
+            col_h1, col_h2 = st.columns(2)
+            with col_h1:
+                silencio_inicio = st.text_input("Silencio desde", value=preferencias_usuario_actual.get("silencio_inicio", "21:00"))
+            with col_h2:
+                silencio_fin = st.text_input("Silencio hasta", value=preferencias_usuario_actual.get("silencio_fin", "07:00"))
+
+            email_contacto = st.text_input(
+                "Correo para avisos",
+                value=preferencias_usuario_actual.get("email_contacto") or getattr(st.session_state.user, "email", "")
+            )
+            telefono_contacto = st.text_input(
+                "Teléfono (opcional / futuro)",
+                value=preferencias_usuario_actual.get("telefono", ""),
+                placeholder="Déjalo listo para SMS más adelante"
+            )
+
+            if st.button("Guardar preferencias", use_container_width=True):
+                guardar_preferencias_usuario(user_id, {
+                    "recordatorio_email": pref_email,
+                    "recordatorio_sms": pref_sms,
+                    "frecuencia_recordatorios": pref_frecuencia,
+                    "recordatorio_registro": pref_registro,
+                    "recordatorio_meta": pref_meta,
+                    "resumen_semanal": pref_resumen,
+                    "silencio_activado": pref_silencio,
+                    "silencio_inicio": silencio_inicio,
+                    "silencio_fin": silencio_fin,
+                    "email_contacto": email_contacto,
+                    "telefono": telefono_contacto
+                })
+                st.success("Preferencias guardadas. La estructura queda lista para activar envíos reales después.")
+
+            st.info("Zentix deja lista la base para email primero. SMS queda preparado como opcional/futuro, sin exigir teléfono en onboarding.")
+
+        with st.expander("✨ Plan Free vs Pro", expanded=False):
+            st.markdown(
+                """
+                <div class="mini-soft-card">
+                    <div style="font-weight:800;margin-bottom:0.35rem;">Free</div>
+                    <div class="tiny-muted">Límite diario de IA, recordatorios suaves, panel premium esencial.</div>
+                </div>
+                <div class="mini-soft-card">
+                    <div style="font-weight:800;margin-bottom:0.35rem;">Pro</div>
+                    <div class="tiny-muted">Más IA, lecturas más profundas, automatizaciones y una experiencia más potente sin ser invasiva.</div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+    with col_side:
+        st.markdown(
+            f"""
+            <div class="soft-card">
+                <div class="section-title">Estado del motor de recordatorios</div>
+                <div class="section-caption">Priorizado para correo, con base lista para crecer a SMS.</div>
+                <div class="tiny-muted">Último movimiento</div>
+                <div style="font-weight:800;font-size:1.05rem;">{resumen_recordatorios_global.get('ultimo_movimiento', 'Sin movimientos')}</div>
+                <div class="tiny-muted" style="margin-top:0.7rem;">Días sin registrar</div>
+                <div style="font-weight:800;font-size:1.05rem;">{resumen_recordatorios_global.get('dias_inactividad', 'N/A')}</div>
+                <div class="tiny-muted" style="margin-top:0.7rem;">Sugerencia actual</div>
+                <div style="font-weight:700;line-height:1.5;">{resumen_recordatorios_global.get('sugerencia', 'Sin evaluación')}</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+        st.markdown(
+            f"""
+            <div class="soft-card">
+                <div class="section-title">Meta y deuda</div>
+                <div class="section-caption">Dos palancas críticas, visibles sin recargar.</div>
+                <div class="tiny-muted">Meta principal</div>
+                <div style="font-weight:800;font-size:1.05rem;">{nombre_meta_guardado if nombre_meta_guardado else 'Sin nombre'} · {money(meta_guardada_global)}</div>
+                <div class="tiny-muted" style="margin-top:0.7rem;">Proyección</div>
+                <div style="font-weight:700;line-height:1.5;">{proyeccion_meta_global.get('mensaje', 'Sin proyección')}</div>
+                <div class="tiny-muted" style="margin-top:0.7rem;">Saldo pendiente de deudas</div>
+                <div style="font-weight:800;font-size:1.05rem;">{money(saldo_pendiente_deudas_global)}</div>
             </div>
             """,
             unsafe_allow_html=True
