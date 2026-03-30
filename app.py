@@ -1034,12 +1034,20 @@ def estimar_aporte_semanal_meta(df_base):
     df_tmp = df_base.copy()
     df_tmp["fecha"] = pd.to_datetime(df_tmp["fecha"], errors="coerce")
     df_tmp = df_tmp.dropna(subset=["fecha"]).copy()
+
+    try:
+        if getattr(df_tmp["fecha"].dt, "tz", None) is not None:
+            df_tmp["fecha"] = df_tmp["fecha"].dt.tz_localize(None)
+    except Exception:
+        pass
+
     if df_tmp.empty:
         return 0.0
 
+    df_tmp["fecha"] = df_tmp["fecha"].dt.normalize()
     hoy = pd.Timestamp.now().normalize()
     inicio = hoy - pd.Timedelta(days=27)
-    reciente = df_tmp[df_tmp["fecha"].dt.normalize() >= inicio].copy()
+    reciente = df_tmp[df_tmp["fecha"] >= inicio].copy()
     if reciente.empty:
         reciente = df_tmp.copy()
 
