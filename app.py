@@ -1291,6 +1291,403 @@ def actualizar_deuda_pago_seguro(deuda_id, nuevo_saldo):
             return None
 
 
+
+def actualizar_movimiento_seguro(movimiento_id, payload):
+    base = dict(payload)
+    candidatos = [
+        dict(base),
+        {k: v for k, v in base.items() if k not in {
+            "es_recurrente", "frecuencia_recurrencia", "proxima_fecha_recurrencia",
+            "fecha_fin_recurrencia", "recurrente_activo"
+        }},
+        {k: v for k, v in base.items() if k not in {
+            "deuda_id", "deuda_nombre", "prestamista", "fecha_limite_deuda",
+            "es_recurrente", "frecuencia_recurrencia", "proxima_fecha_recurrencia",
+            "fecha_fin_recurrencia", "recurrente_activo"
+        }},
+        {k: v for k, v in base.items() if k not in {
+            "emocion", "deuda_id", "deuda_nombre", "prestamista", "fecha_limite_deuda",
+            "es_recurrente", "frecuencia_recurrencia", "proxima_fecha_recurrencia",
+            "fecha_fin_recurrencia", "recurrente_activo"
+        }},
+    ]
+
+    last_error = None
+    for candidate in candidatos:
+        try:
+            return (
+                supabase.table("movimientos")
+                .update(candidate)
+                .eq("id", movimiento_id)
+                .execute()
+            )
+        except Exception as e:
+            last_error = e
+    raise last_error
+
+
+def eliminar_movimiento_seguro(movimiento_id):
+    return (
+        supabase.table("movimientos")
+        .delete()
+        .eq("id", movimiento_id)
+        .execute()
+    )
+
+
+def recalcular_deudas_usuario_desde_movimientos(user_id, df_movs, df_deudas_actuales=None):
+    existentes = df_deudas_actuales.copy() if df_deudas_actuales is not None and not df_deudas_actuales.empty else obtener_deudas_usuario(user_id)
+
+    if df_movs is None:
+        df_movs = pd.DataFrame()
+
+    df_base = df_movs.copy()
+    for col in ["deuda_nombre", "prestamista", "descripcion", "fecha_limite_deuda", "fecha", "monto", "tipo"]:
+        if col not in df_base.columns:
+            df_base[col] = None
+
+    if not df_base.empty:
+        df_base["fecha"] = pd.to_datetime(df_base["fecha"], errors="coerce")
+        df_base["fecha_limite_deuda"] = pd.to_datetime(df_base["fecha_limite_deuda"], errors="coerce")
+        df_base["monto"] = pd.to_numeric(df_base["monto"], errors="coerce").fillna(0)
+
+    ingresos_deuda = df_base[df_base["tipo"] == "Ingreso (Deuda)"].copy() if not df_base.empty else pd.DataFrame()
+    pagos_deuda = df_base[df_base["tipo"] == "Pago de deuda"].copy() if not df_base.empty else pd.DataFrame()
+
+    def build_key(nombre, prestamista):
+        return f"{str(nombre or '').strip().lower()}||{str(prestamista or '').strip().lower()}"
+
+    summaries = {}
+
+    if not ingresos_deuda.empty:
+        ingresos_deuda["deuda_key"] = ingresos_deuda.apply(
+            lambda row: build_key(row.get("deuda_nombre") or row.get("descripcion") or "Deuda sin nombre", row.get("prestamista") or "Sin prestamista"),
+            axis=1
+        )
+
+        if not pagos_deuda.empty:
+            pagos_deuda["deuda_key"] = pagos_deuda.apply(
+                lambda row: build_key(row.get("deuda_nombre") or row.get("descripcion") or "Deuda sin nombre", row.get("prestamista") or "Sin prestamista"),
+                axis=1
+            )
+            pagos_por_key = pagos_deuda.groupby("deuda_key", dropna=False)["monto"].sum().to_dict()
+        else:
+            pagos_por_key = {}
+
+        for deuda_key, grupo in ingresos_deuda.groupby("deuda_key", dropna=False):
+            grupo = grupo.sort_values("fecha")
+            primera = grupo.iloc[0]
+            monto_total = float(pd.to_numeric(grupo["monto"], errors="coerce").fillna(0).sum())
+            total_pagado = float(pagos_por_key.get(deuda_key, 0) or 0)
+            saldo_pendiente = max(monto_total - total_pagado, 0)
+            fechas_lim = pd.to_datetime(grupo["fecha_limite_deuda"], errors="coerce")
+            fecha_limite_val = fechas_lim.dropna().max() if not fechas_lim.dropna().empty else None
+            fecha_base = pd.to_datetime(primera.get("fecha"), errors="coerce")
+            summaries[deuda_key] = {
+                "nombre": (primera.get("deuda_nombre") or primera.get("descripcion") or "Deuda sin nombre").strip(),
+                "prestamista": (primera.get("prestamista") or "Sin prestamista").strip(),
+                "monto_total": monto_total,
+                "saldo_pendiente": saldo_pendiente,
+                "fecha": fecha_base,
+                "fecha_limite": fecha_limite_val,
+                "descripcion": (primera.get("descripcion") or "").strip(),
+                "estado": "pagada" if saldo_pendiente <= 0 else "activa"
+            }
+
+    existentes_map = {}
+    if existentes is not None and not existentes.empty:
+        existentes = existentes.copy()
+        existentes["deuda_key"] = existentes.apply(lambda row: build_key(row.get("nombre"), row.get("prestamista")), axis=1)
+        for _, row in existentes.iterrows():
+            key = row["deuda_key"]
+            if key not in existentes_map:
+                existentes_map[key] = row
+
+    all_keys = set(existentes_map.keys()) | set(summaries.keys())
+
+    for deuda_key in all_keys:
+        summary = summaries.get(deuda_key)
+        existente = existentes_map.get(deuda_key)
+
+        if summary:
+            payload = {
+                "usuario_id": user_id,
+                "nombre": summary["nombre"],
+                "prestamista": summary["prestamista"],
+                "monto_total": float(summary["monto_total"]),
+                "saldo_pendiente": float(summary["saldo_pendiente"]),
+                "fecha": summary["fecha"].isoformat() if pd.notna(summary["fecha"]) else datetime.now().isoformat(),
+                "fecha_limite": summary["fecha_limite"].isoformat() if pd.notna(summary["fecha_limite"]) else None,
+                "descripcion": summary["descripcion"],
+                "estado": normalizar_estado_deuda(summary["estado"]),
+                "actualizado_en": datetime.now().isoformat()
+            }
+            if existente is not None and existente.get("id") is not None:
+                try:
+                    (
+                        supabase.table("deudas")
+                        .update(payload)
+                        .eq("id", existente["id"])
+                        .execute()
+                    )
+                except Exception:
+                    try:
+                        (
+                            supabase.table("deudas")
+                            .update({k: v for k, v in payload.items() if k not in {"descripcion", "actualizado_en"}})
+                            .eq("id", existente["id"])
+                            .execute()
+                        )
+                    except Exception:
+                        pass
+            else:
+                crear_deuda_segura(payload)
+        else:
+            if existente is not None and existente.get("id") is not None:
+                payload = {
+                    "saldo_pendiente": 0.0,
+                    "estado": "pagada",
+                    "actualizado_en": datetime.now().isoformat()
+                }
+                try:
+                    (
+                        supabase.table("deudas")
+                        .update(payload)
+                        .eq("id", existente["id"])
+                        .execute()
+                    )
+                except Exception:
+                    try:
+                        (
+                            supabase.table("deudas")
+                            .update({"saldo_pendiente": 0.0})
+                            .eq("id", existente["id"])
+                            .execute()
+                        )
+                    except Exception:
+                        pass
+
+    return obtener_deudas_usuario(user_id)
+
+
+def render_editor_movimientos(user_id, df_movs, df_deudas_local):
+    st.markdown(
+        """
+        <div class="spotlight-side-card" style="margin-top:0.9rem;">
+            <div class="spotlight-side-title">Editar o eliminar movimientos</div>
+            <div class="spotlight-side-sub">Si te equivocaste en una cifra, nombre o tipo, puedes corregirlo aquí sin romper el resto del panel.</div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    if df_movs is None or df_movs.empty or "id" not in df_movs.columns:
+        st.info("Todavía no hay movimientos editables.")
+        return
+
+    df_editor = df_movs.copy().sort_values("fecha", ascending=False)
+    df_editor["fecha"] = pd.to_datetime(df_editor["fecha"], errors="coerce")
+    df_editor["monto"] = pd.to_numeric(df_editor["monto"], errors="coerce").fillna(0)
+
+    def build_label(row):
+        fecha_txt = row["fecha"].strftime("%Y-%m-%d") if pd.notna(row["fecha"]) else "Sin fecha"
+        deuda_txt = f" · {row.get('deuda_nombre')}" if str(row.get("deuda_nombre") or "").strip() else ""
+        descripcion_txt = str(row.get("descripcion") or "").strip()
+        if len(descripcion_txt) > 36:
+            descripcion_txt = descripcion_txt[:36] + "..."
+        return f"{fecha_txt} · {row.get('tipo', 'Sin tipo')} · {money(row.get('monto', 0))} · {descripcion_txt or 'Sin descripción'}{deuda_txt}"
+
+    labels = {str(row["id"]): build_label(row) for _, row in df_editor.iterrows() if pd.notna(row.get("id"))}
+    if not labels:
+        st.info("No encontré identificadores válidos para editar movimientos.")
+        return
+
+    with st.expander("🛠️ Gestionar un movimiento registrado", expanded=False):
+        selected_id = st.selectbox(
+            "Selecciona un movimiento",
+            list(labels.keys()),
+            format_func=lambda x: labels.get(x, x),
+            key="editor_movimiento_select"
+        )
+        row = df_editor[df_editor["id"].astype(str) == str(selected_id)].iloc[0]
+
+        fecha_actual = row["fecha"].date() if pd.notna(row["fecha"]) else date.today()
+        tipo_actual = row.get("tipo", "Gasto") or "Gasto"
+        categoria_actual = row.get("categoria", "") or ""
+        descripcion_actual = row.get("descripcion", "") or ""
+        emocion_actual = row.get("emocion", "") or ""
+        deuda_nombre_actual = row.get("deuda_nombre", "") or ""
+        prestamista_actual = row.get("prestamista", "") or ""
+        monto_actual = float(row.get("monto", 0) or 0)
+        fecha_limite_actual = pd.to_datetime(row.get("fecha_limite_deuda"), errors="coerce")
+        es_recurrente_actual = bool(row.get("es_recurrente", False))
+        frecuencia_actual = row.get("frecuencia_recurrencia", "") or "Semanal"
+        proxima_actual = pd.to_datetime(row.get("proxima_fecha_recurrencia"), errors="coerce")
+        fecha_fin_actual = pd.to_datetime(row.get("fecha_fin_recurrencia"), errors="coerce")
+        recurrente_activo_actual = bool(row.get("recurrente_activo", False))
+        deuda_id_actual = row.get("deuda_id")
+
+        st.markdown(
+            f"""
+            <div class="mini-soft-card">
+                <div class="tiny-muted">Movimiento actual</div>
+                <div style="font-weight:800;line-height:1.55;">{labels[str(selected_id)]}</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+        tipo_edit = st.selectbox(
+            "Tipo",
+            ["Ingreso", "Gasto", "Ingreso (Deuda)", "Pago de deuda"],
+            index=["Ingreso", "Gasto", "Ingreso (Deuda)", "Pago de deuda"].index(tipo_actual if tipo_actual in ["Ingreso", "Gasto", "Ingreso (Deuda)", "Pago de deuda"] else "Gasto"),
+            key=f"edit_tipo_{selected_id}"
+        )
+        fecha_edit = st.date_input("Fecha", value=fecha_actual, key=f"edit_fecha_{selected_id}")
+        descripcion_edit = st.text_input("Descripción", value=descripcion_actual, key=f"edit_descripcion_{selected_id}")
+
+        categoria_edit = categoria_actual
+        emocion_edit = emocion_actual
+        deuda_nombre_edit = deuda_nombre_actual
+        prestamista_edit = prestamista_actual
+        deuda_id_edit = deuda_id_actual
+        fecha_limite_edit = fecha_limite_actual.date() if pd.notna(fecha_limite_actual) else None
+
+        if tipo_edit == "Ingreso":
+            categorias = obtener_categorias_usuario(user_id, "Ingreso")
+            if categoria_actual and categoria_actual not in categorias:
+                categorias = [categoria_actual] + categorias
+            if not categorias:
+                categorias = ["Sin categorías"]
+            categoria_edit = st.selectbox("Categoría", categorias, index=max(categorias.index(categoria_actual), 0) if categoria_actual in categorias else 0, key=f"edit_cat_ing_{selected_id}")
+        elif tipo_edit == "Gasto":
+            categorias = obtener_categorias_usuario(user_id, "Gasto")
+            if categoria_actual and categoria_actual not in categorias:
+                categorias = [categoria_actual] + categorias
+            if not categorias:
+                categorias = ["Sin categorías"]
+            categoria_edit = st.selectbox("Categoría", categorias, index=max(categorias.index(categoria_actual), 0) if categoria_actual in categorias else 0, key=f"edit_cat_gas_{selected_id}")
+            emocion_edit = st.selectbox(
+                "Emoción",
+                ["", "Tranquilidad", "Impulso", "Estrés", "Recompensa", "Urgencia", "Antojo"],
+                index=(["", "Tranquilidad", "Impulso", "Estrés", "Recompensa", "Urgencia", "Antojo"].index(emocion_actual) if emocion_actual in ["", "Tranquilidad", "Impulso", "Estrés", "Recompensa", "Urgencia", "Antojo"] else 0),
+                format_func=lambda x: "No registrar emoción" if x == "" else x,
+                key=f"edit_emocion_{selected_id}"
+            )
+        elif tipo_edit == "Ingreso (Deuda)":
+            categoria_edit = "Deuda"
+            deuda_nombre_edit = st.text_input("Nombre de la deuda", value=deuda_nombre_actual or descripcion_actual, key=f"edit_deuda_nombre_{selected_id}")
+            prestamista_edit = st.text_input("Prestamista", value=prestamista_actual, key=f"edit_prestamista_{selected_id}")
+            usar_fecha_limite = st.checkbox("Tiene fecha límite", value=pd.notna(fecha_limite_actual), key=f"edit_deuda_lim_toggle_{selected_id}")
+            if usar_fecha_limite:
+                fecha_limite_edit = st.date_input("Fecha límite", value=fecha_limite_actual.date() if pd.notna(fecha_limite_actual) else fecha_edit + timedelta(days=30), key=f"edit_fecha_lim_{selected_id}")
+            else:
+                fecha_limite_edit = None
+        else:
+            categoria_edit = "Pago de deuda"
+            deudas_ref = df_deudas_local.copy() if df_deudas_local is not None and not df_deudas_local.empty else pd.DataFrame()
+            ref_options = ["Mantener deuda actual"]
+            ref_map = {}
+            if not deudas_ref.empty:
+                for _, deuda_row in deudas_ref.iterrows():
+                    label = f"{deuda_row['nombre']} · {deuda_row['prestamista']} · pendiente {money(deuda_row['saldo_pendiente'])}"
+                    ref_options.append(label)
+                    ref_map[label] = deuda_row
+            deuda_ref = st.selectbox("Deuda vinculada", ref_options, index=0, key=f"edit_pago_deuda_ref_{selected_id}")
+            if deuda_ref != "Mantener deuda actual" and deuda_ref in ref_map:
+                deuda_row = ref_map[deuda_ref]
+                deuda_nombre_edit = deuda_row["nombre"]
+                prestamista_edit = deuda_row["prestamista"]
+                deuda_id_edit = deuda_row["id"]
+                fecha_limite_edit = deuda_row["fecha_limite"].date() if pd.notna(deuda_row["fecha_limite"]) else None
+            deuda_nombre_edit = st.text_input("Nombre de la deuda", value=deuda_nombre_edit, key=f"edit_pago_deuda_nombre_{selected_id}")
+            prestamista_edit = st.text_input("Prestamista", value=prestamista_edit, key=f"edit_pago_prestamista_{selected_id}")
+
+        monto_edit = st.number_input("Monto", min_value=0.0, step=1000.0, value=float(monto_actual), key=f"edit_monto_{selected_id}")
+
+        es_recurrente_edit = st.checkbox("Es recurrente", value=es_recurrente_actual, key=f"edit_recurrente_{selected_id}")
+        frecuencia_edit = frecuencia_actual if frecuencia_actual in ["Semanal", "Quincenal", "Mensual"] else "Semanal"
+        proxima_edit = proxima_actual.date() if pd.notna(proxima_actual) else fecha_edit + timedelta(days=7)
+        fecha_fin_edit = fecha_fin_actual.date() if pd.notna(fecha_fin_actual) else proxima_edit
+        recurrente_activo_edit = recurrente_activo_actual
+
+        if es_recurrente_edit:
+            frecuencia_edit = st.selectbox("Frecuencia", ["Semanal", "Quincenal", "Mensual"], index=["Semanal", "Quincenal", "Mensual"].index(frecuencia_edit), key=f"edit_freq_{selected_id}")
+            proxima_edit = st.date_input("Próxima fecha", value=proxima_edit, key=f"edit_proxima_{selected_id}")
+            usar_fecha_fin = st.checkbox("Definir fecha fin", value=pd.notna(fecha_fin_actual), key=f"edit_fin_toggle_{selected_id}")
+            if usar_fecha_fin:
+                fecha_fin_edit = st.date_input("Fecha fin", value=fecha_fin_edit, key=f"edit_fin_{selected_id}")
+            else:
+                fecha_fin_edit = None
+            recurrente_activo_edit = st.checkbox("Mantener activa", value=recurrente_activo_actual or True, key=f"edit_recurrente_activo_{selected_id}")
+        else:
+            frecuencia_edit = None
+            proxima_edit = None
+            fecha_fin_edit = None
+            recurrente_activo_edit = False
+
+        c1, c2 = st.columns(2)
+        with c1:
+            if st.button("Guardar cambios del movimiento", key=f"guardar_edicion_mov_{selected_id}", use_container_width=True, type="primary"):
+                errores = []
+                if tipo_edit in ("Ingreso", "Gasto") and (not categoria_edit or categoria_edit.strip() == "Sin categorías"):
+                    errores.append("Necesitas una categoría válida.")
+                if float(monto_edit or 0) <= 0:
+                    errores.append("El monto debe ser mayor que 0.")
+                if tipo_edit == "Ingreso (Deuda)" and not str(deuda_nombre_edit or "").strip():
+                    errores.append("Escribe un nombre para la deuda.")
+                if tipo_edit == "Ingreso (Deuda)" and not str(prestamista_edit or "").strip():
+                    errores.append("Indica quién prestó.")
+                if tipo_edit == "Pago de deuda" and not str(deuda_nombre_edit or "").strip():
+                    errores.append("Define la deuda a la que corresponde este pago.")
+                if es_recurrente_edit and proxima_edit and proxima_edit < fecha_edit:
+                    errores.append("La próxima fecha recurrente no puede ser anterior al movimiento.")
+                if es_recurrente_edit and fecha_fin_edit and proxima_edit and fecha_fin_edit < proxima_edit:
+                    errores.append("La fecha fin recurrente no puede ser anterior a la próxima fecha.")
+                if errores:
+                    for err in errores:
+                        st.error(err)
+                else:
+                    payload = {
+                        "fecha": datetime.combine(fecha_edit, datetime.min.time()).isoformat(),
+                        "tipo": tipo_edit,
+                        "categoria": categoria_edit.strip() if categoria_edit else None,
+                        "monto": float(monto_edit),
+                        "descripcion": str(descripcion_edit or "").strip(),
+                        "emocion": emocion_edit if tipo_edit == "Gasto" else None,
+                        "deuda_id": deuda_id_edit if tipo_edit in ("Ingreso (Deuda)", "Pago de deuda") else None,
+                        "deuda_nombre": str(deuda_nombre_edit or "").strip() if tipo_edit in ("Ingreso (Deuda)", "Pago de deuda") else None,
+                        "prestamista": str(prestamista_edit or "").strip() if tipo_edit in ("Ingreso (Deuda)", "Pago de deuda") else None,
+                        "fecha_limite_deuda": datetime.combine(fecha_limite_edit, datetime.min.time()).isoformat() if fecha_limite_edit and tipo_edit in ("Ingreso (Deuda)", "Pago de deuda") else None,
+                        "es_recurrente": bool(es_recurrente_edit),
+                        "frecuencia_recurrencia": frecuencia_edit if es_recurrente_edit else None,
+                        "proxima_fecha_recurrencia": datetime.combine(proxima_edit, datetime.min.time()).isoformat() if es_recurrente_edit and proxima_edit else None,
+                        "fecha_fin_recurrencia": datetime.combine(fecha_fin_edit, datetime.min.time()).isoformat() if es_recurrente_edit and fecha_fin_edit else None,
+                        "recurrente_activo": bool(recurrente_activo_edit) if es_recurrente_edit else False
+                    }
+                    try:
+                        actualizar_movimiento_seguro(selected_id, payload)
+                        df_nuevo = obtener_movimientos(user_id)
+                        recalcular_deudas_usuario_desde_movimientos(user_id, df_nuevo, obtener_deudas_usuario(user_id))
+                        st.success("Movimiento actualizado correctamente.")
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"No pude actualizar el movimiento: {e}")
+        with c2:
+            confirmar = st.checkbox("Confirmo que quiero eliminar este movimiento", key=f"confirm_delete_mov_{selected_id}")
+            if st.button("Eliminar movimiento", key=f"eliminar_mov_{selected_id}", use_container_width=True, type="secondary"):
+                if not confirmar:
+                    st.error("Activa la confirmación para eliminar este movimiento.")
+                else:
+                    try:
+                        eliminar_movimiento_seguro(selected_id)
+                        df_nuevo = obtener_movimientos(user_id)
+                        recalcular_deudas_usuario_desde_movimientos(user_id, df_nuevo, obtener_deudas_usuario(user_id))
+                        st.success("Movimiento eliminado correctamente.")
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"No pude eliminar el movimiento: {e}")
+
 def sincronizar_deudas_desde_movimientos(user_id, df_movs, df_deudas_actuales):
     if df_movs is None or df_movs.empty:
         return df_deudas_actuales if df_deudas_actuales is not None else pd.DataFrame()
@@ -2868,7 +3265,7 @@ def obtener_movimientos(user_id):
     df_local = pd.DataFrame(data)
 
     columnas_esperadas = [
-        "usuario_id", "fecha", "tipo", "categoria", "monto", "descripcion", "emocion",
+        "id", "usuario_id", "fecha", "tipo", "categoria", "monto", "descripcion", "emocion",
         "deuda_id", "deuda_nombre", "prestamista", "fecha_limite_deuda",
         "es_recurrente", "frecuencia_recurrencia", "proxima_fecha_recurrencia",
         "fecha_fin_recurrencia", "recurrente_activo"
@@ -3238,7 +3635,7 @@ else:
     total_pagos_deuda_mes = 0.0
 
 df_deudas = obtener_deudas_usuario(user_id)
-df_deudas = sincronizar_deudas_desde_movimientos(user_id, df if not df.empty else pd.DataFrame(), df_deudas)
+df_deudas = recalcular_deudas_usuario_desde_movimientos(user_id, df if not df.empty else pd.DataFrame(), df_deudas)
 if not df_deudas.empty:
     saldo_pendiente_deudas_global = float(df_deudas["saldo_pendiente"].sum())
     deudas_activas_global = int((df_deudas["saldo_pendiente"] > 0).sum())
@@ -3734,8 +4131,10 @@ if pagina == "Análisis":
                 vista_df[columnas],
                 use_container_width=True
             )
+            render_editor_movimientos(user_id, df if not df.empty else pd.DataFrame(), df_deudas if df_deudas is not None else pd.DataFrame())
         else:
             empty_state("Todavía no hay datos", "Cuando registres movimientos este mes, aquí verás tablas y gráficos más útiles.")
+            render_editor_movimientos(user_id, df if not df.empty else pd.DataFrame(), df_deudas if df_deudas is not None else pd.DataFrame())
     with col_b:
         st.markdown(
             f"""
