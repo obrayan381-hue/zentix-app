@@ -1304,20 +1304,37 @@ def estimar_aporte_semanal_meta(df_base):
         return 0.0
 
     df_tmp = df_base.copy()
-    df_tmp["fecha"] = pd.to_datetime(df_tmp["fecha"], errors="coerce")
+    df_tmp["fecha"] = pd.to_datetime(df_tmp["fecha"], errors="coerce", utc=True)
     df_tmp = df_tmp.dropna(subset=["fecha"]).copy()
+
     if df_tmp.empty:
         return 0.0
 
+    try:
+        df_tmp["fecha"] = df_tmp["fecha"].dt.tz_convert(None)
+    except Exception:
+        try:
+            df_tmp["fecha"] = df_tmp["fecha"].dt.tz_localize(None)
+        except Exception:
+            pass
+
+    df_tmp["fecha"] = pd.to_datetime(df_tmp["fecha"], errors="coerce")
+    df_tmp = df_tmp.dropna(subset=["fecha"]).copy()
+
+    if df_tmp.empty:
+        return 0.0
+
+    df_tmp["fecha"] = df_tmp["fecha"].dt.normalize()
     hoy = pd.Timestamp.now().normalize()
     inicio = hoy - pd.Timedelta(days=27)
-    reciente = df_tmp[df_tmp["fecha"].dt.normalize() >= inicio].copy()
+    reciente = df_tmp.loc[df_tmp["fecha"] >= inicio].copy()
+
     if reciente.empty:
         reciente = df_tmp.copy()
 
-    ingresos_reales = reciente[reciente["tipo"] == "Ingreso"]["monto"].sum()
-    gastos_operativos = reciente[reciente["tipo"] == "Gasto"]["monto"].sum()
-    pagos_deuda = reciente[reciente["tipo"] == "Pago de deuda"]["monto"].sum()
+    ingresos_reales = reciente.loc[reciente["tipo"] == "Ingreso", "monto"].sum()
+    gastos_operativos = reciente.loc[reciente["tipo"] == "Gasto", "monto"].sum()
+    pagos_deuda = reciente.loc[reciente["tipo"] == "Pago de deuda", "monto"].sum()
 
     aporte = float((ingresos_reales - gastos_operativos - pagos_deuda) / 4.0)
     return max(aporte, 0.0)
@@ -3972,4 +3989,3 @@ if pagina == "Perfil":
             unsafe_allow_html=True
         )
         render_avatar(pagina, nombre_usuario, total_ingresos, total_gastos, saldo_disponible, ultimo_tipo)
-
