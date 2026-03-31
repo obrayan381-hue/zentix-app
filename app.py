@@ -1192,6 +1192,15 @@ def guardar_preferencias_usuario(user_id, payload):
             return None
 
 
+def normalizar_estado_deuda(valor):
+    valor = str(valor or "").strip().lower()
+    if valor in {"pagada", "pagado", "paid", "cerrada", "cerrado"}:
+        return "pagada"
+    if valor in {"vencida", "vencido", "overdue"}:
+        return "vencida"
+    return "activa"
+
+
 def obtener_deudas_usuario(user_id):
     columnas = [
         "id", "usuario_id", "nombre", "prestamista", "monto_total",
@@ -1227,7 +1236,7 @@ def obtener_deudas_usuario(user_id):
         df_local["nombre"] = df_local["nombre"].fillna("Deuda sin nombre")
         df_local["prestamista"] = df_local["prestamista"].fillna("Sin prestamista")
         if "estado" in df_local.columns:
-            df_local["estado"] = df_local["estado"].fillna("pendiente")
+            df_local["estado"] = df_local["estado"].apply(normalizar_estado_deuda)
     else:
         df_local = pd.DataFrame(columns=columnas)
 
@@ -1235,10 +1244,13 @@ def obtener_deudas_usuario(user_id):
 
 
 def crear_deuda_segura(payload):
+    base = dict(payload)
+    base["estado"] = normalizar_estado_deuda(base.get("estado"))
+
     candidatos = [
-        dict(payload),
-        {k: v for k, v in payload.items() if k not in {"descripcion", "actualizado_en", "estado"}},
-        {k: v for k, v in payload.items() if k in {"usuario_id", "nombre", "prestamista", "monto_total", "saldo_pendiente", "fecha", "fecha_limite"}},
+        dict(base),
+        {k: v for k, v in base.items() if k not in {"descripcion", "actualizado_en"}},
+        {k: v for k, v in base.items() if k in {"usuario_id", "nombre", "prestamista", "monto_total", "saldo_pendiente", "fecha", "fecha_limite", "estado"}},
     ]
 
     for candidate in candidatos:
@@ -1246,7 +1258,6 @@ def crear_deuda_segura(payload):
             result = supabase.table("deudas").insert(candidate).execute()
             if result.data:
                 return result.data[0]
-            return candidate
         except Exception:
             continue
 
@@ -1254,9 +1265,10 @@ def crear_deuda_segura(payload):
 
 
 def actualizar_deuda_pago_seguro(deuda_id, nuevo_saldo):
+    saldo_final = float(max(nuevo_saldo, 0))
     payload = {
-        "saldo_pendiente": float(max(nuevo_saldo, 0)),
-        "estado": "pagada" if float(max(nuevo_saldo, 0)) <= 0 else "pendiente",
+        "saldo_pendiente": saldo_final,
+        "estado": "pagada" if saldo_final <= 0 else "activa",
         "actualizado_en": datetime.now().isoformat()
     }
 
@@ -1271,7 +1283,7 @@ def actualizar_deuda_pago_seguro(deuda_id, nuevo_saldo):
         try:
             return (
                 supabase.table("deudas")
-                .update({"saldo_pendiente": float(max(nuevo_saldo, 0))})
+                .update({"saldo_pendiente": saldo_final})
                 .eq("id", deuda_id)
                 .execute()
             )
@@ -1279,6 +1291,78 @@ def actualizar_deuda_pago_seguro(deuda_id, nuevo_saldo):
             return None
 
 
+def sincronizar_deudas_desde_movimientos(user_id, df_movs, df_deudas_actuales):
+    if df_movs is None or df_movs.empty:
+        return df_deudas_actuales if df_deudas_actuales is not None else pd.DataFrame()
+
+    df_base = df_movs.copy()
+    for col in ["deuda_nombre", "prestamista", "descripcion", "fecha_limite_deuda", "deuda_id", "fecha", "monto", "tipo"]:
+        if col not in df_base.columns:
+            df_base[col] = None
+
+    ingresos_deuda = df_base[df_base["tipo"] == "Ingreso (Deuda)"].copy()
+    if ingresos_deuda.empty:
+        return df_deudas_actuales if df_deudas_actuales is not None else pd.DataFrame()
+
+    pagos_deuda = df_base[df_base["tipo"] == "Pago de deuda"].copy()
+
+    def build_key(nombre, prestamista):
+        return f"{str(nombre or '').strip().lower()}||{str(prestamista or '').strip().lower()}"
+
+    ingresos_deuda["deuda_key"] = ingresos_deuda.apply(
+        lambda row: build_key(row.get("deuda_nombre") or row.get("descripcion") or "Deuda sin nombre", row.get("prestamista") or "Sin prestamista"),
+        axis=1
+    )
+
+    if not pagos_deuda.empty:
+        pagos_deuda["deuda_key"] = pagos_deuda.apply(
+            lambda row: build_key(row.get("deuda_nombre") or row.get("descripcion") or "Deuda sin nombre", row.get("prestamista") or "Sin prestamista"),
+            axis=1
+        )
+        pagos_por_key = pagos_deuda.groupby("deuda_key", dropna=False)["monto"].sum().to_dict()
+    else:
+        pagos_por_key = {}
+
+    existentes = df_deudas_actuales.copy() if df_deudas_actuales is not None and not df_deudas_actuales.empty else pd.DataFrame()
+    keys_existentes = set()
+    if not existentes.empty:
+        existentes["deuda_key"] = existentes.apply(lambda row: build_key(row.get("nombre"), row.get("prestamista")), axis=1)
+        keys_existentes = set(existentes["deuda_key"].tolist())
+
+    se_creo = False
+    for deuda_key, grupo in ingresos_deuda.groupby("deuda_key", dropna=False):
+        if deuda_key in keys_existentes:
+            continue
+
+        grupo = grupo.sort_values("fecha")
+        primera = grupo.iloc[0]
+        monto_total = float(pd.to_numeric(grupo["monto"], errors="coerce").fillna(0).sum())
+        total_pagado = float(pagos_por_key.get(deuda_key, 0) or 0)
+        saldo_pendiente = max(monto_total - total_pagado, 0)
+
+        fechas_lim = pd.to_datetime(grupo["fecha_limite_deuda"], errors="coerce")
+        fecha_limite_val = fechas_lim.dropna().iloc[0] if not fechas_lim.dropna().empty else None
+        fecha_base = pd.to_datetime(primera.get("fecha"), errors="coerce")
+
+        payload = {
+            "usuario_id": user_id,
+            "nombre": (primera.get("deuda_nombre") or primera.get("descripcion") or "Deuda sin nombre").strip(),
+            "prestamista": (primera.get("prestamista") or "Sin prestamista").strip(),
+            "monto_total": monto_total,
+            "saldo_pendiente": saldo_pendiente,
+            "fecha": fecha_base.isoformat() if pd.notna(fecha_base) else datetime.now().isoformat(),
+            "fecha_limite": fecha_limite_val.isoformat() if pd.notna(fecha_limite_val) else None,
+            "descripcion": (primera.get("descripcion") or "").strip(),
+            "estado": "pagada" if saldo_pendiente <= 0 else "activa",
+            "actualizado_en": datetime.now().isoformat()
+        }
+        creada = crear_deuda_segura(payload)
+        if creada and isinstance(creada, dict) and creada.get("id"):
+            se_creo = True
+
+    if se_creo:
+        return obtener_deudas_usuario(user_id)
+    return df_deudas_actuales if df_deudas_actuales is not None else pd.DataFrame()
 def obtener_categorias_favoritas(df_base, limite=4):
     if df_base is None or df_base.empty or "categoria" not in df_base.columns:
         return []
@@ -3154,6 +3238,7 @@ else:
     total_pagos_deuda_mes = 0.0
 
 df_deudas = obtener_deudas_usuario(user_id)
+df_deudas = sincronizar_deudas_desde_movimientos(user_id, df if not df.empty else pd.DataFrame(), df_deudas)
 if not df_deudas.empty:
     saldo_pendiente_deudas_global = float(df_deudas["saldo_pendiente"].sum())
     deudas_activas_global = int((df_deudas["saldo_pendiente"] > 0).sum())
@@ -3518,11 +3603,13 @@ if pagina == "Registrar":
                                 "fecha": datetime.combine(fecha_mov, datetime.min.time()).isoformat(),
                                 "fecha_limite": datetime.combine(fecha_limite_deuda, datetime.min.time()).isoformat() if fecha_limite_deuda else None,
                                 "descripcion": descripcion.strip(),
-                                "estado": "pendiente",
+                                "estado": "activa",
                                 "actualizado_en": datetime.now().isoformat()
                             })
-                            if deuda_creada and isinstance(deuda_creada, dict):
-                                deuda_id_mov = deuda_creada.get("id")
+                            if not deuda_creada or not isinstance(deuda_creada, dict) or not deuda_creada.get("id"):
+                                st.error("La deuda no se pudo crear en la tabla base 'deudas'. El movimiento no se guardó para evitar inconsistencias.")
+                                st.stop()
+                            deuda_id_mov = deuda_creada.get("id")
 
                         payload = {
                             "usuario_id": user_id,
