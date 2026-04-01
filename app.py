@@ -7,6 +7,20 @@ from pathlib import Path
 from supabase_config import supabase
 from openai import OpenAI
 import html
+import io
+import smtplib
+import ssl
+from email.message import EmailMessage
+
+try:
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.units import mm
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+    REPORTLAB_AVAILABLE = True
+except Exception:
+    REPORTLAB_AVAILABLE = False
 
 st.set_page_config(
     page_title="Zentix",
@@ -1192,6 +1206,375 @@ def guardar_preferencias_usuario(user_id, payload):
             return None
 
 
+def obtener_config_smtp():
+    def _leer(clave, default=None):
+        valor = None
+        try:
+            valor = st.secrets.get(clave)
+        except Exception:
+            valor = None
+        if valor in (None, ""):
+            valor = os.getenv(clave, default)
+        return valor if valor is not None else default
+
+    def _texto(valor, default=""):
+        return str(valor if valor is not None else default).strip()
+
+    puerto_raw = _leer("SMTP_PORT", 587)
+    try:
+        puerto = int(str(puerto_raw).strip())
+    except Exception:
+        puerto = 587
+
+    usar_tls_raw = _texto(_leer("SMTP_USE_TLS", "true"), "true").lower()
+    host = _texto(_leer("SMTP_HOST", ""))
+    user = _texto(_leer("SMTP_USER", ""))
+    password = _texto(_leer("SMTP_PASSWORD", ""))
+    password = password.replace(" ", "")
+    from_email = _texto(_leer("SMTP_FROM_EMAIL", user or ""))
+    from_name = _texto(_leer("SMTP_FROM_NAME", "Zentix"), "Zentix") or "Zentix"
+
+    return {
+        "host": host,
+        "port": puerto,
+        "user": user,
+        "password": password,
+        "from_email": from_email,
+        "from_name": from_name,
+        "use_tls": usar_tls_raw not in {"0", "false", "no"},
+        "provider_hint": "gmail" if "gmail" in host.lower() or "gmail" in from_email.lower() else "generic"
+    }
+
+def smtp_disponible(config=None):
+    config = config or obtener_config_smtp()
+    return bool(config.get("host") and config.get("port") and config.get("from_email"))
+
+
+def describir_config_smtp(config=None):
+    config = config or obtener_config_smtp()
+    faltantes = []
+    for clave in ["host", "port", "user", "password", "from_email"]:
+        if not config.get(clave):
+            faltantes.append(clave)
+    if faltantes:
+        return {
+            "ok": False,
+            "titulo": "SMTP incompleto",
+            "detalle": f"Faltan: {', '.join(faltantes)}."
+        }
+    modo = "TLS" if bool(config.get("use_tls", True)) else ("SSL" if int(config.get("port", 0) or 0) == 465 else "sin TLS")
+    proveedor = "Gmail" if config.get("provider_hint") == "gmail" else "SMTP"
+    return {
+        "ok": True,
+        "titulo": f"{proveedor} listo",
+        "detalle": f"Puerto {config.get('port')} · modo {modo} · remitente {config.get('from_email')}."
+    }
+
+
+def obtener_destino_recordatorio(preferencias, fallback_email=""):
+    return str(preferencias.get("email_contacto") or fallback_email or "").strip()
+
+
+def parse_datetime_seguro(valor):
+    try:
+        ts = pd.to_datetime(valor, errors="coerce")
+        if pd.isna(ts):
+            return None
+        try:
+            if getattr(ts, "tzinfo", None) is not None:
+                ts = ts.tz_convert(None)
+        except Exception:
+            try:
+                ts = ts.tz_localize(None)
+            except Exception:
+                pass
+        if hasattr(ts, "to_pydatetime"):
+            return ts.to_pydatetime()
+        return ts
+    except Exception:
+        return None
+
+
+def misma_semana_calendario(dt_a, dt_b):
+    if dt_a is None or dt_b is None:
+        return False
+    try:
+        iso_a = dt_a.isocalendar()
+        iso_b = dt_b.isocalendar()
+        return (iso_a[0], iso_a[1]) == (iso_b[0], iso_b[1])
+    except Exception:
+        return False
+
+
+def horario_silencioso_activo(preferencias, now=None):
+    if not bool(preferencias.get("silencio_activado", False)):
+        return False
+    now = now or datetime.now()
+    try:
+        inicio = datetime.strptime(str(preferencias.get("silencio_inicio", "21:00") or "21:00"), "%H:%M").time()
+        fin = datetime.strptime(str(preferencias.get("silencio_fin", "07:00") or "07:00"), "%H:%M").time()
+    except Exception:
+        return False
+    hora_actual = now.time()
+    if inicio <= fin:
+        return inicio <= hora_actual <= fin
+    return hora_actual >= inicio or hora_actual <= fin
+
+
+def obtener_control_recordatorios_usuario(user_id):
+    session_key = f"zentix_recordatorio_control_{user_id}"
+    base = {
+        "ultimo_recordatorio_en": None,
+        "ultimo_recordatorio_tipo": None,
+        "ultimo_resumen_semanal_en": None,
+        "ultimo_alerta_meta_en": None,
+        "ultimo_intento_recordatorio_en": None
+    }
+    if session_key in st.session_state:
+        base.update(st.session_state[session_key])
+
+    try:
+        result = (
+            supabase.table("preferencias_usuario")
+            .select("*")
+            .eq("usuario_id", user_id)
+            .limit(1)
+            .execute()
+        )
+        if result.data:
+            row = result.data[0]
+            for clave in list(base.keys()):
+                if row.get(clave) is not None:
+                    base[clave] = row.get(clave)
+    except Exception:
+        pass
+
+    st.session_state[session_key] = base
+    return base
+
+
+def guardar_control_recordatorios_usuario(user_id, updates):
+    session_key = f"zentix_recordatorio_control_{user_id}"
+    current = obtener_control_recordatorios_usuario(user_id)
+    current.update(updates or {})
+    current["actualizado_en"] = datetime.now().isoformat()
+    st.session_state[session_key] = current
+
+    base = {"usuario_id": user_id, **current}
+    candidates = [
+        dict(base),
+        {k: v for k, v in base.items() if k not in {"ultimo_intento_recordatorio_en"}},
+        {k: v for k, v in base.items() if k not in {"ultimo_resumen_semanal_en", "ultimo_alerta_meta_en", "ultimo_recordatorio_tipo", "ultimo_intento_recordatorio_en"}},
+        {k: v for k, v in base.items() if k in {"usuario_id", "ultimo_recordatorio_en", "actualizado_en"}},
+        {k: v for k, v in base.items() if k in {"usuario_id", "actualizado_en"}},
+    ]
+
+    for candidate in candidates:
+        try:
+            supabase.table("preferencias_usuario").upsert(candidate, on_conflict="usuario_id").execute()
+            break
+        except Exception:
+            continue
+
+    return current
+
+
+def construir_correo_recordatorio(tipo, nombre, resumen_recordatorios, total_ingresos, total_gastos, saldo_disponible, meta_actual, proyeccion_meta, alertas):
+    nombre = nombre or "Hola"
+    accion = proyeccion_meta.get("mensaje", "Sigue registrando para que Zentix afine más tu lectura.") if isinstance(proyeccion_meta, dict) else "Sigue registrando para que Zentix afine más tu lectura."
+
+    if tipo == "inactividad":
+        dias = resumen_recordatorios.get("dias_inactividad") if isinstance(resumen_recordatorios, dict) else None
+        asunto = f"Zentix · Llevas {dias if dias is not None else 'varios'} día(s) sin registrar"
+        titulo = "Tu panel necesita una pequeña actualización"
+        lineas = [
+            f"Han pasado {dias if dias is not None else 'algunos'} día(s) desde tu último registro.",
+            f"Disponible actual: {money(saldo_disponible)}.",
+            f"Ingresos reales del mes: {money(total_ingresos)} · Gastos del mes: {money(total_gastos)}.",
+            "Registrar uno o dos movimientos hoy ya mejora la lectura de patrones, alertas y metas.",
+        ]
+    elif tipo == "resumen_semanal":
+        asunto = "Zentix · Tu resumen semanal premium"
+        titulo = "Tu semana financiera, en limpio"
+        alerta = (alertas[0] if alertas else "No hay alertas fuertes esta semana.")
+        lineas = [
+            f"Ingresos reales del periodo: {money(total_ingresos)}.",
+            f"Gastos operativos del periodo: {money(total_gastos)}.",
+            f"Disponible actual: {money(saldo_disponible)}.",
+            f"Alerta destacada: {alerta}",
+            f"Próximo mejor paso: {accion}",
+        ]
+    elif tipo == "alerta_meta":
+        asunto = "Zentix · Tu meta necesita un pequeño impulso"
+        titulo = "Tu meta sigue viva, pero conviene empujarla"
+        lineas = [
+            f"Meta actual: {money(meta_actual)}.",
+            f"Disponible actual: {money(saldo_disponible)}.",
+            accion,
+            "Una corrección pequeña hoy puede acercarte mucho más rápido.",
+        ]
+    else:
+        asunto = "Zentix · Correo de prueba"
+        titulo = "Tu canal de recordatorios ya está listo"
+        lineas = [
+            f"Disponible actual: {money(saldo_disponible)}.",
+            f"Ingresos reales del mes: {money(total_ingresos)} · Gastos del mes: {money(total_gastos)}.",
+            "Este es un correo de prueba para validar que Zentix puede escribirte cuando haga falta.",
+        ]
+
+    bullets_text = "\n".join([f"- {line}" for line in lineas])
+    bullets_html = "".join([f"<li style='margin-bottom:8px;'>{line}</li>" for line in lineas])
+
+    texto = f"""{titulo}
+
+Hola, {nombre}.
+
+{bullets_text}
+
+Equipo Zentix
+"""
+    html_msg = f"""
+    <div style="background:#07111f;padding:28px;font-family:Arial,sans-serif;color:#E2E8F0;">
+      <div style="max-width:680px;margin:0 auto;background:linear-gradient(135deg,#0f172a,#0a1426);border:1px solid rgba(96,165,250,0.22);border-radius:20px;padding:28px;">
+        <div style="font-size:12px;font-weight:700;color:#93C5FD;letter-spacing:.06em;margin-bottom:10px;">ZENTIX · RECORDATORIO PREMIUM</div>
+        <div style="font-size:28px;font-weight:800;color:#F8FAFC;margin-bottom:8px;">{titulo}</div>
+        <div style="font-size:15px;line-height:1.7;color:#CBD5E1;margin-bottom:14px;">Hola, {nombre}.</div>
+        <ul style="padding-left:18px;line-height:1.7;color:#E2E8F0;">{bullets_html}</ul>
+        <div style="margin-top:18px;padding:14px 16px;border-radius:14px;background:rgba(59,130,246,0.10);border:1px solid rgba(96,165,250,0.16);color:#BFDBFE;">
+          Zentix detecta el momento y te escribe con tacto, sin volverse invasivo.
+        </div>
+      </div>
+    </div>
+    """
+    return asunto, texto, html_msg
+
+
+def enviar_correo_smtp(destino, asunto, texto, html_msg=None, config=None):
+    config = config or obtener_config_smtp()
+    if not smtp_disponible(config):
+        return False, "Faltan credenciales SMTP para enviar correos."
+    if not destino:
+        return False, "No hay correo destino configurado."
+
+    msg = EmailMessage()
+    remitente = config.get("from_email")
+    nombre = config.get("from_name", "Zentix")
+    msg["Subject"] = asunto
+    msg["From"] = f"{nombre} <{remitente}>" if remitente else nombre
+    msg["To"] = destino
+    msg.set_content(texto)
+    if html_msg:
+        msg.add_alternative(html_msg, subtype="html")
+
+    try:
+        puerto = int(config.get("port", 587) or 587)
+        host = config.get("host")
+        usar_tls = bool(config.get("use_tls", True))
+
+        if puerto == 465 and not usar_tls:
+            with smtplib.SMTP_SSL(host, puerto, timeout=25, context=ssl.create_default_context()) as server:
+                if config.get("user") and config.get("password"):
+                    server.login(config.get("user"), config.get("password"))
+                server.send_message(msg)
+        else:
+            with smtplib.SMTP(host, puerto, timeout=25) as server:
+                if usar_tls:
+                    server.starttls(context=ssl.create_default_context())
+                if config.get("user") and config.get("password"):
+                    server.login(config.get("user"), config.get("password"))
+                server.send_message(msg)
+        return True, f"Correo enviado a {destino}."
+    except Exception as e:
+        return False, f"No se pudo enviar el correo: {e}"
+
+def disparar_recordatorio_automatico_si_aplica(user_id, nombre, preferencias, resumen_recordatorios, total_ingresos, total_gastos, saldo_disponible, meta_actual, proyeccion_meta, alertas, fallback_email=""):
+    now = datetime.now()
+    config = obtener_config_smtp()
+    destino = obtener_destino_recordatorio(preferencias, fallback_email)
+    status = {
+        "smtp_configurado": smtp_disponible(config),
+        "destino": destino or "",
+        "enviado": False,
+        "tipo": None,
+        "detalle": "Sin evaluación automática.",
+        "ultimo_envio": None,
+        "modo": "automatico_oportunista"
+    }
+
+    if not bool(preferencias.get("recordatorio_email", True)):
+        status["detalle"] = "El canal de correo está desactivado en preferencias."
+        return status
+    if not smtp_disponible(config):
+        status["detalle"] = "SMTP aún no está configurado; el motor está listo pero sin salida real."
+        return status
+    if not destino:
+        status["detalle"] = "Falta el correo destino para activar envíos automáticos."
+        return status
+    if horario_silencioso_activo(preferencias, now):
+        status["detalle"] = "Horario silencioso activo; Zentix no envía nada ahora."
+        return status
+
+    control = obtener_control_recordatorios_usuario(user_id)
+    ultimo_envio = parse_datetime_seguro(control.get("ultimo_recordatorio_en"))
+    status["ultimo_envio"] = ultimo_envio.isoformat() if ultimo_envio else None
+
+    guard_key = f"zentix_notif_guard_{user_id}_{date.today().isoformat()}"
+    if st.session_state.get(guard_key):
+        status["detalle"] = st.session_state.get(guard_key)
+        return status
+
+    if ultimo_envio and (now - ultimo_envio) < timedelta(days=7):
+        status["detalle"] = "Ya hubo un envío en los últimos 7 días; se respeta el máximo de 1 por semana."
+        return status
+
+    tipo = None
+    if bool(preferencias.get("recordatorio_registro", True)):
+        dias_inactividad = resumen_recordatorios.get("dias_inactividad") if isinstance(resumen_recordatorios, dict) else None
+        umbral = resumen_recordatorios.get("umbral", 5) if isinstance(resumen_recordatorios, dict) else 5
+        if dias_inactividad is not None and dias_inactividad >= umbral:
+            tipo = "inactividad"
+
+    if tipo is None and bool(preferencias.get("resumen_semanal", False)):
+        ultimo_resumen = parse_datetime_seguro(control.get("ultimo_resumen_semanal_en"))
+        if now.weekday() in {0, 1} and not misma_semana_calendario(ultimo_resumen, now):
+            tipo = "resumen_semanal"
+
+    if tipo is None and bool(preferencias.get("recordatorio_meta", False)) and float(meta_actual or 0) > 0:
+        ultimo_meta = parse_datetime_seguro(control.get("ultimo_alerta_meta_en"))
+        if (float(saldo_disponible or 0) < float(meta_actual or 0) * 0.45) and ((ultimo_meta is None) or (now - ultimo_meta) >= timedelta(days=7)):
+            tipo = "alerta_meta"
+
+    if tipo is None:
+        status["detalle"] = "Hoy no hay un disparador automático que justifique enviar correo."
+        return status
+
+    asunto, texto, html_msg = construir_correo_recordatorio(tipo, nombre, resumen_recordatorios, total_ingresos, total_gastos, saldo_disponible, meta_actual, proyeccion_meta, alertas)
+    ok, detalle = enviar_correo_smtp(destino, asunto, texto, html_msg, config=config)
+    if ok:
+        payload = {
+            "ultimo_recordatorio_en": now.isoformat(),
+            "ultimo_recordatorio_tipo": tipo,
+            "ultimo_intento_recordatorio_en": now.isoformat(),
+        }
+        if tipo == "resumen_semanal":
+            payload["ultimo_resumen_semanal_en"] = now.isoformat()
+        if tipo == "alerta_meta":
+            payload["ultimo_alerta_meta_en"] = now.isoformat()
+        guardar_control_recordatorios_usuario(user_id, payload)
+        st.session_state[guard_key] = detalle
+    else:
+        guardar_control_recordatorios_usuario(user_id, {"ultimo_intento_recordatorio_en": now.isoformat()})
+
+    status.update({"enviado": ok, "tipo": tipo, "detalle": detalle})
+    return status
+
+
+def enviar_correo_prueba_zentix(nombre, preferencias, total_ingresos, total_gastos, saldo_disponible):
+    destino = obtener_destino_recordatorio(preferencias, getattr(st.session_state.user, "email", ""))
+    asunto, texto, html_msg = construir_correo_recordatorio("prueba", nombre, {}, total_ingresos, total_gastos, saldo_disponible, 0, {}, [])
+    return enviar_correo_smtp(destino, asunto, texto, html_msg, config=obtener_config_smtp())
+
+
 def normalizar_estado_deuda(valor):
     valor = str(valor or "").strip().lower()
     if valor in {"pagada", "pagado", "paid", "cerrada", "cerrado"}:
@@ -1890,6 +2273,238 @@ def construir_resumen_recordatorios(df_base, preferencias):
         "umbral": umbral,
         "sugerencia": sugerencia
     }
+
+
+def obtener_movimientos_periodo(df_base, periodicidad="Mensual", fecha_referencia=None):
+    if df_base is None or df_base.empty or "fecha" not in df_base.columns:
+        return pd.DataFrame(), None, None
+
+    df_tmp = df_base.copy()
+    df_tmp["fecha"] = pd.to_datetime(df_tmp["fecha"], errors="coerce")
+    df_tmp = df_tmp.dropna(subset=["fecha"]).copy()
+    if df_tmp.empty:
+        return pd.DataFrame(), None, None
+
+    try:
+        if getattr(df_tmp["fecha"].dt, "tz", None) is not None:
+            df_tmp["fecha"] = df_tmp["fecha"].dt.tz_localize(None)
+    except Exception:
+        pass
+
+    fecha_ref = pd.Timestamp(fecha_referencia or date.today()).normalize()
+    if str(periodicidad).strip().lower().startswith("sem"):
+        inicio = fecha_ref - pd.Timedelta(days=fecha_ref.weekday())
+        fin = inicio + pd.Timedelta(days=6)
+        etiqueta = "Semanal"
+    else:
+        inicio = fecha_ref.replace(day=1)
+        fin = (inicio + pd.offsets.MonthEnd(0)).normalize()
+        etiqueta = "Mensual"
+
+    df_tmp["fecha"] = df_tmp["fecha"].dt.normalize()
+    filtrado = df_tmp[(df_tmp["fecha"] >= inicio) & (df_tmp["fecha"] <= fin)].copy()
+    filtrado = filtrado.sort_values(["fecha", "tipo"], ascending=[False, True])
+    filtrado.attrs["periodicidad"] = etiqueta
+    return filtrado, inicio.date(), fin.date()
+
+
+def resumir_periodo_movimientos(df_periodo):
+    if df_periodo is None or df_periodo.empty:
+        return {
+            "conteo": 0,
+            "ingresos": 0.0,
+            "gastos": 0.0,
+            "ingresos_deuda": 0.0,
+            "pagos_deuda": 0.0,
+            "balance": 0.0,
+            "categoria_top": "Sin movimientos",
+            "monto_categoria_top": 0.0
+        }
+
+    ingresos = float(df_periodo[df_periodo["tipo"] == "Ingreso"]["monto"].sum())
+    gastos = float(df_periodo[df_periodo["tipo"] == "Gasto"]["monto"].sum())
+    ingresos_deuda = float(df_periodo[df_periodo["tipo"] == "Ingreso (Deuda)"]["monto"].sum())
+    pagos_deuda = float(df_periodo[df_periodo["tipo"] == "Pago de deuda"]["monto"].sum())
+    balance = ingresos + ingresos_deuda - gastos - pagos_deuda
+
+    resumen_cat = (
+        df_periodo.groupby("categoria", dropna=False)["monto"]
+        .sum()
+        .sort_values(ascending=False)
+    )
+    categoria_top = resumen_cat.index[0] if not resumen_cat.empty else "Sin categoría"
+    monto_categoria_top = float(resumen_cat.iloc[0]) if not resumen_cat.empty else 0.0
+
+    return {
+        "conteo": int(len(df_periodo.index)),
+        "ingresos": ingresos,
+        "gastos": gastos,
+        "ingresos_deuda": ingresos_deuda,
+        "pagos_deuda": pagos_deuda,
+        "balance": balance,
+        "categoria_top": str(categoria_top or "Sin categoría"),
+        "monto_categoria_top": monto_categoria_top
+    }
+
+
+def _draw_footer_report(canvas_obj, doc):
+    canvas_obj.saveState()
+    canvas_obj.setFont("Helvetica", 8)
+    canvas_obj.setFillColor(colors.HexColor("#94A3B8") if REPORTLAB_AVAILABLE else None)
+    canvas_obj.drawString(doc.leftMargin, 10 * mm, "ZENTIX - Reporte premium")
+    canvas_obj.drawRightString(A4[0] - doc.rightMargin, 10 * mm, f"Pagina {canvas_obj.getPageNumber()}")
+    canvas_obj.restoreState()
+
+
+def generar_pdf_reporte_premium(nombre_usuario, plan_nombre, periodicidad, inicio, fin, df_periodo, resumen_periodo):
+    if not REPORTLAB_AVAILABLE:
+        return None
+
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        rightMargin=16 * mm,
+        leftMargin=16 * mm,
+        topMargin=16 * mm,
+        bottomMargin=16 * mm,
+        title="Reporte premium Zentix"
+    )
+    styles = getSampleStyleSheet()
+    styles.add(ParagraphStyle(name="ZentixTitle", parent=styles["Heading1"], fontName="Helvetica-Bold", fontSize=22, leading=26, textColor=colors.HexColor("#F8FAFC"), spaceAfter=8))
+    styles.add(ParagraphStyle(name="ZentixSub", parent=styles["BodyText"], fontName="Helvetica", fontSize=10.5, leading=15, textColor=colors.HexColor("#CBD5E1"), spaceAfter=10))
+    styles.add(ParagraphStyle(name="ZentixSection", parent=styles["Heading2"], fontName="Helvetica-Bold", fontSize=12.5, leading=15, textColor=colors.HexColor("#0F172A"), spaceAfter=6))
+    styles.add(ParagraphStyle(name="ZentixBody", parent=styles["BodyText"], fontName="Helvetica", fontSize=9.5, leading=14, textColor=colors.HexColor("#334155")))
+    styles.add(ParagraphStyle(name="ZentixSmall", parent=styles["BodyText"], fontName="Helvetica", fontSize=8.5, leading=12, textColor=colors.HexColor("#475569")))
+
+    story = []
+    hero = Table([[Paragraph("ZENTIX", styles["ZentixTitle"]), Paragraph(f"Reporte {periodicidad}<br/>{inicio.strftime('%Y-%m-%d')} - {fin.strftime('%Y-%m-%d')}<br/>{nombre_usuario} · Plan {plan_nombre}", styles["ZentixSub"]) ]], colWidths=[46 * mm, 120 * mm])
+    hero.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#0F172A")),
+        ("BOX", (0, 0), (-1, -1), 0.75, colors.HexColor("#1D4ED8")),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 14),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 14),
+        ("TOPPADDING", (0, 0), (-1, -1), 12),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 12),
+    ]))
+    story.append(hero)
+    story.append(Spacer(1, 8))
+
+    resumen_data = [
+        [Paragraph("Movimientos", styles["ZentixSmall"]), Paragraph("Ingresos reales", styles["ZentixSmall"]), Paragraph("Gastos", styles["ZentixSmall"]), Paragraph("Balance", styles["ZentixSmall"])],
+        [Paragraph(str(resumen_periodo.get("conteo", 0)), styles["ZentixBody"]), Paragraph(money(resumen_periodo.get("ingresos", 0)), styles["ZentixBody"]), Paragraph(money(resumen_periodo.get("gastos", 0)), styles["ZentixBody"]), Paragraph(money(resumen_periodo.get("balance", 0)), styles["ZentixBody"])],
+        [Paragraph("Ingreso deuda", styles["ZentixSmall"]), Paragraph("Pago deuda", styles["ZentixSmall"]), Paragraph("Categoria top", styles["ZentixSmall"]), Paragraph("Monto top", styles["ZentixSmall"])],
+        [Paragraph(money(resumen_periodo.get("ingresos_deuda", 0)), styles["ZentixBody"]), Paragraph(money(resumen_periodo.get("pagos_deuda", 0)), styles["ZentixBody"]), Paragraph(str(resumen_periodo.get("categoria_top", "Sin datos")), styles["ZentixBody"]), Paragraph(money(resumen_periodo.get("monto_categoria_top", 0)), styles["ZentixBody"])],
+    ]
+    resumen_table = Table(resumen_data, colWidths=[40 * mm, 40 * mm, 50 * mm, 36 * mm])
+    resumen_table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#DBEAFE")),
+        ("BACKGROUND", (0, 2), (-1, 2), colors.HexColor("#EDE9FE")),
+        ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#CBD5E1")),
+        ("GRID", (0, 0), (-1, -1), 0.35, colors.HexColor("#E2E8F0")),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 8),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+        ("TOPPADDING", (0, 0), (-1, -1), 7),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
+    ]))
+    story.append(resumen_table)
+    story.append(Spacer(1, 10))
+
+    intro = Paragraph(
+        "Este reporte resume los movimientos del periodo seleccionado, separando ingresos reales, gasto operativo y flujos de deuda para una lectura financiera más honesta y profesional.",
+        styles["ZentixBody"]
+    )
+    story.append(intro)
+    story.append(Spacer(1, 10))
+
+    story.append(Paragraph("Detalle de movimientos", styles["ZentixSection"]))
+    rows = [[
+        Paragraph("Fecha", styles["ZentixSmall"]),
+        Paragraph("Tipo", styles["ZentixSmall"]),
+        Paragraph("Categoria", styles["ZentixSmall"]),
+        Paragraph("Monto", styles["ZentixSmall"]),
+        Paragraph("Descripcion", styles["ZentixSmall"]),
+    ]]
+
+    if df_periodo is None or df_periodo.empty:
+        rows.append([Paragraph("Sin movimientos en el periodo", styles["ZentixBody"]), "", "", "", ""])
+    else:
+        vista = df_periodo.copy().sort_values("fecha", ascending=False)
+        vista["fecha"] = pd.to_datetime(vista["fecha"], errors="coerce")
+        for _, row in vista.iterrows():
+            fecha_txt = row["fecha"].strftime("%Y-%m-%d") if pd.notna(row["fecha"]) else "-"
+            descripcion = str(row.get("descripcion") or "Sin descripcion")
+            deuda_nombre = str(row.get("deuda_nombre") or "").strip()
+            if deuda_nombre:
+                descripcion = f"{descripcion} | {deuda_nombre}"
+            rows.append([
+                Paragraph(fecha_txt, styles["ZentixBody"]),
+                Paragraph(str(row.get("tipo") or "-"), styles["ZentixBody"]),
+                Paragraph(str(row.get("categoria") or "-"), styles["ZentixBody"]),
+                Paragraph(money(row.get("monto", 0)), styles["ZentixBody"]),
+                Paragraph(descripcion, styles["ZentixBody"]),
+            ])
+
+    table = Table(rows, colWidths=[24 * mm, 33 * mm, 31 * mm, 24 * mm, 58 * mm], repeatRows=1)
+    table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#0F172A")),
+        ("TEXTCOLOR", (0, 0), (-1, 0), colors.HexColor("#F8FAFC")),
+        ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#CBD5E1")),
+        ("GRID", (0, 0), (-1, -1), 0.35, colors.HexColor("#E2E8F0")),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 6),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+        ("TOPPADDING", (0, 0), (-1, -1), 6),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+    ]))
+    story.append(table)
+
+    doc.build(story, onFirstPage=_draw_footer_report, onLaterPages=_draw_footer_report)
+    buffer.seek(0)
+    return buffer.getvalue()
+
+
+def render_reporte_descargable(nombre_usuario, plan_actual, df_base):
+    section_header("Reporte premium imprimible", "Descarga un PDF semanal o mensual listo para imprimir con una lectura profesional de tus movimientos.")
+    with st.expander("🖨️ Generar reporte PDF", expanded=False):
+        periodicidad = st.radio("Periodo del reporte", ["Semanal", "Mensual"], horizontal=True, key="reporte_periodicidad")
+        fecha_ref = st.date_input("Fecha de referencia", value=date.today(), key="reporte_fecha_ref")
+        df_periodo, inicio_rep, fin_rep = obtener_movimientos_periodo(df_base if df_base is not None else pd.DataFrame(), periodicidad, fecha_ref)
+        resumen_rep = resumir_periodo_movimientos(df_periodo)
+
+        c1, c2, c3, c4 = st.columns(4)
+        with c1:
+            render_spotlight_metric("Movimientos", str(resumen_rep.get("conteo", 0)), "Incluidos en el PDF")
+        with c2:
+            render_spotlight_metric("Ingresos reales", money(resumen_rep.get("ingresos", 0)), "Periodo seleccionado")
+        with c3:
+            render_spotlight_metric("Gastos", money(resumen_rep.get("gastos", 0)), "Periodo seleccionado")
+        with c4:
+            render_spotlight_metric("Balance", money(resumen_rep.get("balance", 0)), "Lectura neta del periodo")
+
+        if inicio_rep and fin_rep:
+            st.caption(f"Periodo cubierto: {inicio_rep.strftime('%Y-%m-%d')} a {fin_rep.strftime('%Y-%m-%d')}")
+
+        if df_periodo is None or df_periodo.empty:
+            st.info("No hay movimientos en el periodo seleccionado todavía.")
+            return
+
+        preview = df_periodo.copy().sort_values("fecha", ascending=False).head(8)
+        preview["fecha"] = pd.to_datetime(preview["fecha"], errors="coerce").dt.strftime("%Y-%m-%d")
+        cols = [col for col in ["fecha", "tipo", "categoria", "monto", "descripcion", "deuda_nombre", "prestamista"] if col in preview.columns]
+        st.dataframe(preview[cols], use_container_width=True)
+
+        if not REPORTLAB_AVAILABLE:
+            st.warning("Instala reportlab en tu entorno de Streamlit Cloud para habilitar el PDF premium.")
+            return
+
+        pdf_bytes = generar_pdf_reporte_premium(nombre_usuario, plan_actual.get("plan", "free").upper(), periodicidad, inicio_rep, fin_rep, df_periodo, resumen_rep)
+        if pdf_bytes:
+            filename = f"zentix_reporte_{periodicidad.lower()}_{inicio_rep.strftime('%Y%m%d')}_{fin_rep.strftime('%Y%m%d')}.pdf"
+            st.download_button("Descargar reporte PDF", data=pdf_bytes, file_name=filename, mime="application/pdf", use_container_width=True)
+            st.caption("Descarga el PDF y podrás imprimirlo desde tu navegador o visor favorito.")
 
 
 def obtener_nombre_meta_guardado(user_id):
@@ -3667,6 +4282,19 @@ preferencias_usuario_actual = obtener_preferencias_usuario(user_id, getattr(st.s
 resumen_recordatorios_global = construir_resumen_recordatorios(df if not df.empty else pd.DataFrame(), preferencias_usuario_actual)
 aporte_semanal_estimado_global = estimar_aporte_semanal_meta(df if not df.empty else pd.DataFrame())
 proyeccion_meta_global = calcular_proyeccion_meta(meta_guardada_global, ahorro_actual, aporte_semanal_estimado_global)
+estado_recordatorios_automaticos_global = disparar_recordatorio_automatico_si_aplica(
+    user_id=user_id,
+    nombre=nombre_usuario,
+    preferencias=preferencias_usuario_actual,
+    resumen_recordatorios=resumen_recordatorios_global,
+    total_ingresos=total_ingresos,
+    total_gastos=total_gastos,
+    saldo_disponible=saldo_disponible,
+    meta_actual=meta_guardada_global,
+    proyeccion_meta=proyeccion_meta_global,
+    alertas=alertas_proactivas,
+    fallback_email=getattr(st.session_state.user, "email", "")
+)
 _, consultas_usadas_hoy, consultas_limite_hoy, consultas_restantes_hoy, plan_usuario_actual = puede_usar_ia(user_id)
 
 if pagina == "Inicio":
@@ -4155,6 +4783,8 @@ if pagina == "Análisis":
         )
         render_avatar(pagina, nombre_usuario, total_ingresos, total_gastos, saldo_disponible, ultimo_tipo)
 
+    render_reporte_descargable(nombre_usuario, plan_usuario_actual, df if not df.empty else pd.DataFrame())
+
     section_header("Comparativas y patrones", "Así viene cambiando tu comportamiento financiero.")
     a1, a2, a3 = st.columns(3)
     with a1:
@@ -4409,23 +5039,44 @@ if pagina == "Perfil":
                 placeholder="Déjalo listo para SMS más adelante"
             )
 
-            if st.button("Guardar preferencias", use_container_width=True):
-                guardar_preferencias_usuario(user_id, {
-                    "recordatorio_email": pref_email,
-                    "recordatorio_sms": pref_sms,
-                    "frecuencia_recordatorios": pref_frecuencia,
-                    "recordatorio_registro": pref_registro,
-                    "recordatorio_meta": pref_meta,
-                    "resumen_semanal": pref_resumen,
-                    "silencio_activado": pref_silencio,
-                    "silencio_inicio": silencio_inicio,
-                    "silencio_fin": silencio_fin,
-                    "email_contacto": email_contacto,
-                    "telefono": telefono_contacto
-                })
-                st.success("Preferencias guardadas. La estructura queda lista para activar envíos reales después.")
+            smtp_status = obtener_config_smtp()
+            estado_smtp = describir_config_smtp(smtp_status)
+            estado_smtp_txt = estado_smtp.get("titulo", "SMTP pendiente")
+            st.caption(f"Estado del canal de correo: {estado_smtp_txt}")
+            st.caption(estado_smtp.get("detalle", ""))
+            if smtp_status.get("provider_hint") == "gmail":
+                st.caption("Tip Gmail: la app admite la contraseña de aplicación con o sin espacios; Zentix la normaliza sola.")
 
-            st.info("Zentix deja lista la base para email primero. SMS queda preparado como opcional/futuro, sin exigir teléfono en onboarding.")
+            btn_save, btn_test = st.columns(2)
+            with btn_save:
+                if st.button("Guardar preferencias", use_container_width=True):
+                    guardar_preferencias_usuario(user_id, {
+                        "recordatorio_email": pref_email,
+                        "recordatorio_sms": pref_sms,
+                        "frecuencia_recordatorios": pref_frecuencia,
+                        "recordatorio_registro": pref_registro,
+                        "recordatorio_meta": pref_meta,
+                        "resumen_semanal": pref_resumen,
+                        "silencio_activado": pref_silencio,
+                        "silencio_inicio": silencio_inicio,
+                        "silencio_fin": silencio_fin,
+                        "email_contacto": email_contacto,
+                        "telefono": telefono_contacto
+                    })
+                    st.success("Preferencias guardadas. Si SMTP está configurado, Zentix ya puede enviar recordatorios por correo.")
+
+            with btn_test:
+                if st.button("Enviar correo de prueba", use_container_width=True):
+                    ok, detalle = enviar_correo_prueba_zentix(nombre_usuario, {
+                        "email_contacto": email_contacto,
+                        "recordatorio_email": pref_email
+                    }, total_ingresos, total_gastos, saldo_disponible)
+                    if ok:
+                        st.success(detalle)
+                    else:
+                        st.warning(detalle)
+
+            st.info("Zentix puede enviar correos automáticos cuando la app está corriendo y detecta el disparador. Con Gmail usa SMTP_HOST=smtp.gmail.com, SMTP_PORT=587 y SMTP_USE_TLS=true. Para envíos 100% en segundo plano sin visitas, luego conviene llevarlo a cron o Edge Functions.")
 
         with st.expander("✨ Plan Free vs Pro", expanded=False):
             st.markdown(
@@ -4454,6 +5105,8 @@ if pagina == "Perfil":
                 <div style="font-weight:800;font-size:1.05rem;">{resumen_recordatorios_global.get('dias_inactividad', 'N/A')}</div>
                 <div class="tiny-muted" style="margin-top:0.7rem;">Sugerencia actual</div>
                 <div style="font-weight:700;line-height:1.5;">{resumen_recordatorios_global.get('sugerencia', 'Sin evaluación')}</div>
+                <div class="tiny-muted" style="margin-top:0.7rem;">Motor automático</div>
+                <div style="font-weight:700;line-height:1.5;">{globals().get('estado_recordatorios_automaticos_global', {}).get('detalle', 'Sin evaluación automática')}</div>
             </div>
             """,
             unsafe_allow_html=True
