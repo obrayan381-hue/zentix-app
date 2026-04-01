@@ -17,7 +17,7 @@ try:
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.lib.units import mm
-    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
     REPORTLAB_AVAILABLE = True
 except Exception:
     REPORTLAB_AVAILABLE = False
@@ -877,6 +877,150 @@ def aplicar_estilo_zentix():
         line-height: 1.55;
         margin-bottom: 0.55rem;
     }
+
+    .sticky-top-shell {
+        position: sticky;
+        top: 0.55rem;
+        z-index: 40;
+        background: linear-gradient(180deg, rgba(7,12,22,0.92), rgba(7,12,22,0.82));
+        border: 1px solid rgba(96,165,250,0.14);
+        border-radius: 24px;
+        padding: 0.95rem 1rem 0.85rem 1rem;
+        margin-bottom: 1rem;
+        backdrop-filter: blur(12px);
+        box-shadow: 0 18px 34px rgba(0,0,0,0.22);
+    }
+    .sticky-top-shell .section-caption {
+        margin-bottom: 0.65rem;
+    }
+    .fade-up {
+        animation: zentixFadeUp 0.42s ease both;
+    }
+    @keyframes zentixFadeUp {
+        from { opacity: 0; transform: translateY(8px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .movement-card {
+        background:
+            radial-gradient(circle at top left, rgba(59,130,246,0.12), transparent 28%),
+            linear-gradient(180deg, rgba(12,20,36,0.90), rgba(10,18,32,0.98));
+        border: 1px solid rgba(148,163,184,0.14);
+        border-radius: 22px;
+        padding: 0.95rem 1rem;
+        min-height: 168px;
+        box-shadow: 0 14px 28px rgba(0,0,0,0.22);
+        margin-bottom: 0.8rem;
+    }
+    .movement-date {
+        font-size: 0.76rem;
+        color: #94A3B8;
+        margin-bottom: 0.3rem;
+        font-weight: 700;
+    }
+    .movement-title {
+        font-size: 0.98rem;
+        font-weight: 800;
+        color: #F8FAFC;
+        line-height: 1.35;
+        margin-bottom: 0.35rem;
+    }
+    .movement-amount {
+        font-size: 1.16rem;
+        font-weight: 900;
+        color: #F8FAFC;
+        line-height: 1.1;
+        margin-bottom: 0.45rem;
+    }
+    .movement-meta {
+        font-size: 0.82rem;
+        color: #CBD5E1;
+        line-height: 1.55;
+        margin-bottom: 0.7rem;
+    }
+    .movement-chip-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+        margin-top: 0.35rem;
+        margin-bottom: 0.35rem;
+    }
+    .movement-chip {
+        display: inline-block;
+        padding: 0.28rem 0.66rem;
+        border-radius: 999px;
+        font-size: 0.72rem;
+        font-weight: 800;
+        border: 1px solid rgba(148,163,184,0.16);
+        background: rgba(15,23,42,0.76);
+        color: #E2E8F0;
+    }
+    .movement-chip-income {
+        background: rgba(34,197,94,0.16);
+        border-color: rgba(34,197,94,0.22);
+        color: #BBF7D0;
+    }
+    .movement-chip-expense {
+        background: rgba(239,68,68,0.16);
+        border-color: rgba(239,68,68,0.22);
+        color: #FECACA;
+    }
+    .movement-chip-debt {
+        background: rgba(59,130,246,0.18);
+        border-color: rgba(96,165,250,0.24);
+        color: #DBEAFE;
+    }
+    .movement-chip-pay {
+        background: rgba(245,158,11,0.18);
+        border-color: rgba(245,158,11,0.24);
+        color: #FDE68A;
+    }
+    .movement-chip-recurrent {
+        background: rgba(139,92,246,0.18);
+        border-color: rgba(139,92,246,0.24);
+        color: #E9D5FF;
+    }
+    .movement-chip-alert {
+        background: rgba(244,63,94,0.16);
+        border-color: rgba(244,63,94,0.24);
+        color: #FFE4E6;
+    }
+    .movement-chip-info {
+        background: rgba(6,182,212,0.16);
+        border-color: rgba(6,182,212,0.22);
+        color: #CFFAFE;
+    }
+    .movement-side-shell {
+        background:
+            radial-gradient(circle at top left, rgba(59,130,246,0.14), transparent 28%),
+            linear-gradient(180deg, rgba(12,20,36,0.88), rgba(10,18,32,0.98));
+        border: 1px solid rgba(96,165,250,0.16);
+        border-radius: 24px;
+        padding: 1rem 1.05rem;
+        box-shadow: 0 16px 32px rgba(0,0,0,0.24);
+        margin-bottom: 1rem;
+    }
+    .movement-side-kpi {
+        background: rgba(15,23,42,0.72);
+        border: 1px solid rgba(148,163,184,0.14);
+        border-radius: 16px;
+        padding: 0.8rem 0.9rem;
+        margin-bottom: 0.7rem;
+    }
+    .movement-side-label {
+        color: #94A3B8;
+        font-size: 0.75rem;
+        margin-bottom: 0.25rem;
+    }
+    .movement-side-value {
+        color: #F8FAFC;
+        font-size: 1rem;
+        font-weight: 800;
+        line-height: 1.45;
+    }
+    .empty-card strong {
+        color: #F8FAFC;
+    }
+
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     </style>
@@ -1853,12 +1997,13 @@ def recalcular_deudas_usuario_desde_movimientos(user_id, df_movs, df_deudas_actu
     return obtener_deudas_usuario(user_id)
 
 
+
 def render_editor_movimientos(user_id, df_movs, df_deudas_local):
     st.markdown(
         """
-        <div class="spotlight-side-card" style="margin-top:0.9rem;">
-            <div class="spotlight-side-title">Editar o eliminar movimientos</div>
-            <div class="spotlight-side-sub">Si te equivocaste en una cifra, nombre o tipo, puedes corregirlo aquí sin romper el resto del panel.</div>
+        <div class="spotlight-side-card fade-up" style="margin-top:0.9rem;">
+            <div class="spotlight-side-title">Editor avanzado del movimiento</div>
+            <div class="spotlight-side-sub">Puedes entrar desde las fichas rápidas o seguir usando este panel completo para editar con precisión.</div>
         </div>
         """,
         unsafe_allow_html=True
@@ -1885,14 +2030,25 @@ def render_editor_movimientos(user_id, df_movs, df_deudas_local):
         st.info("No encontré identificadores válidos para editar movimientos.")
         return
 
-    with st.expander("🛠️ Gestionar un movimiento registrado", expanded=False):
+    preselected = st.session_state.get("zentix_selected_movimiento_id")
+    opciones = list(labels.keys())
+    default_index = opciones.index(str(preselected)) if preselected and str(preselected) in opciones else 0
+    expanded = bool(st.session_state.get("zentix_open_editor")) or bool(preselected)
+
+    with st.expander("🛠️ Gestionar un movimiento registrado", expanded=expanded):
         selected_id = st.selectbox(
             "Selecciona un movimiento",
-            list(labels.keys()),
+            opciones,
+            index=default_index,
             format_func=lambda x: labels.get(x, x),
             key="editor_movimiento_select"
         )
+        st.session_state["zentix_selected_movimiento_id"] = str(selected_id)
+
         row = df_editor[df_editor["id"].astype(str) == str(selected_id)].iloc[0]
+        modo_editor = str(st.session_state.get("zentix_editor_mode") or "edit").lower()
+        if modo_editor == "delete":
+            st.warning("Entraste en modo eliminación desde una ficha rápida. Revisa el movimiento y confirma si realmente quieres borrarlo.")
 
         fecha_actual = row["fecha"].date() if pd.notna(row["fecha"]) else date.today()
         tipo_actual = row.get("tipo", "Gasto") or "Gasto"
@@ -1915,6 +2071,7 @@ def render_editor_movimientos(user_id, df_movs, df_deudas_local):
             <div class="mini-soft-card">
                 <div class="tiny-muted">Movimiento actual</div>
                 <div style="font-weight:800;line-height:1.55;">{labels[str(selected_id)]}</div>
+                <div class="movement-chip-row" style="margin-top:0.65rem;">{construir_chips_movimiento(row)}</div>
             </div>
             """,
             unsafe_allow_html=True
@@ -2052,12 +2209,15 @@ def render_editor_movimientos(user_id, df_movs, df_deudas_local):
                         actualizar_movimiento_seguro(selected_id, payload)
                         df_nuevo = obtener_movimientos(user_id)
                         recalcular_deudas_usuario_desde_movimientos(user_id, df_nuevo, obtener_deudas_usuario(user_id))
+                        st.session_state["zentix_editor_mode"] = "edit"
+                        st.session_state["zentix_open_editor"] = False
                         st.success("Movimiento actualizado correctamente.")
                         st.rerun()
                     except Exception as e:
                         st.error(f"No pude actualizar el movimiento: {e}")
         with c2:
-            confirmar = st.checkbox("Confirmo que quiero eliminar este movimiento", key=f"confirm_delete_mov_{selected_id}")
+            confirmar_default = True if modo_editor == "delete" else False
+            confirmar = st.checkbox("Confirmo que quiero eliminar este movimiento", value=confirmar_default, key=f"confirm_delete_mov_{selected_id}")
             if st.button("Eliminar movimiento", key=f"eliminar_mov_{selected_id}", use_container_width=True, type="secondary"):
                 if not confirmar:
                     st.error("Activa la confirmación para eliminar este movimiento.")
@@ -2066,11 +2226,13 @@ def render_editor_movimientos(user_id, df_movs, df_deudas_local):
                         eliminar_movimiento_seguro(selected_id)
                         df_nuevo = obtener_movimientos(user_id)
                         recalcular_deudas_usuario_desde_movimientos(user_id, df_nuevo, obtener_deudas_usuario(user_id))
+                        st.session_state["zentix_selected_movimiento_id"] = None
+                        st.session_state["zentix_editor_mode"] = "edit"
+                        st.session_state["zentix_open_editor"] = False
                         st.success("Movimiento eliminado correctamente.")
                         st.rerun()
                     except Exception as e:
                         st.error(f"No pude eliminar el movimiento: {e}")
-
 def sincronizar_deudas_desde_movimientos(user_id, df_movs, df_deudas_actuales):
     if df_movs is None or df_movs.empty:
         return df_deudas_actuales if df_deudas_actuales is not None else pd.DataFrame()
@@ -2347,13 +2509,54 @@ def resumir_periodo_movimientos(df_periodo):
     }
 
 
+
 def _draw_footer_report(canvas_obj, doc):
     canvas_obj.saveState()
     canvas_obj.setFont("Helvetica", 8)
     canvas_obj.setFillColor(colors.HexColor("#94A3B8") if REPORTLAB_AVAILABLE else None)
-    canvas_obj.drawString(doc.leftMargin, 10 * mm, "ZENTIX - Reporte premium")
+    canvas_obj.drawString(doc.leftMargin, 10 * mm, "ZENTIX Intelligence · Reporte premium")
     canvas_obj.drawRightString(A4[0] - doc.rightMargin, 10 * mm, f"Pagina {canvas_obj.getPageNumber()}")
     canvas_obj.restoreState()
+
+
+def _try_reportlab_image(path_obj, width_mm=22, height_mm=None):
+    if not REPORTLAB_AVAILABLE:
+        return None
+    try:
+        if not path_obj or not Path(path_obj).exists():
+            return None
+        img = Image(str(path_obj))
+        img.drawWidth = width_mm * mm
+        img.drawHeight = (height_mm * mm) if height_mm else (width_mm * mm)
+        return img
+    except Exception:
+        return None
+
+
+def construir_resumen_ejecutivo_reporte(df_periodo, resumen_periodo):
+    lines = []
+    balance = float(resumen_periodo.get("balance", 0) or 0)
+    ingresos = float(resumen_periodo.get("ingresos", 0) or 0)
+    gastos = float(resumen_periodo.get("gastos", 0) or 0)
+    top_cat = str(resumen_periodo.get("categoria_top", "Sin categoría") or "Sin categoría")
+    top_monto = float(resumen_periodo.get("monto_categoria_top", 0) or 0)
+
+    if balance >= 0:
+        lines.append(f"El periodo cerró con balance positivo de {money(balance)}.")
+    else:
+        lines.append(f"El periodo cerró con presión de caja de {money(balance)}.")
+    if ingresos > 0 or gastos > 0:
+        lines.append(f"Ingresos reales {money(ingresos)} frente a gastos operativos de {money(gastos)}.")
+    if top_monto > 0:
+        lines.append(f"La categoría con mayor peso fue {top_cat} con {money(top_monto)}.")
+    if df_periodo is not None and not df_periodo.empty and "tipo" in df_periodo.columns:
+        deuda_in = float(df_periodo[df_periodo["tipo"] == "Ingreso (Deuda)"]["monto"].sum() or 0)
+        deuda_out = float(df_periodo[df_periodo["tipo"] == "Pago de deuda"]["monto"].sum() or 0)
+        if deuda_in > 0 or deuda_out > 0:
+            lines.append(f"Los flujos de deuda se mantuvieron visibles por separado: {money(deuda_in)} recibidos y {money(deuda_out)} devueltos.")
+    if not lines:
+        lines.append("No hubo suficientes movimientos para una lectura ejecutiva más profunda.")
+    return lines[:4]
 
 
 def generar_pdf_reporte_premium(nombre_usuario, plan_nombre, periodicidad, inicio, fin, df_periodo, resumen_periodo):
@@ -2370,26 +2573,60 @@ def generar_pdf_reporte_premium(nombre_usuario, plan_nombre, periodicidad, inici
         bottomMargin=16 * mm,
         title="Reporte premium Zentix"
     )
+
     styles = getSampleStyleSheet()
     styles.add(ParagraphStyle(name="ZentixTitle", parent=styles["Heading1"], fontName="Helvetica-Bold", fontSize=22, leading=26, textColor=colors.HexColor("#F8FAFC"), spaceAfter=8))
     styles.add(ParagraphStyle(name="ZentixSub", parent=styles["BodyText"], fontName="Helvetica", fontSize=10.5, leading=15, textColor=colors.HexColor("#CBD5E1"), spaceAfter=10))
     styles.add(ParagraphStyle(name="ZentixSection", parent=styles["Heading2"], fontName="Helvetica-Bold", fontSize=12.5, leading=15, textColor=colors.HexColor("#0F172A"), spaceAfter=6))
     styles.add(ParagraphStyle(name="ZentixBody", parent=styles["BodyText"], fontName="Helvetica", fontSize=9.5, leading=14, textColor=colors.HexColor("#334155")))
     styles.add(ParagraphStyle(name="ZentixSmall", parent=styles["BodyText"], fontName="Helvetica", fontSize=8.5, leading=12, textColor=colors.HexColor("#475569")))
+    styles.add(ParagraphStyle(name="ZentixHeroLight", parent=styles["BodyText"], fontName="Helvetica-Bold", fontSize=10, leading=13, textColor=colors.HexColor("#DBEAFE")))
+    styles.add(ParagraphStyle(name="ZentixSignature", parent=styles["BodyText"], fontName="Helvetica-Bold", fontSize=10.5, leading=14, textColor=colors.HexColor("#1D4ED8")))
+
+    logo = _try_reportlab_image(icono_path if icono_path.exists() else None, width_mm=22, height_mm=22)
+    avatar = _try_reportlab_image(avatar_path if avatar_path.exists() else None, width_mm=16, height_mm=16)
 
     story = []
-    hero = Table([[Paragraph("ZENTIX", styles["ZentixTitle"]), Paragraph(f"Reporte {periodicidad}<br/>{inicio.strftime('%Y-%m-%d')} - {fin.strftime('%Y-%m-%d')}<br/>{nombre_usuario} · Plan {plan_nombre}", styles["ZentixSub"]) ]], colWidths=[46 * mm, 120 * mm])
+
+    left_cell = []
+    if logo:
+        left_cell.append(logo)
+        left_cell.append(Spacer(1, 4))
+    left_cell.append(Paragraph("ZENTIX", styles["ZentixTitle"]))
+    left_cell.append(Paragraph("Finanzas inteligentes con estilo fintech premium", styles["ZentixHeroLight"]))
+
+    right_html = (
+        f"<b>Reporte {periodicidad}</b><br/>{inicio.strftime('%Y-%m-%d')} al {fin.strftime('%Y-%m-%d')}<br/>"
+        f"{html.escape(str(nombre_usuario))} · Plan {html.escape(str(plan_nombre))}<br/>"
+        f"Preparado por Zentix Intelligence"
+    )
+    hero = Table([[left_cell, Paragraph(right_html, styles["ZentixSub"])]], colWidths=[62 * mm, 104 * mm])
     hero.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#0F172A")),
         ("BOX", (0, 0), (-1, -1), 0.75, colors.HexColor("#1D4ED8")),
-        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
         ("LEFTPADDING", (0, 0), (-1, -1), 14),
         ("RIGHTPADDING", (0, 0), (-1, -1), 14),
-        ("TOPPADDING", (0, 0), (-1, -1), 12),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 12),
+        ("TOPPADDING", (0, 0), (-1, -1), 14),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 14),
     ]))
     story.append(hero)
     story.append(Spacer(1, 8))
+
+    story.append(Paragraph("Resumen ejecutivo", styles["ZentixSection"]))
+    ejecutivo = construir_resumen_ejecutivo_reporte(df_periodo, resumen_periodo)
+    ejecutivo_html = "".join([f"<li>{html.escape(line)}</li>" for line in ejecutivo])
+    ejecutivo_box = Table([[Paragraph(f"<ul>{ejecutivo_html}</ul>", styles["ZentixBody"])]], colWidths=[166 * mm])
+    ejecutivo_box.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#F8FAFC")),
+        ("BOX", (0, 0), (-1, -1), 0.6, colors.HexColor("#DBEAFE")),
+        ("LEFTPADDING", (0, 0), (-1, -1), 10),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 10),
+        ("TOPPADDING", (0, 0), (-1, -1), 8),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+    ]))
+    story.append(ejecutivo_box)
+    story.append(Spacer(1, 10))
 
     resumen_data = [
         [Paragraph("Movimientos", styles["ZentixSmall"]), Paragraph("Ingresos reales", styles["ZentixSmall"]), Paragraph("Gastos", styles["ZentixSmall"]), Paragraph("Balance", styles["ZentixSmall"])],
@@ -2410,13 +2647,6 @@ def generar_pdf_reporte_premium(nombre_usuario, plan_nombre, periodicidad, inici
         ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
     ]))
     story.append(resumen_table)
-    story.append(Spacer(1, 10))
-
-    intro = Paragraph(
-        "Este reporte resume los movimientos del periodo seleccionado, separando ingresos reales, gasto operativo y flujos de deuda para una lectura financiera más honesta y profesional.",
-        styles["ZentixBody"]
-    )
-    story.append(intro)
     story.append(Spacer(1, 10))
 
     story.append(Paragraph("Detalle de movimientos", styles["ZentixSection"]))
@@ -2460,6 +2690,22 @@ def generar_pdf_reporte_premium(nombre_usuario, plan_nombre, periodicidad, inici
         ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
     ]))
     story.append(table)
+    story.append(Spacer(1, 10))
+
+    firma_parts = []
+    if avatar:
+        firma_parts.append(avatar)
+    firma_parts.append(Paragraph("Zentix Intelligence · Lectura automatizada con criterio visual premium", styles["ZentixSignature"]))
+    firma = Table([[firma_parts]], colWidths=[166 * mm])
+    firma.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#EFF6FF")),
+        ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#BFDBFE")),
+        ("LEFTPADDING", (0, 0), (-1, -1), 10),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 10),
+        ("TOPPADDING", (0, 0), (-1, -1), 10),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 10),
+    ]))
+    story.append(firma)
 
     doc.build(story, onFirstPage=_draw_footer_report, onLaterPages=_draw_footer_report)
     buffer.seek(0)
@@ -2467,7 +2713,7 @@ def generar_pdf_reporte_premium(nombre_usuario, plan_nombre, periodicidad, inici
 
 
 def render_reporte_descargable(nombre_usuario, plan_actual, df_base):
-    section_header("Reporte premium imprimible", "Descarga un PDF semanal o mensual listo para imprimir con una lectura profesional de tus movimientos.")
+    section_header("Reporte premium imprimible", "Descarga un PDF semanal o mensual listo para imprimir con portada, resumen ejecutivo y firma de marca.")
     with st.expander("🖨️ Generar reporte PDF", expanded=False):
         periodicidad = st.radio("Periodo del reporte", ["Semanal", "Mensual"], horizontal=True, key="reporte_periodicidad")
         fecha_ref = st.date_input("Fecha de referencia", value=date.today(), key="reporte_fecha_ref")
@@ -2487,6 +2733,9 @@ def render_reporte_descargable(nombre_usuario, plan_actual, df_base):
         if inicio_rep and fin_rep:
             st.caption(f"Periodo cubierto: {inicio_rep.strftime('%Y-%m-%d')} a {fin_rep.strftime('%Y-%m-%d')}")
 
+        ejecutivo = construir_resumen_ejecutivo_reporte(df_periodo, resumen_rep)
+        render_list_card("Resumen ejecutivo del PDF", ejecutivo, "La portada del reporte ya incluye estas conclusiones breves.")
+
         if df_periodo is None or df_periodo.empty:
             st.info("No hay movimientos en el periodo seleccionado todavía.")
             return
@@ -2505,8 +2754,6 @@ def render_reporte_descargable(nombre_usuario, plan_actual, df_base):
             filename = f"zentix_reporte_{periodicidad.lower()}_{inicio_rep.strftime('%Y%m%d')}_{fin_rep.strftime('%Y%m%d')}.pdf"
             st.download_button("Descargar reporte PDF", data=pdf_bytes, file_name=filename, mime="application/pdf", use_container_width=True)
             st.caption("Descarga el PDF y podrás imprimirlo desde tu navegador o visor favorito.")
-
-
 def obtener_nombre_meta_guardado(user_id):
     try:
         result = (
@@ -2923,6 +3170,185 @@ def render_list_card(title, items, foot=""):
             </div>
             <div class="premium-list-copy">{foot}</div>
             <ul class="spotlight-list">{bullets}</ul>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+
+
+
+def movimiento_chip(label, kind="default"):
+    return f"<span class='movement-chip movement-chip-{kind}'>{html.escape(str(label))}</span>"
+
+
+def construir_chips_movimiento(row):
+    chips = []
+    tipo = str(row.get("tipo") or "").strip()
+    monto = float(row.get("monto", 0) or 0)
+
+    if tipo == "Ingreso":
+        chips.append(movimiento_chip("Ingreso real", "income"))
+    elif tipo == "Gasto":
+        chips.append(movimiento_chip("Gasto", "expense"))
+    elif tipo == "Ingreso (Deuda)":
+        chips.append(movimiento_chip("Deuda recibida", "debt"))
+    elif tipo == "Pago de deuda":
+        chips.append(movimiento_chip("Pago deuda", "pay"))
+
+    if bool(row.get("es_recurrente")):
+        chips.append(movimiento_chip("Recurrente", "recurrent"))
+
+    if str(row.get("deuda_nombre") or "").strip():
+        chips.append(movimiento_chip("Con deuda", "info"))
+
+    if tipo == "Gasto" and monto >= 500000:
+        chips.append(movimiento_chip("Monto alto", "alert"))
+
+    if tipo == "Pago de deuda" and monto > 0:
+        chips.append(movimiento_chip("Reduce pendiente", "pay"))
+
+    return "".join(chips)
+
+
+def obtener_movimiento_seleccionado_id(df_movs):
+    if df_movs is None or df_movs.empty or "id" not in df_movs.columns:
+        return None
+    selected = st.session_state.get("zentix_selected_movimiento_id")
+    ids = [str(x) for x in df_movs["id"].astype(str).tolist()]
+    if selected and str(selected) in ids:
+        return str(selected)
+    return ids[0] if ids else None
+
+
+def render_movimientos_action_hub(user_id, df_movs, df_deudas_local):
+    st.markdown(
+        """
+        <div class="spotlight-side-card fade-up" style="margin-top:0.3rem;">
+            <div class="spotlight-side-title">Acciones rápidas por movimiento</div>
+            <div class="spotlight-side-sub">Selecciona, edita o elimina desde una ficha más visual. La edición avanzada sigue disponible más abajo.</div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    if df_movs is None or df_movs.empty or "id" not in df_movs.columns:
+        empty_state("Sin movimientos para gestionar", "Cuando registres movimientos, aquí aparecerán fichas premium con acciones directas.")
+        return
+
+    df_cards = df_movs.copy().sort_values("fecha", ascending=False).head(8)
+    df_cards["fecha"] = pd.to_datetime(df_cards["fecha"], errors="coerce")
+    df_cards["monto"] = pd.to_numeric(df_cards["monto"], errors="coerce").fillna(0)
+
+    selected = obtener_movimiento_seleccionado_id(df_cards)
+    rows = [df_cards.iloc[i:i+2] for i in range(0, len(df_cards), 2)]
+
+    for pack_idx, pack in enumerate(rows):
+        cols = st.columns(len(pack))
+        for col_idx, (_, row) in zip(range(len(pack)), pack.iterrows()):
+            with cols[col_idx]:
+                fecha_txt = row["fecha"].strftime("%Y-%m-%d") if pd.notna(row["fecha"]) else "Sin fecha"
+                descripcion = str(row.get("descripcion") or "Sin descripción").strip()
+                if len(descripcion) > 70:
+                    descripcion = descripcion[:70] + "..."
+                deuda_txt = str(row.get("deuda_nombre") or "").strip()
+                extra = deuda_txt if deuda_txt else (str(row.get("categoria") or "Sin categoría").strip())
+                chips = construir_chips_movimiento(row)
+                active_badge = "<span class='movement-chip movement-chip-info'>Seleccionado</span>" if str(row["id"]) == str(selected) else ""
+                st.markdown(
+                    f"""
+                    <div class="movement-card fade-up">
+                        <div class="movement-date">{fecha_txt}</div>
+                        <div class="movement-title">{html.escape(str(row.get('tipo') or 'Sin tipo'))}</div>
+                        <div class="movement-amount">{money(row.get('monto', 0))}</div>
+                        <div class="movement-meta">{html.escape(extra)} · {html.escape(descripcion)}</div>
+                        <div class="movement-chip-row">{chips}{active_badge}</div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
+                c1, c2, c3 = st.columns([1.15, 1.05, 0.95])
+                with c1:
+                    if st.button("Ver", key=f"mov_focus_{row['id']}", use_container_width=True, type="primary" if str(row["id"]) == str(selected) else "secondary"):
+                        st.session_state["zentix_selected_movimiento_id"] = str(row["id"])
+                        st.session_state["zentix_open_editor"] = True
+                        st.session_state["zentix_editor_mode"] = "edit"
+                        st.rerun()
+                with c2:
+                    if st.button("Editar", key=f"mov_edit_{row['id']}", use_container_width=True, type="secondary"):
+                        st.session_state["zentix_selected_movimiento_id"] = str(row["id"])
+                        st.session_state["zentix_open_editor"] = True
+                        st.session_state["zentix_editor_mode"] = "edit"
+                        st.rerun()
+                with c3:
+                    if st.button("Eliminar", key=f"mov_del_{row['id']}", use_container_width=True, type="secondary"):
+                        st.session_state["zentix_selected_movimiento_id"] = str(row["id"])
+                        st.session_state["zentix_open_editor"] = True
+                        st.session_state["zentix_editor_mode"] = "delete"
+                        st.rerun()
+
+
+def render_movimiento_focus_panel(df_movs):
+    selected = obtener_movimiento_seleccionado_id(df_movs if df_movs is not None else pd.DataFrame())
+    if df_movs is None or df_movs.empty or not selected:
+        st.markdown(
+            """
+            <div class="movement-side-shell fade-up">
+                <div class="spotlight-side-title">Ficha rápida del movimiento</div>
+                <div class="spotlight-side-sub">Selecciona un movimiento desde las fichas de la izquierda y verás aquí su resumen premium.</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+        return
+
+    row = df_movs[df_movs["id"].astype(str) == str(selected)]
+    if row.empty:
+        return
+    row = row.iloc[0]
+    fecha_val = pd.to_datetime(row.get("fecha"), errors="coerce")
+    proxima_val = pd.to_datetime(row.get("proxima_fecha_recurrencia"), errors="coerce")
+    limite_val = pd.to_datetime(row.get("fecha_limite_deuda"), errors="coerce")
+
+    st.markdown(
+        """
+        <div class="movement-side-shell fade-up">
+            <div class="spotlight-side-title">Ficha rápida del movimiento</div>
+            <div class="spotlight-side-sub">Una lectura más editorial del registro seleccionado, con estados útiles y contexto de edición.</div>
+        """,
+        unsafe_allow_html=True
+    )
+    st.markdown(
+        f"""
+        <div class="movement-side-kpi">
+            <div class="movement-side-label">Tipo</div>
+            <div class="movement-side-value">{html.escape(str(row.get('tipo') or 'Sin tipo'))}</div>
+        </div>
+        <div class="movement-side-kpi">
+            <div class="movement-side-label">Monto</div>
+            <div class="movement-side-value">{money(row.get('monto', 0))}</div>
+        </div>
+        <div class="movement-chip-row" style="margin-bottom:0.8rem;">{construir_chips_movimiento(row)}</div>
+        <div class="movement-side-kpi">
+            <div class="movement-side-label">Descripción</div>
+            <div class="movement-side-value">{html.escape(str(row.get('descripcion') or 'Sin descripción'))}</div>
+        </div>
+        <div class="movement-side-kpi">
+            <div class="movement-side-label">Fecha y categoría</div>
+            <div class="movement-side-value">{fecha_val.strftime('%Y-%m-%d') if pd.notna(fecha_val) else 'Sin fecha'} · {html.escape(str(row.get('categoria') or 'Sin categoría'))}</div>
+        </div>
+        <div class="movement-side-kpi">
+            <div class="movement-side-label">Deuda / prestamista</div>
+            <div class="movement-side-value">{html.escape(str(row.get('deuda_nombre') or 'No aplica'))} · {html.escape(str(row.get('prestamista') or 'No aplica'))}</div>
+        </div>
+        <div class="movement-side-kpi">
+            <div class="movement-side-label">Recurrencia</div>
+            <div class="movement-side-value">{html.escape(str(row.get('frecuencia_recurrencia') or 'No recurrente'))}{' · próxima ' + proxima_val.strftime('%Y-%m-%d') if pd.notna(proxima_val) else ''}</div>
+        </div>
+        <div class="movement-side-kpi">
+            <div class="movement-side-label">Fecha límite deuda</div>
+            <div class="movement-side-value">{limite_val.strftime('%Y-%m-%d') if pd.notna(limite_val) else 'No aplica'}</div>
+        </div>
         </div>
         """,
         unsafe_allow_html=True
@@ -3348,6 +3774,25 @@ def render_perfil_spotlight(plan_actual, consultas_usadas, consultas_limite, pre
         """, unsafe_allow_html=True)
         st.info(resumen_recordatorios.get("sugerencia", "Sin evaluación de recordatorios por ahora."))
 
+
+
+def render_automation_control_center():
+    cfg = obtener_automation_runtime_config()
+    url_job = construir_url_job_recordatorios(limit=25)
+    st.markdown(
+        """
+        <div class="soft-card fade-up">
+            <div class="section-title">Centro de automatización</div>
+            <div class="section-caption">Zentix queda listo para correr recordatorios en segundo plano con un cron externo seguro.</div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+    if cfg.get("enabled") and url_job:
+        st.code(url_job, language="text")
+        st.caption("Puedes usar esta URL desde un cron externo, GitHub Actions o un scheduler para disparar recordatorios sin que nadie abra la app.")
+    else:
+        st.info("Para activar el modo background real, agrega APP_BASE_URL y AUTOMATION_JOB_TOKEN en secrets. La app ya quedó preparada para recibir el job seguro.")
 
 def render_tutorial_zentix(pagina, nombre, user_id, df_base, meta_actual, preferencias):
     state = obtener_estado_tutorial_usuario(user_id, df_base, meta_actual)
@@ -3959,6 +4404,157 @@ def obtener_categorias_usuario(user_id, tipo):
     return [x["nombre"] for x in data]
 
 
+
+def obtener_automation_runtime_config():
+    def _read(key, default=""):
+        try:
+            value = st.secrets.get(key)
+        except Exception:
+            value = None
+        if value in (None, ""):
+            value = os.getenv(key, default)
+        return value if value is not None else default
+
+    return {
+        "job_token": str(_read("AUTOMATION_JOB_TOKEN", "")).strip(),
+        "app_base_url": str(_read("APP_BASE_URL", "")).strip().rstrip("/"),
+        "enabled": bool(str(_read("AUTOMATION_JOB_TOKEN", "")).strip())
+    }
+
+
+def construir_url_job_recordatorios(limit=25):
+    cfg = obtener_automation_runtime_config()
+    if not cfg.get("enabled") or not cfg.get("app_base_url"):
+        return ""
+    return f"{cfg['app_base_url']}/?job=recordatorios&token={cfg['job_token']}&limit={int(limit)}"
+
+
+def obtener_query_param(key, default=""):
+    try:
+        value = st.query_params.get(key, default)
+        if isinstance(value, list):
+            return value[0] if value else default
+        return value
+    except Exception:
+        return default
+
+
+def _obtener_nombre_para_batch(user_id, email_contacto=""):
+    try:
+        perfil = obtener_perfil(user_id)
+        if perfil and perfil.get("nombre_mostrado"):
+            return perfil.get("nombre_mostrado")
+    except Exception:
+        pass
+    email_contacto = str(email_contacto or "").strip()
+    return email_contacto.split("@")[0].replace(".", " ").title() if email_contacto else "Usuario Zentix"
+
+
+def _filtrar_mes_actual(df_base):
+    if df_base is None or df_base.empty or "fecha" not in df_base.columns:
+        return pd.DataFrame(columns=getattr(df_base, "columns", []))
+    df_tmp = df_base.copy()
+    df_tmp["fecha"] = pd.to_datetime(df_tmp["fecha"], errors="coerce")
+    df_tmp = df_tmp.dropna(subset=["fecha"]).copy()
+    if df_tmp.empty:
+        return df_tmp
+    try:
+        if getattr(df_tmp["fecha"].dt, "tz", None) is not None:
+            df_tmp["fecha"] = df_tmp["fecha"].dt.tz_localize(None)
+    except Exception:
+        pass
+    hoy = pd.Timestamp.now()
+    return df_tmp[(df_tmp["fecha"].dt.month == hoy.month) & (df_tmp["fecha"].dt.year == hoy.year)].copy()
+
+
+def ejecutar_lote_recordatorios(limit=25):
+    summary = {"procesados": 0, "enviados": 0, "errores": 0, "detalles": []}
+    try:
+        result = (
+            supabase.table("preferencias_usuario")
+            .select("*")
+            .eq("recordatorio_email", True)
+            .limit(int(limit))
+            .execute()
+        )
+        registros = result.data if result.data else []
+    except Exception as e:
+        summary["errores"] += 1
+        summary["detalles"].append({"user_id": None, "detalle": f"No pude leer preferencias: {e}"})
+        return summary
+
+    for row in registros:
+        user_id_local = row.get("usuario_id")
+        if not user_id_local:
+            continue
+        try:
+            df_user = obtener_movimientos(user_id_local)
+            df_mes_user = _filtrar_mes_actual(df_user)
+            total_gastos_user = float(df_mes_user[df_mes_user["tipo"] == "Gasto"]["monto"].sum()) if not df_mes_user.empty else 0.0
+            total_ingresos_user = float(df_mes_user[df_mes_user["tipo"] == "Ingreso"]["monto"].sum()) if not df_mes_user.empty else 0.0
+            total_entradas_deuda_user = float(df_mes_user[df_mes_user["tipo"] == "Ingreso (Deuda)"]["monto"].sum()) if not df_mes_user.empty else 0.0
+            total_pagos_deuda_user = float(df_mes_user[df_mes_user["tipo"] == "Pago de deuda"]["monto"].sum()) if not df_mes_user.empty else 0.0
+            saldo_disponible_user = total_ingresos_user + total_entradas_deuda_user - total_gastos_user - total_pagos_deuda_user
+
+            meta_result_user = obtener_meta(user_id_local)
+            meta_user = float(meta_result_user["meta"]) if meta_result_user and meta_result_user.get("meta") is not None else 0.0
+            prefs_user = obtener_preferencias_usuario(user_id_local, row.get("email_contacto", ""))
+            resumen_user = construir_resumen_recordatorios(df_user, prefs_user)
+            proyeccion_user = calcular_proyeccion_meta(meta_user, saldo_disponible_user, estimar_aporte_semanal_meta(df_user if df_user is not None else pd.DataFrame()))
+            alertas_user = generar_alertas_proactivas(df_user, df_mes_user if df_mes_user is not None else pd.DataFrame(), total_ingresos_user, total_gastos_user, saldo_disponible_user, meta_user)
+            nombre_user = _obtener_nombre_para_batch(user_id_local, row.get("email_contacto", ""))
+
+            status = disparar_recordatorio_automatico_si_aplica(
+                user_id=user_id_local,
+                nombre=nombre_user,
+                preferencias=prefs_user,
+                resumen_recordatorios=resumen_user,
+                total_ingresos=total_ingresos_user,
+                total_gastos=total_gastos_user,
+                saldo_disponible=saldo_disponible_user,
+                meta_actual=meta_user,
+                proyeccion_meta=proyeccion_user,
+                alertas=alertas_user,
+                fallback_email=row.get("email_contacto", "")
+            )
+            summary["procesados"] += 1
+            if bool(status.get("enviado")):
+                summary["enviados"] += 1
+            summary["detalles"].append({
+                "user_id": user_id_local,
+                "destino": status.get("destino", ""),
+                "tipo": status.get("tipo"),
+                "detalle": status.get("detalle")
+            })
+        except Exception as e:
+            summary["procesados"] += 1
+            summary["errores"] += 1
+            summary["detalles"].append({"user_id": user_id_local, "detalle": f"Error procesando usuario: {e}"})
+    return summary
+
+
+def maybe_handle_public_automation_job():
+    job = str(obtener_query_param("job", "") or "").strip().lower()
+    if job != "recordatorios":
+        return False
+
+    cfg = obtener_automation_runtime_config()
+    token = str(obtener_query_param("token", "") or "").strip()
+    if not cfg.get("enabled") or token != cfg.get("job_token"):
+        st.error("Token de automatización inválido o no configurado.")
+        st.stop()
+
+    try:
+        limit = int(str(obtener_query_param("limit", "25")).strip())
+    except Exception:
+        limit = 25
+
+    st.markdown("<div class='soft-card'><div class='section-title'>Ejecución automática de recordatorios</div><div class='section-caption'>Modo job seguro activado por token.</div></div>", unsafe_allow_html=True)
+    resumen = ejecutar_lote_recordatorios(limit=max(1, min(limit, 250)))
+    st.json(resumen)
+    st.stop()
+    return True
+
 def obtener_meta(user_id):
     result = (
         supabase.table("ahorro_meta")
@@ -3973,6 +4569,7 @@ def obtener_meta(user_id):
 if "user" not in st.session_state:
     st.session_state.user = None
 
+maybe_handle_public_automation_job()
 
 if st.session_state.user is None:
     with st.sidebar:
@@ -4103,10 +4700,11 @@ with st.sidebar:
 
 st.markdown(
     """
-    <div class="section-title" style="margin-top:0.2rem;">Navegación rápida</div>
-    <div class="section-caption">
-        Si el panel lateral se colapsa en Streamlit Cloud, usa estos accesos rápidos.
-    </div>
+    <div class="sticky-top-shell fade-up">
+        <div class="section-title" style="margin-top:0.05rem;">Navegación rápida</div>
+        <div class="section-caption">
+            Si el panel lateral se colapsa en Streamlit Cloud, usa estos accesos rápidos.
+        </div>
     """,
     unsafe_allow_html=True
 )
@@ -4143,6 +4741,8 @@ with nav5:
     if st.button("Perfil", key="nav_perfil_top", use_container_width=True, type=tipo_perfil):
         st.session_state.pagina = "Perfil"
         st.rerun()
+
+st.markdown("</div>", unsafe_allow_html=True)
 
 pagina = st.session_state.pagina
 
@@ -4743,6 +5343,7 @@ if pagina == "Análisis":
 
     col_a, col_b = st.columns([1.15, 0.85])
     with col_a:
+        render_movimientos_action_hub(user_id, df if not df.empty else pd.DataFrame(), df_deudas if df_deudas is not None else pd.DataFrame())
         if not df_mes.empty:
             vista_df = df_mes.copy().sort_values("fecha", ascending=False)
             vista_df["fecha"] = vista_df["fecha"].dt.strftime("%Y-%m-%d")
@@ -4764,9 +5365,10 @@ if pagina == "Análisis":
             empty_state("Todavía no hay datos", "Cuando registres movimientos este mes, aquí verás tablas y gráficos más útiles.")
             render_editor_movimientos(user_id, df if not df.empty else pd.DataFrame(), df_deudas if df_deudas is not None else pd.DataFrame())
     with col_b:
+        render_movimiento_focus_panel(df if not df.empty else pd.DataFrame())
         st.markdown(
             f"""
-            <div class="soft-card">
+            <div class="soft-card fade-up">
                 <div class="section-title">Lectura de deuda y recurrencia</div>
                 <div class="section-caption">Separando caja, ingresos reales y obligaciones pendientes.</div>
                 <div class="tiny-muted">Entradas por deuda</div>
@@ -5076,7 +5678,8 @@ if pagina == "Perfil":
                     else:
                         st.warning(detalle)
 
-            st.info("Zentix puede enviar correos automáticos cuando la app está corriendo y detecta el disparador. Con Gmail usa SMTP_HOST=smtp.gmail.com, SMTP_PORT=587 y SMTP_USE_TLS=true. Para envíos 100% en segundo plano sin visitas, luego conviene llevarlo a cron o Edge Functions.")
+            st.info("Zentix ya puede enviar correos automáticos mientras la app corre. Y además quedó preparado para un modo background real por cron externo o scheduler seguro, sin tocar tu UX actual.")
+            render_automation_control_center()
 
         with st.expander("✨ Plan Free vs Pro", expanded=False):
             st.markdown(
@@ -5088,6 +5691,7 @@ if pagina == "Perfil":
                 <div class="mini-soft-card">
                     <div style="font-weight:800;margin-bottom:0.35rem;">Pro</div>
                     <div class="tiny-muted">Más IA, lecturas más profundas, automatizaciones y una experiencia más potente sin ser invasiva.</div>
+                <div class="tiny-muted" style="margin-top:0.35rem;">La app actual ya queda lista para integrarse mejor a jobs externos y modularización futura sin romper el panel.</div>
                 </div>
                 """,
                 unsafe_allow_html=True
