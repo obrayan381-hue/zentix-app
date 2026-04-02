@@ -8,6 +8,7 @@ from supabase_config import supabase
 from openai import OpenAI
 import html
 import io
+import uuid
 import smtplib
 import ssl
 from email.message import EmailMessage
@@ -1021,6 +1022,75 @@ def aplicar_estilo_zentix():
         color: #F8FAFC;
     }
 
+    .launch-chip-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+        margin-top: 0.65rem;
+    }
+    .launch-chip-ok, .launch-chip-warn, .launch-chip-soft {
+        display: inline-block;
+        padding: 0.34rem 0.72rem;
+        border-radius: 999px;
+        font-size: 0.74rem;
+        font-weight: 800;
+        border: 1px solid rgba(148,163,184,0.14);
+    }
+    .launch-chip-ok {
+        background: rgba(34,197,94,0.16);
+        border-color: rgba(34,197,94,0.22);
+        color: #BBF7D0;
+    }
+    .launch-chip-warn {
+        background: rgba(245,158,11,0.16);
+        border-color: rgba(245,158,11,0.22);
+        color: #FDE68A;
+    }
+    .launch-chip-soft {
+        background: rgba(59,130,246,0.14);
+        border-color: rgba(96,165,250,0.18);
+        color: #DBEAFE;
+    }
+    .launch-grid-card {
+        background: linear-gradient(180deg, rgba(12,20,36,0.84), rgba(10,18,32,0.96));
+        border: 1px solid rgba(148,163,184,0.14);
+        border-radius: 22px;
+        padding: 1rem 1.05rem;
+        box-shadow: 0 14px 30px rgba(0,0,0,0.22);
+        margin-bottom: 0.9rem;
+        min-height: 100%;
+    }
+    .launch-grid-title {
+        font-size: 0.98rem;
+        font-weight: 800;
+        color: #F8FAFC;
+        margin-bottom: 0.2rem;
+    }
+    .launch-grid-copy {
+        color: #94A3B8;
+        font-size: 0.84rem;
+        line-height: 1.55;
+        margin-bottom: 0.55rem;
+    }
+    .legal-footer {
+        margin-top: 1.25rem;
+        padding: 0.95rem 1rem;
+        border-radius: 18px;
+        background: linear-gradient(180deg, rgba(12,20,36,0.78), rgba(10,18,32,0.94));
+        border: 1px solid rgba(148,163,184,0.12);
+        color: #CBD5E1;
+        font-size: 0.84rem;
+        line-height: 1.65;
+    }
+    .legal-footer a {
+        color: #93C5FD;
+        text-decoration: none;
+        font-weight: 700;
+    }
+    .legal-footer a:hover {
+        text-decoration: underline;
+    }
+
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     </style>
@@ -1413,6 +1483,205 @@ def describir_config_smtp(config=None):
         "titulo": f"{proveedor} listo",
         "detalle": f"Puerto {config.get('port')} · modo {modo} · remitente {config.get('from_email')}."
     }
+
+
+def _leer_secret_texto(clave, default=""):
+    try:
+        valor = st.secrets.get(clave)
+    except Exception:
+        valor = None
+    if valor in (None, ""):
+        valor = os.getenv(clave, default)
+    return str(valor if valor is not None else default).strip()
+
+
+def _leer_secret_bool(clave, default=False):
+    raw = _leer_secret_texto(clave, str(default)).lower()
+    return raw in {"1", "true", "yes", "si", "sí", "on"}
+
+
+def obtener_config_lanzamiento():
+    etapa = _leer_secret_texto("APP_STAGE", "beta").lower() or "beta"
+    allow_default = etapa != "private"
+    cfg = {
+        "app_stage": etapa,
+        "allow_public_signup": _leer_secret_bool("ALLOW_PUBLIC_SIGNUP", allow_default),
+        "support_email": _leer_secret_texto("SUPPORT_EMAIL", ""),
+        "support_whatsapp": _leer_secret_texto("SUPPORT_WHATSAPP", ""),
+        "privacy_url": _leer_secret_texto("PRIVACY_POLICY_URL", ""),
+        "terms_url": _leer_secret_texto("TERMS_URL", ""),
+        "website_url": _leer_secret_texto("WEBSITE_URL", ""),
+        "status_url": _leer_secret_texto("STATUS_PAGE_URL", ""),
+        "launch_label": _leer_secret_texto("LAUNCH_LABEL", "Zentix beta premium"),
+        "support_label": _leer_secret_texto("SUPPORT_LABEL", "Soporte Zentix"),
+    }
+    return cfg
+
+
+def registrar_evento_producto(evento, user_id=None, pagina="", detalle="", valor=None):
+    session_id = st.session_state.get("zentix_session_id")
+    if not session_id:
+        session_id = uuid.uuid4().hex[:16]
+        st.session_state["zentix_session_id"] = session_id
+
+    detalle_txt = str(detalle or "").strip()[:700]
+    payload = {
+        "usuario_id": user_id,
+        "evento": str(evento or "evento").strip()[:80],
+        "pagina": str(pagina or "").strip()[:80] or None,
+        "detalle": detalle_txt or None,
+        "valor": float(valor) if valor not in (None, "") else None,
+        "session_id": session_id,
+        "creado_en": datetime.now().isoformat()
+    }
+    candidatos = [
+        dict(payload),
+        {k: v for k, v in payload.items() if k != "valor"},
+        {k: v for k, v in payload.items() if k not in {"valor", "session_id"}},
+        {k: v for k, v in payload.items() if k in {"usuario_id", "evento", "pagina", "detalle", "creado_en"}},
+    ]
+    tablas = ["analytics_eventos", "eventos_producto", "analytics"]
+    for tabla in tablas:
+        for candidate in candidatos:
+            try:
+                supabase.table(tabla).insert(candidate).execute()
+                return True
+            except Exception:
+                continue
+    return False
+
+
+def track_page_view_once(user_id, pagina):
+    key = f"zentix_page_view_{user_id}_{pagina}"
+    if st.session_state.get(key):
+        return
+    registrar_evento_producto("page_view", user_id=user_id, pagina=pagina, detalle=f"Vista de {pagina}")
+    st.session_state[key] = True
+
+
+def construir_links_lanzamiento_html(cfg):
+    enlaces = []
+    if cfg.get("privacy_url"):
+        enlaces.append(f"<a href='{html.escape(cfg['privacy_url'])}' target='_blank'>Privacidad</a>")
+    if cfg.get("terms_url"):
+        enlaces.append(f"<a href='{html.escape(cfg['terms_url'])}' target='_blank'>Términos</a>")
+    if cfg.get("website_url"):
+        enlaces.append(f"<a href='{html.escape(cfg['website_url'])}' target='_blank'>Sitio</a>")
+    if cfg.get("status_url"):
+        enlaces.append(f"<a href='{html.escape(cfg['status_url'])}' target='_blank'>Estado</a>")
+    if cfg.get("support_email"):
+        enlaces.append(f"<a href='mailto:{html.escape(cfg['support_email'])}'>Soporte</a>")
+    return " · ".join(enlaces)
+
+
+def render_contexto_lanzamiento_acceso(cfg):
+    etapa = (cfg.get("app_stage") or "beta").upper()
+    acceso = "Registro abierto" if cfg.get("allow_public_signup") else "Registro cerrado"
+    chips = [
+        f"<span class='launch-chip-soft'>{html.escape(etapa)}</span>",
+        f"<span class='launch-chip-{'ok' if cfg.get('allow_public_signup') else 'warn'}'>{html.escape(acceso)}</span>"
+    ]
+    if cfg.get("support_email"):
+        chips.append("<span class='launch-chip-ok'>Soporte listo</span>")
+    if cfg.get("privacy_url") and cfg.get("terms_url"):
+        chips.append("<span class='launch-chip-ok'>Legal visible</span>")
+    st.markdown(
+        f"""
+        <div class='mini-soft-card fade-up'>
+            <div class='tiny-muted'>Estado público de producto</div>
+            <div style='font-weight:800;font-size:1.02rem;line-height:1.45;'>{html.escape(cfg.get('launch_label') or 'Zentix')}</div>
+            <div class='launch-chip-row'>{''.join(chips)}</div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+
+def render_footer_producto(cfg):
+    links_html = construir_links_lanzamiento_html(cfg)
+    soporte = html.escape(cfg.get("support_email") or cfg.get("support_label") or "Soporte no configurado")
+    etapa = html.escape((cfg.get("app_stage") or "beta").upper())
+    extra = f"<div style='margin-top:0.35rem;'>{links_html}</div>" if links_html else ""
+    st.markdown(
+        f"""
+        <div class='legal-footer'>
+            <strong>Zentix</strong> · modo {etapa}.
+            Para soporte: {soporte}.
+            {extra}
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+
+def obtener_estado_lanzamiento(cfg, smtp_cfg=None, automation_cfg=None):
+    smtp_cfg = smtp_cfg or obtener_config_smtp()
+    automation_cfg = automation_cfg or obtener_automation_runtime_config()
+    checks = [
+        ("Canal SMTP", smtp_disponible(smtp_cfg), "Listo para correos" if smtp_disponible(smtp_cfg) else "Faltan credenciales SMTP"),
+        ("Soporte", bool(cfg.get("support_email")), cfg.get("support_email") or "Falta SUPPORT_EMAIL"),
+        ("Legal", bool(cfg.get("privacy_url") and cfg.get("terms_url")), "Privacidad y términos visibles" if cfg.get("privacy_url") and cfg.get("terms_url") else "Agrega PRIVACY_POLICY_URL y TERMS_URL"),
+        ("Automatización", bool(automation_cfg.get("enabled") and automation_cfg.get("app_base_url")), "Job background listo" if automation_cfg.get("enabled") and automation_cfg.get("app_base_url") else "Opcional: background aún no activado"),
+        ("Registro público", bool(cfg.get("allow_public_signup")), "Usuarios pueden crear cuenta" if cfg.get("allow_public_signup") else "Registro cerrado / beta privada"),
+    ]
+    pendientes = [texto for _, ok, texto in checks if not ok]
+    return checks, pendientes
+
+
+def render_centro_lanzamiento(cfg, plan_actual):
+    smtp_cfg = obtener_config_smtp()
+    automation_cfg = obtener_automation_runtime_config()
+    checks, pendientes = obtener_estado_lanzamiento(cfg, smtp_cfg, automation_cfg)
+
+    st.markdown(
+        """
+        <div class='soft-card fade-up'>
+            <div class='section-title'>Centro de lanzamiento</div>
+            <div class='section-caption'>Zentix ya está listo para operar en beta o abrirse al público con una base más seria de producto.</div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    c1, c2, c3, c4 = st.columns(4)
+    with c1:
+        render_spotlight_metric("Etapa", (cfg.get("app_stage") or "beta").upper(), "Modo público")
+    with c2:
+        render_spotlight_metric("Registro", "Abierto" if cfg.get("allow_public_signup") else "Cerrado", "Control de acceso")
+    with c3:
+        render_spotlight_metric("Plan visible", plan_actual.get("plan", "free").upper(), "Free / Pro activo")
+    with c4:
+        render_spotlight_metric("Checks listos", str(sum(1 for _, ok, _ in checks if ok)), f"de {len(checks)}")
+
+    col_l, col_r = st.columns([1.1, 0.9])
+    with col_l:
+        for titulo, ok, detalle in checks:
+            chip = "launch-chip-ok" if ok else "launch-chip-warn"
+            st.markdown(
+                f"""
+                <div class='launch-grid-card'>
+                    <div class='launch-grid-title'>{html.escape(titulo)}</div>
+                    <div class='launch-grid-copy'>{html.escape(detalle)}</div>
+                    <div class='launch-chip-row'><span class='{chip}'>{'Listo' if ok else 'Pendiente'}</span></div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+    with col_r:
+        render_list_card(
+            "Checklist antes de abrir tráfico",
+            [
+                "Rotar claves expuestas antes del lanzamiento.",
+                "Verificar RLS y políticas por usuario en Supabase.",
+                "Probar login, registro, reportes y correo con 3 cuentas reales.",
+                "Definir soporte visible y enlaces legales públicos.",
+            ],
+            "Esto no rompe tu app; solo te ayuda a salir más blindado."
+        )
+        if pendientes:
+            render_list_card("Pendientes detectados", pendientes, "Los faltantes de abajo no tumban la app, pero sí conviene resolverlos antes del lanzamiento abierto.")
+        else:
+            st.success("Zentix ya tiene una base muy sana para una beta pública o lanzamiento controlado.")
 
 
 def obtener_destino_recordatorio(preferencias, fallback_email=""):
@@ -2209,6 +2478,7 @@ def render_editor_movimientos(user_id, df_movs, df_deudas_local):
                         actualizar_movimiento_seguro(selected_id, payload)
                         df_nuevo = obtener_movimientos(user_id)
                         recalcular_deudas_usuario_desde_movimientos(user_id, df_nuevo, obtener_deudas_usuario(user_id))
+                        registrar_evento_producto("movement_updated", user_id=user_id, pagina="Análisis", detalle=f"{tipo_edit} · {categoria_edit}", valor=float(monto_edit))
                         st.session_state["zentix_editor_mode"] = "edit"
                         st.session_state["zentix_open_editor"] = False
                         st.success("Movimiento actualizado correctamente.")
@@ -2226,6 +2496,7 @@ def render_editor_movimientos(user_id, df_movs, df_deudas_local):
                         eliminar_movimiento_seguro(selected_id)
                         df_nuevo = obtener_movimientos(user_id)
                         recalcular_deudas_usuario_desde_movimientos(user_id, df_nuevo, obtener_deudas_usuario(user_id))
+                        registrar_evento_producto("movement_deleted", user_id=user_id, pagina="Análisis", detalle=str(selected_id))
                         st.session_state["zentix_selected_movimiento_id"] = None
                         st.session_state["zentix_editor_mode"] = "edit"
                         st.session_state["zentix_open_editor"] = False
@@ -2712,7 +2983,7 @@ def generar_pdf_reporte_premium(nombre_usuario, plan_nombre, periodicidad, inici
     return buffer.getvalue()
 
 
-def render_reporte_descargable(nombre_usuario, plan_actual, df_base):
+def render_reporte_descargable(nombre_usuario, plan_actual, df_base, user_id=None):
     section_header("Reporte premium imprimible", "Descarga un PDF semanal o mensual listo para imprimir con portada, resumen ejecutivo y firma de marca.")
     with st.expander("🖨️ Generar reporte PDF", expanded=False):
         periodicidad = st.radio("Periodo del reporte", ["Semanal", "Mensual"], horizontal=True, key="reporte_periodicidad")
@@ -2752,7 +3023,9 @@ def render_reporte_descargable(nombre_usuario, plan_actual, df_base):
         pdf_bytes = generar_pdf_reporte_premium(nombre_usuario, plan_actual.get("plan", "free").upper(), periodicidad, inicio_rep, fin_rep, df_periodo, resumen_rep)
         if pdf_bytes:
             filename = f"zentix_reporte_{periodicidad.lower()}_{inicio_rep.strftime('%Y%m%d')}_{fin_rep.strftime('%Y%m%d')}.pdf"
-            st.download_button("Descargar reporte PDF", data=pdf_bytes, file_name=filename, mime="application/pdf", use_container_width=True)
+            descargado = st.download_button("Descargar reporte PDF", data=pdf_bytes, file_name=filename, mime="application/pdf", use_container_width=True)
+            if descargado:
+                registrar_evento_producto("report_download", user_id=user_id, pagina="Análisis", detalle=f"{periodicidad} {inicio_rep} {fin_rep}")
             st.caption("Descarga el PDF y podrás imprimirlo desde tu navegador o visor favorito.")
 def obtener_nombre_meta_guardado(user_id):
     try:
@@ -3792,7 +4065,7 @@ def render_automation_control_center():
         st.code(url_job, language="text")
         st.caption("Puedes usar esta URL desde un cron externo, GitHub Actions o un scheduler para disparar recordatorios sin que nadie abra la app.")
     else:
-        st.info("Para activar el modo background real, agrega APP_BASE_URL y AUTOMATION_JOB_TOKEN en secrets. La app ya quedó preparada para recibir el job seguro.")
+        st.info("Opcional: si algún día quieres recordatorios totalmente en segundo plano, agrega APP_BASE_URL y AUTOMATION_JOB_TOKEN en secrets y conecta un cron externo seguro.")
 
 def render_tutorial_zentix(pagina, nombre, user_id, df_base, meta_actual, preferencias):
     state = obtener_estado_tutorial_usuario(user_id, df_base, meta_actual)
@@ -4570,6 +4843,7 @@ if "user" not in st.session_state:
     st.session_state.user = None
 
 maybe_handle_public_automation_job()
+launch_cfg = obtener_config_lanzamiento()
 
 if st.session_state.user is None:
     with st.sidebar:
@@ -4607,35 +4881,50 @@ if st.session_state.user is None:
             st.image(str(avatar_path), width=210)
 
         st.caption("Zentix te acompaña a entender mejor tu panorama financiero.")
+        render_contexto_lanzamiento_acceso(launch_cfg)
 
     with col_form:
         st.markdown('<div class="login-box">', unsafe_allow_html=True)
         st.markdown('<div class="section-title">Accede a tu cuenta</div>', unsafe_allow_html=True)
         st.markdown('<div class="section-caption">Ingresa o crea tu cuenta para continuar en tu panel personal.</div>', unsafe_allow_html=True)
 
-        choice = st.selectbox("Acceso", ["Login", "Registro"])
+        if launch_cfg.get("app_stage") == "beta":
+            st.info("Zentix está en beta controlada. Puedes abrir o cerrar el registro público desde secrets sin tocar el resto de la app.")
+        elif launch_cfg.get("app_stage") == "public":
+            st.success("La app ya está en modo público. Mantén soporte y textos legales visibles para un lanzamiento más serio.")
+
+        opciones_acceso = ["Login", "Registro"] if launch_cfg.get("allow_public_signup") else ["Login"]
+        choice = st.selectbox("Acceso", opciones_acceso)
         email = st.text_input("Correo")
         password = st.text_input("Contraseña", type="password")
 
         if choice == "Registro":
             if st.button("Crear cuenta", use_container_width=True):
-                try:
-                    supabase.auth.sign_up({"email": email, "password": password})
-                    st.success("Cuenta creada correctamente. Ahora inicia sesión.")
-                except Exception as e:
-                    st.error(f"Error al registrar: {e}")
+                if not launch_cfg.get("allow_public_signup"):
+                    st.warning("El registro público está cerrado en este momento. Escríbenos para pedir acceso.")
+                else:
+                    try:
+                        supabase.auth.sign_up({"email": email, "password": password})
+                        registrar_evento_producto("signup_success", pagina="Acceso", detalle=email)
+                        st.success("Cuenta creada correctamente. Ahora inicia sesión.")
+                    except Exception as e:
+                        registrar_evento_producto("signup_error", pagina="Acceso", detalle=str(e))
+                        st.error(f"Error al registrar: {e}")
 
         if choice == "Login":
             if st.button("Ingresar", use_container_width=True):
                 try:
                     res = supabase.auth.sign_in_with_password({"email": email, "password": password})
                     st.session_state.user = res.user
+                    registrar_evento_producto("login_success", user_id=getattr(res.user, "id", None), pagina="Acceso", detalle=email)
                     st.success("Bienvenido a Zentix")
                     st.rerun()
                 except Exception as e:
+                    registrar_evento_producto("login_error", pagina="Acceso", detalle=str(e))
                     st.error(f"Error al iniciar sesión: {e}")
 
         st.markdown('</div>', unsafe_allow_html=True)
+        render_footer_producto(launch_cfg)
     st.stop()
 
 
@@ -4745,6 +5034,7 @@ with nav5:
 st.markdown("</div>", unsafe_allow_html=True)
 
 pagina = st.session_state.pagina
+track_page_view_once(user_id, pagina)
 
 
 if not perfil or not perfil.get("onboarding_completo", False):
@@ -5260,6 +5550,7 @@ if pagina == "Registrar":
                         if tipo == "Pago de deuda" and deuda_id:
                             actualizar_deuda_pago_seguro(deuda_id, saldo_deuda_actual - float(monto))
 
+                        registrar_evento_producto("movement_created", user_id=user_id, pagina="Registrar", detalle=f"{tipo} · {categoria}", valor=float(monto))
                         st.success("Movimiento guardado correctamente.")
                         st.rerun()
                     except Exception as e:
@@ -5385,7 +5676,7 @@ if pagina == "Análisis":
         )
         render_avatar(pagina, nombre_usuario, total_ingresos, total_gastos, saldo_disponible, ultimo_tipo)
 
-    render_reporte_descargable(nombre_usuario, plan_usuario_actual, df if not df.empty else pd.DataFrame())
+    render_reporte_descargable(nombre_usuario, plan_usuario_actual, df if not df.empty else pd.DataFrame(), user_id=user_id)
 
     section_header("Comparativas y patrones", "Así viene cambiando tu comportamiento financiero.")
     a1, a2, a3 = st.columns(3)
@@ -5673,6 +5964,7 @@ if pagina == "Perfil":
                         "email_contacto": email_contacto,
                         "recordatorio_email": pref_email
                     }, total_ingresos, total_gastos, saldo_disponible)
+                    registrar_evento_producto("test_email_sent" if ok else "test_email_error", user_id=user_id, pagina="Perfil", detalle=detalle)
                     if ok:
                         st.success(detalle)
                     else:
@@ -5680,6 +5972,7 @@ if pagina == "Perfil":
 
             st.info("Zentix ya puede enviar correos automáticos mientras la app corre. Y además quedó preparado para un modo background real por cron externo o scheduler seguro, sin tocar tu UX actual.")
             render_automation_control_center()
+            render_centro_lanzamiento(launch_cfg, plan_usuario_actual)
 
         with st.expander("✨ Plan Free vs Pro", expanded=False):
             st.markdown(
@@ -5732,3 +6025,5 @@ if pagina == "Perfil":
             unsafe_allow_html=True
         )
         render_avatar(pagina, nombre_usuario, total_ingresos, total_gastos, saldo_disponible, ultimo_tipo)
+
+render_footer_producto(launch_cfg)
