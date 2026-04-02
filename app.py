@@ -1518,6 +1518,20 @@ def obtener_config_lanzamiento():
     return cfg
 
 
+def mostrar_paneles_internos():
+    return _leer_secret_bool("SHOW_INTERNAL_PANELS", False)
+
+
+def mostrar_plan_comercial():
+    return _leer_secret_bool("SHOW_PLAN_MARKETING", False)
+
+
+def texto_plan_avatar(plan_actual, consultas_usadas, consultas_limite):
+    if mostrar_plan_comercial():
+        return f"Plan: {plan_actual.get('plan', 'free').upper()} · IA hoy: {consultas_usadas}/{consultas_limite}"
+    return f"IA hoy: {consultas_usadas}/{consultas_limite}"
+
+
 def registrar_evento_producto(evento, user_id=None, pagina="", detalle="", valor=None):
     session_id = st.session_state.get("zentix_session_id")
     if not session_id:
@@ -1575,22 +1589,35 @@ def construir_links_lanzamiento_html(cfg):
 
 
 def render_contexto_lanzamiento_acceso(cfg):
-    etapa = (cfg.get("app_stage") or "beta").upper()
-    acceso = "Registro abierto" if cfg.get("allow_public_signup") else "Registro cerrado"
-    chips = [
-        f"<span class='launch-chip-soft'>{html.escape(etapa)}</span>",
-        f"<span class='launch-chip-{'ok' if cfg.get('allow_public_signup') else 'warn'}'>{html.escape(acceso)}</span>"
-    ]
-    if cfg.get("support_email"):
-        chips.append("<span class='launch-chip-ok'>Soporte listo</span>")
-    if cfg.get("privacy_url") and cfg.get("terms_url"):
-        chips.append("<span class='launch-chip-ok'>Legal visible</span>")
+    if mostrar_paneles_internos():
+        etapa = (cfg.get("app_stage") or "beta").upper()
+        acceso = "Registro abierto" if cfg.get("allow_public_signup") else "Registro cerrado"
+        chips = [
+            f"<span class='launch-chip-soft'>{html.escape(etapa)}</span>",
+            f"<span class='launch-chip-{'ok' if cfg.get('allow_public_signup') else 'warn'}'>{html.escape(acceso)}</span>"
+        ]
+        if cfg.get("support_email"):
+            chips.append("<span class='launch-chip-ok'>Soporte listo</span>")
+        if cfg.get("privacy_url") and cfg.get("terms_url"):
+            chips.append("<span class='launch-chip-ok'>Legal visible</span>")
+        st.markdown(
+            f"""
+            <div class='mini-soft-card fade-up'>
+                <div class='tiny-muted'>Estado público de producto</div>
+                <div style='font-weight:800;font-size:1.02rem;line-height:1.45;'>{html.escape(cfg.get('launch_label') or 'Zentix')}</div>
+                <div class='launch-chip-row'>{''.join(chips)}</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+        return
+
     st.markdown(
-        f"""
+        """
         <div class='mini-soft-card fade-up'>
-            <div class='tiny-muted'>Estado público de producto</div>
-            <div style='font-weight:800;font-size:1.02rem;line-height:1.45;'>{html.escape(cfg.get('launch_label') or 'Zentix')}</div>
-            <div class='launch-chip-row'>{''.join(chips)}</div>
+            <div class='tiny-muted'>Acceso premium</div>
+            <div style='font-weight:800;font-size:1.02rem;line-height:1.45;'>Tu espacio financiero personal ya está listo</div>
+            <div class='tiny-muted' style='margin-top:0.35rem;'>Ingresa con tu correo para probar la experiencia completa de Zentix.</div>
         </div>
         """,
         unsafe_allow_html=True
@@ -1599,14 +1626,30 @@ def render_contexto_lanzamiento_acceso(cfg):
 
 def render_footer_producto(cfg):
     links_html = construir_links_lanzamiento_html(cfg)
-    soporte = html.escape(cfg.get("support_email") or cfg.get("support_label") or "Soporte no configurado")
-    etapa = html.escape((cfg.get("app_stage") or "beta").upper())
+    if mostrar_paneles_internos():
+        soporte = html.escape(cfg.get("support_email") or cfg.get("support_label") or "Soporte no configurado")
+        etapa = html.escape((cfg.get("app_stage") or "beta").upper())
+        extra = f"<div style='margin-top:0.35rem;'>{links_html}</div>" if links_html else ""
+        st.markdown(
+            f"""
+            <div class='legal-footer'>
+                <strong>Zentix</strong> · modo {etapa}.
+                Para soporte: {soporte}.
+                {extra}
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+        return
+
+    soporte_publico = ""
+    if cfg.get("support_email"):
+        soporte_publico = f" · <a href='mailto:{html.escape(cfg['support_email'])}'>Soporte</a>"
     extra = f"<div style='margin-top:0.35rem;'>{links_html}</div>" if links_html else ""
     st.markdown(
         f"""
         <div class='legal-footer'>
-            <strong>Zentix</strong> · modo {etapa}.
-            Para soporte: {soporte}.
+            <strong>Zentix</strong> · Finanzas personales con experiencia premium.{soporte_publico}
             {extra}
         </div>
         """,
@@ -1629,6 +1672,9 @@ def obtener_estado_lanzamiento(cfg, smtp_cfg=None, automation_cfg=None):
 
 
 def render_centro_lanzamiento(cfg, plan_actual):
+    if not mostrar_paneles_internos():
+        return
+
     smtp_cfg = obtener_config_smtp()
     automation_cfg = obtener_automation_runtime_config()
     checks, pendientes = obtener_estado_lanzamiento(cfg, smtp_cfg, automation_cfg)
@@ -4050,6 +4096,9 @@ def render_perfil_spotlight(plan_actual, consultas_usadas, consultas_limite, pre
 
 
 def render_automation_control_center():
+    if not mostrar_paneles_internos():
+        return
+
     cfg = obtener_automation_runtime_config()
     url_job = construir_url_job_recordatorios(limit=25)
     st.markdown(
@@ -4419,7 +4468,7 @@ def render_avatar(pagina, nombre, total_ingresos, total_gastos, ahorro_actual, u
         st.markdown(f'<div class="assistant-text">{mensaje}</div>', unsafe_allow_html=True)
         st.markdown(f'<div class="assistant-mini">{estado}</div>', unsafe_allow_html=True)
         st.markdown(
-            f'<div class="assistant-mini">Plan: {plan_actual.get("plan", "free").upper()} · IA hoy: {consultas_usadas}/{consultas_limite}</div>',
+            f'<div class="assistant-mini">{texto_plan_avatar(plan_actual, consultas_usadas, consultas_limite)}</div>',
             unsafe_allow_html=True
         )
         st.markdown(
@@ -4888,10 +4937,13 @@ if st.session_state.user is None:
         st.markdown('<div class="section-title">Accede a tu cuenta</div>', unsafe_allow_html=True)
         st.markdown('<div class="section-caption">Ingresa o crea tu cuenta para continuar en tu panel personal.</div>', unsafe_allow_html=True)
 
-        if launch_cfg.get("app_stage") == "beta":
-            st.info("Zentix está en beta controlada. Puedes abrir o cerrar el registro público desde secrets sin tocar el resto de la app.")
-        elif launch_cfg.get("app_stage") == "public":
-            st.success("La app ya está en modo público. Mantén soporte y textos legales visibles para un lanzamiento más serio.")
+        if mostrar_paneles_internos():
+            if launch_cfg.get("app_stage") == "beta":
+                st.info("Zentix está en beta controlada. Puedes abrir o cerrar el registro público desde secrets sin tocar el resto de la app.")
+            elif launch_cfg.get("app_stage") == "public":
+                st.success("La app ya está en modo público. Mantén soporte y textos legales visibles para un lanzamiento más serio.")
+        else:
+            st.caption("Ingresa para continuar en tu espacio financiero personal.")
 
         opciones_acceso = ["Login", "Registro"] if launch_cfg.get("allow_public_signup") else ["Login"]
         choice = st.selectbox("Acceso", opciones_acceso)
@@ -5970,40 +6022,47 @@ if pagina == "Perfil":
                     else:
                         st.warning(detalle)
 
-            st.info("Zentix ya puede enviar correos automáticos mientras la app corre. Y además quedó preparado para un modo background real por cron externo o scheduler seguro, sin tocar tu UX actual.")
-            render_automation_control_center()
-            render_centro_lanzamiento(launch_cfg, plan_usuario_actual)
+            st.caption("Activa tus recordatorios, ajusta el horario silencioso y prueba tu correo cuando quieras. Zentix usará estas preferencias para acompañarte sin ser invasivo.")
+            if mostrar_paneles_internos():
+                render_automation_control_center()
+                render_centro_lanzamiento(launch_cfg, plan_usuario_actual)
 
-        with st.expander("✨ Plan Free vs Pro", expanded=False):
-            st.markdown(
-                """
-                <div class="mini-soft-card">
-                    <div style="font-weight:800;margin-bottom:0.35rem;">Free</div>
-                    <div class="tiny-muted">Límite diario de IA, recordatorios suaves, panel premium esencial.</div>
-                </div>
-                <div class="mini-soft-card">
-                    <div style="font-weight:800;margin-bottom:0.35rem;">Pro</div>
-                    <div class="tiny-muted">Más IA, lecturas más profundas, automatizaciones y una experiencia más potente sin ser invasiva.</div>
-                <div class="tiny-muted" style="margin-top:0.35rem;">La app actual ya queda lista para integrarse mejor a jobs externos y modularización futura sin romper el panel.</div>
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
+        if mostrar_plan_comercial():
+            with st.expander("✨ Plan Free vs Pro", expanded=False):
+                st.markdown(
+                    """
+                    <div class="mini-soft-card">
+                        <div style="font-weight:800;margin-bottom:0.35rem;">Free</div>
+                        <div class="tiny-muted">Límite diario de IA, recordatorios suaves, panel premium esencial.</div>
+                    </div>
+                    <div class="mini-soft-card">
+                        <div style="font-weight:800;margin-bottom:0.35rem;">Pro</div>
+                        <div class="tiny-muted">Más IA, lecturas más profundas, automatizaciones y una experiencia más potente sin ser invasiva.</div>
+                    <div class="tiny-muted" style="margin-top:0.35rem;">La app actual ya queda lista para integrarse mejor a jobs externos y modularización futura sin romper el panel.</div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
 
     with col_side:
+        dias_inactividad_publico = resumen_recordatorios_global.get('dias_inactividad')
+        dias_inactividad_txt = 'Aún no aplica' if dias_inactividad_publico is None else str(dias_inactividad_publico)
+        ultimo_mov_publico = resumen_recordatorios_global.get('ultimo_movimiento', 'Sin movimientos') or 'Sin movimientos'
+        sugerencia_publica = resumen_recordatorios_global.get('sugerencia', 'Sin evaluación') or 'Sin evaluación'
+        canal_recordatorios_txt = 'Correo activo' if bool(preferencias_usuario_actual.get('recordatorio_email', False)) else 'Recordatorios pausados'
         st.markdown(
             f"""
             <div class="soft-card">
-                <div class="section-title">Estado del motor de recordatorios</div>
-                <div class="section-caption">Priorizado para correo, con base lista para crecer a SMS.</div>
-                <div class="tiny-muted">Último movimiento</div>
-                <div style="font-weight:800;font-size:1.05rem;">{resumen_recordatorios_global.get('ultimo_movimiento', 'Sin movimientos')}</div>
+                <div class="section-title">Recordatorios inteligentes</div>
+                <div class="section-caption">Zentix te acompaña con tacto, sin volverse invasivo.</div>
+                <div class="tiny-muted">Último registro</div>
+                <div style="font-weight:800;font-size:1.05rem;">{ultimo_mov_publico}</div>
                 <div class="tiny-muted" style="margin-top:0.7rem;">Días sin registrar</div>
-                <div style="font-weight:800;font-size:1.05rem;">{resumen_recordatorios_global.get('dias_inactividad', 'N/A')}</div>
-                <div class="tiny-muted" style="margin-top:0.7rem;">Sugerencia actual</div>
-                <div style="font-weight:700;line-height:1.5;">{resumen_recordatorios_global.get('sugerencia', 'Sin evaluación')}</div>
-                <div class="tiny-muted" style="margin-top:0.7rem;">Motor automático</div>
-                <div style="font-weight:700;line-height:1.5;">{globals().get('estado_recordatorios_automaticos_global', {}).get('detalle', 'Sin evaluación automática')}</div>
+                <div style="font-weight:800;font-size:1.05rem;">{dias_inactividad_txt}</div>
+                <div class="tiny-muted" style="margin-top:0.7rem;">Lectura actual</div>
+                <div style="font-weight:700;line-height:1.5;">{sugerencia_publica}</div>
+                <div class="tiny-muted" style="margin-top:0.7rem;">Canal activo</div>
+                <div style="font-weight:700;line-height:1.5;">{canal_recordatorios_txt}</div>
             </div>
             """,
             unsafe_allow_html=True
