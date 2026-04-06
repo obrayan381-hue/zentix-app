@@ -3,3 +3,5 @@ pandas
 plotly
 openai
 supabase
+reportlab
+pillow
