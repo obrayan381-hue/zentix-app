@@ -11,10 +11,7 @@ import io
 import uuid
 import smtplib
 import ssl
-import base64
-import urllib.parse
 from email.message import EmailMessage
-import streamlit.components.v1 as components
 
 try:
     from reportlab.lib import colors
@@ -1094,81 +1091,106 @@ def aplicar_estilo_zentix():
         text-decoration: underline;
     }
 
-    .stApp, .stMarkdown, p, li, label, .stCaption, .stTextInput label, .stNumberInput label, .stSelectbox label, .stRadio label {
-        font-size: 1.02rem;
-    }
-    .section-title { font-size: 1.22rem; }
-    .section-caption, .tiny-muted, .hero-pill, .kpi-foot, .kpi-label { font-size: 0.95rem; }
-    .kpi-value, .form-preview-value { font-size: 1.8rem; }
-    .stTextInput > label, .stNumberInput > label, .stDateInput > label, .stSelectbox > label, .stRadio > label, .stMultiSelect > label {
-        color: #E2E8F0 !important;
-        font-weight: 700 !important;
-        font-size: 0.98rem !important;
-    }
-    .stTextInput > div > div > input,
-    .stNumberInput input,
-    .stDateInput input,
-    textarea,
-    .stSelectbox div[data-baseweb="select"] > div,
-    .stMultiSelect div[data-baseweb="select"] > div {
-        min-height: 54px !important;
-        font-size: 1rem !important;
-    }
-    .auth-shell {
-        background: radial-gradient(circle at top left, rgba(59,130,246,0.16), transparent 32%), linear-gradient(180deg, rgba(10,14,24,0.98), rgba(10,18,32,0.98));
-        border: 1px solid rgba(96,165,250,0.18);
-        border-radius: 28px;
-        padding: 1.3rem;
-        box-shadow: 0 20px 40px rgba(0,0,0,0.28);
-    }
-    .auth-step-card {
-        background: rgba(15,23,42,0.76);
-        border: 1px solid rgba(148,163,184,0.14);
-        border-radius: 20px;
-        padding: 0.95rem 1rem;
-        margin-bottom: 0.8rem;
-    }
-    .auth-step-title { font-size: 1rem; font-weight: 900; color: #F8FAFC; }
-    .auth-step-copy { color: #CBD5E1; font-size: 0.92rem; line-height: 1.6; }
-    .premium-floating-guide {
-        position: fixed;
-        right: 1rem;
-        bottom: 1rem;
-        z-index: 9998;
-        width: min(420px, calc(100vw - 2rem));
-        background: linear-gradient(135deg, rgba(8,15,28,0.98), rgba(15,23,42,0.98));
-        border: 1px solid rgba(96,165,250,0.22);
-        border-radius: 24px;
-        box-shadow: 0 22px 48px rgba(0,0,0,0.36);
-        padding: 1rem;
-    }
-    .premium-floating-guide-title { font-size: 1.02rem; font-weight: 900; color: #F8FAFC; }
-    .premium-floating-guide-copy { color: #CBD5E1; font-size: 0.93rem; line-height: 1.6; margin-top: 0.25rem; }
-    .limit-card-premium {
-        background: linear-gradient(180deg, rgba(12,20,36,0.84), rgba(10,18,32,0.96));
-        border: 1px solid rgba(245,158,11,0.22);
-        border-radius: 22px;
-        padding: 1rem 1.05rem;
-        margin-bottom: 1rem;
-        box-shadow: 0 14px 30px rgba(0,0,0,0.22);
-    }
-    .metric-income { color: #4ADE80 !important; }
-    .metric-expense { color: #F87171 !important; }
-    .metric-debt { color: #93C5FD !important; }
-    .metric-pay { color: #FCD34D !important; }
-    .report-preview-shell {
-        background: linear-gradient(180deg, rgba(12,20,36,0.88), rgba(10,18,32,0.98));
-        border: 1px solid rgba(96,165,250,0.16);
-        border-radius: 24px;
-        padding: 1rem;
-        margin-top: 0.9rem;
-    }
-    .sidebar-nav-note { color: #94A3B8; font-size: 0.84rem; line-height: 1.5; margin-top: 0.35rem; }
-    [data-testid="collapsedControl"] { display: none !important; }
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     </style>
     """, unsafe_allow_html=True)
+
+
+def forzar_sidebar_abierto():
+    st.markdown("""
+    <style>
+    @media (min-width: 769px) {
+        [data-testid="collapsedControl"] {
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+        }
+
+        button[kind="header"] {
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+        }
+
+        [data-testid="stSidebar"] {
+            min-width: 320px !important;
+            width: 320px !important;
+            max-width: 320px !important;
+        }
+
+        section[data-testid="stSidebar"] {
+            transform: translateX(0%) !important;
+            margin-left: 0 !important;
+        }
+
+        section[data-testid="stSidebar"][aria-expanded="false"] {
+            transform: translateX(0%) !important;
+            min-width: 320px !important;
+            width: 320px !important;
+            max-width: 320px !important;
+            margin-left: 0 !important;
+        }
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+    components.html(
+        """
+        <script>
+        (function () {
+            const SIDEBAR_WIDTH = "320px";
+
+            function forceSidebarOpen() {
+                const doc = window.parent.document;
+                const sidebar = doc.querySelector('section[data-testid="stSidebar"]');
+                if (!sidebar) return;
+
+                const collapsedControl = doc.querySelector('[data-testid="collapsedControl"]');
+                const headerButton = doc.querySelector('button[kind="header"]');
+                const isMobile = window.parent.innerWidth < 769;
+
+                const expanded = sidebar.getAttribute("aria-expanded");
+                const isClosed = expanded === "false" || sidebar.offsetWidth < 180;
+
+                if (isClosed && collapsedControl) {
+                    try { collapsedControl.click(); } catch (e) {}
+                }
+
+                if (isClosed && headerButton) {
+                    try { headerButton.click(); } catch (e) {}
+                }
+
+                if (!isMobile) {
+                    sidebar.style.transform = "translateX(0)";
+                    sidebar.style.minWidth = SIDEBAR_WIDTH;
+                    sidebar.style.width = SIDEBAR_WIDTH;
+                    sidebar.style.maxWidth = SIDEBAR_WIDTH;
+                    sidebar.setAttribute("aria-expanded", "true");
+                }
+            }
+
+            forceSidebarOpen();
+            setTimeout(forceSidebarOpen, 250);
+            setTimeout(forceSidebarOpen, 900);
+            setTimeout(forceSidebarOpen, 1800);
+
+            const observer = new MutationObserver(() => forceSidebarOpen());
+            if (window.parent.document.body) {
+                observer.observe(window.parent.document.body, {
+                    childList: true,
+                    subtree: true,
+                    attributes: true
+                });
+            }
+        })();
+        </script>
+        """,
+        height=0,
+        width=0,
+    )
 
 
 def money(value):
@@ -4707,6 +4729,7 @@ def obtener_categoria_top(df_mes):
 
 
 aplicar_estilo_zentix()
+forzar_sidebar_abierto()
 
 
 def obtener_movimientos(user_id):
@@ -4951,275 +4974,6 @@ def maybe_handle_public_automation_job():
     st.stop()
     return True
 
-
-def resetear_contrasena_supabase(email):
-    email = str(email or "").strip()
-    if not email:
-        return False, "Escribe tu correo para enviarte el enlace de recuperación."
-    try:
-        redirect_to = _leer_secret_texto("RESET_PASSWORD_REDIRECT", _leer_secret_texto("APP_BASE_URL", "")) or None
-        kwargs = {"email": email}
-        if redirect_to:
-            kwargs["options"] = {"redirect_to": redirect_to}
-        supabase.auth.reset_password_email(**kwargs)
-        return True, "Te enviamos un enlace para cambiar tu contraseña. Revisa tu correo."
-    except Exception as e:
-        return False, f"No pude enviar el correo de recuperación: {e}"
-
-
-def obtener_limites_categoria_usuario(user_id):
-    columnas = ["id", "usuario_id", "categoria", "limite_mensual", "activo", "creado_en", "actualizado_en"]
-    try:
-        result = (
-            supabase.table("limites_categoria")
-            .select("*")
-            .eq("usuario_id", user_id)
-            .order("categoria")
-            .execute()
-        )
-        data = result.data if result.data else []
-    except Exception:
-        data = []
-    df_local = pd.DataFrame(data)
-    for col in columnas:
-        if col not in df_local.columns:
-            df_local[col] = None
-    if not df_local.empty:
-        df_local["limite_mensual"] = pd.to_numeric(df_local["limite_mensual"], errors="coerce").fillna(0)
-        df_local["activo"] = df_local["activo"].fillna(True).astype(bool)
-    return df_local
-
-
-def guardar_limite_categoria_seguro(user_id, categoria, limite_mensual, activo=True):
-    payload = {
-        "usuario_id": user_id,
-        "categoria": str(categoria or "").strip(),
-        "limite_mensual": float(limite_mensual or 0),
-        "activo": bool(activo),
-        "actualizado_en": datetime.now().isoformat()
-    }
-    if not payload["categoria"]:
-        return None
-    try:
-        return supabase.table("limites_categoria").upsert(payload, on_conflict="usuario_id,categoria").execute()
-    except Exception:
-        try:
-            existe = (
-                supabase.table("limites_categoria")
-                .select("id")
-                .eq("usuario_id", user_id)
-                .eq("categoria", payload["categoria"])
-                .limit(1)
-                .execute()
-            )
-            if existe.data:
-                return (
-                    supabase.table("limites_categoria")
-                    .update(payload)
-                    .eq("usuario_id", user_id)
-                    .eq("categoria", payload["categoria"])
-                    .execute()
-                )
-            payload["creado_en"] = datetime.now().isoformat()
-            return supabase.table("limites_categoria").insert(payload).execute()
-        except Exception:
-            return None
-
-
-def eliminar_limite_categoria_seguro(user_id, categoria):
-    try:
-        return (
-            supabase.table("limites_categoria")
-            .delete()
-            .eq("usuario_id", user_id)
-            .eq("categoria", str(categoria or "").strip())
-            .execute()
-        )
-    except Exception:
-        return None
-
-
-def evaluar_limite_categoria(df_mes_actual, categoria, monto_nuevo=0.0):
-    if df_mes_actual is None or df_mes_actual.empty:
-        actual = 0.0
-    else:
-        actual = float(df_mes_actual[(df_mes_actual["tipo"] == "Gasto") & (df_mes_actual["categoria"] == categoria)]["monto"].sum())
-    total = actual + float(monto_nuevo or 0)
-    return actual, total
-
-
-def render_limites_categoria(user_id, plan_actual, df_mes_actual):
-    plan_name = str((plan_actual or {}).get("plan", "free") or "free").lower()
-    premium = plan_name in {"pro", "premium", "paid", "plus"}
-    st.markdown("<div class='limit-card-premium'><div class='section-title'>Límites por categoría</div><div class='section-caption'>Define techos por categoría para que Zentix te avise cuando estés por pasarte.</div></div>", unsafe_allow_html=True)
-    if not premium:
-        st.info("Esta opción queda perfecta para tu versión premium paga. La dejé preparada para activarse cuando el plan sea PRO/PREMIUM.")
-        return
-
-    categorias = sorted(set(obtener_categorias_usuario(user_id, "Gasto")))
-    if not categorias:
-        st.info("Primero configura o registra categorías de gasto.")
-        return
-
-    with st.expander("Configurar límites mensuales", expanded=False):
-        col1, col2 = st.columns([1.1, 0.9])
-        with col1:
-            categoria_sel = st.selectbox("Categoría a limitar", categorias, key="limit_categoria_sel")
-        with col2:
-            limite_sel = st.number_input("Límite mensual", min_value=0.0, step=1000.0, key="limit_categoria_monto")
-        activo_sel = st.checkbox("Límite activo", value=True, key="limit_categoria_activo")
-        if st.button("Guardar límite", key="guardar_limite_categoria", use_container_width=True, type="primary"):
-            resp = guardar_limite_categoria_seguro(user_id, categoria_sel, limite_sel, activo_sel)
-            if resp is not None:
-                st.success("Límite guardado correctamente.")
-                st.rerun()
-            st.error("No pude guardar el límite. Si la tabla aún no existe, créala en Supabase.")
-
-    df_limites = obtener_limites_categoria_usuario(user_id)
-    if df_limites.empty:
-        st.caption("Todavía no has creado límites.")
-        return
-
-    for _, row in df_limites.iterrows():
-        actual, proyectado = evaluar_limite_categoria(df_mes_actual if df_mes_actual is not None else pd.DataFrame(), row.get("categoria", ""), 0)
-        ratio = (actual / float(row.get("limite_mensual", 0) or 1)) if float(row.get("limite_mensual", 0) or 0) > 0 else 0
-        st.markdown(f"""
-        <div class='mini-soft-card'>
-            <div style='display:flex;justify-content:space-between;gap:0.8rem;align-items:center;'>
-                <div>
-                    <div style='font-weight:800;font-size:1rem;'>{row.get('categoria','Sin categoría')}</div>
-                    <div class='tiny-muted'>Usado este mes: {money(actual)} de {money(row.get('limite_mensual',0))}</div>
-                </div>
-                <div class='tiny-muted'>{'Activo' if bool(row.get('activo', True)) else 'Pausado'}</div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-        st.progress(float(max(0.0, min(ratio, 1.0))))
-        if ratio >= 1:
-            st.error(f"Ya superaste el límite de {row.get('categoria')}.")
-        elif ratio >= 0.8:
-            st.warning(f"Vas en {ratio*100:.0f}% del límite de {row.get('categoria')}.")
-        if st.button(f"Eliminar límite · {row.get('categoria')}", key=f"delete_limit_{row.get('categoria')}", use_container_width=True, type="secondary"):
-            eliminar_limite_categoria_seguro(user_id, row.get('categoria'))
-            st.rerun()
-
-
-def obtener_mensajes_bienvenida(nombre):
-    nombre = nombre or ""
-    return [
-        f"Hola {nombre}, soy Zentix. Aquí vas a controlar tu dinero con una vista más limpia y premium.",
-        "En Inicio encuentras tus KPIs, tus alertas y una lectura rápida de tu mes.",
-        "En Registrar puedes guardar ingresos, gastos, deudas y pagos sin enredarte.",
-        "En Análisis ves reportes e indicadores solo cuando tú quieras abrirlos.",
-        "En Ahorro y Perfil podrás afinar metas, recordatorios y límites premium por categoría."
-    ]
-
-
-def render_bienvenida_flotante(nombre, pagina_actual):
-    if st.session_state.get("zentix_guide_hidden"):
-        return
-    mensajes = obtener_mensajes_bienvenida(nombre)
-    idx = int(st.session_state.get("zentix_guide_step", 0) or 0)
-    idx = max(0, min(idx, len(mensajes)-1))
-    avatar_html = f"<img src='data:image/png;base64,{base64.b64encode(Path(avatar_path).read_bytes()).decode()}' style='width:64px;height:64px;border-radius:16px;object-fit:cover;'/>" if avatar_path.exists() else ""
-    st.markdown(f"""
-    <div class='premium-floating-guide'>
-        <div style='display:flex;gap:0.85rem;align-items:flex-start;'>
-            <div>{avatar_html}</div>
-            <div style='flex:1;'>
-                <div class='premium-floating-guide-title'>Zentix te guía</div>
-                <div class='premium-floating-guide-copy'>{mensajes[idx]}</div>
-                <div class='tiny-muted' style='margin-top:0.45rem;'>Paso {idx+1} de {len(mensajes)} · pantalla actual: {pagina_actual}</div>
-            </div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-    c1, c2, c3 = st.columns([1,1,1])
-    with c1:
-        if st.button("Mensaje siguiente", key=f"guide_next_{pagina_actual}", use_container_width=True, type="primary"):
-            st.session_state["zentix_guide_step"] = (idx + 1) % len(mensajes)
-            st.rerun()
-    with c2:
-        if st.button("Ocultar por ahora", key=f"guide_hide_{pagina_actual}", use_container_width=True, type="secondary"):
-            st.session_state["zentix_guide_hidden"] = True
-            st.rerun()
-    with c3:
-        if st.button("Reiniciar guía", key=f"guide_reset_{pagina_actual}", use_container_width=True, type="secondary"):
-            st.session_state["zentix_guide_step"] = 0
-            st.session_state["zentix_guide_hidden"] = False
-            st.rerun()
-
-
-def render_reporte_preview_modal(pdf_bytes, filename, titulo="Reporte premium Zentix"):
-    if not pdf_bytes:
-        return
-    b64 = base64.b64encode(pdf_bytes).decode("utf-8")
-    data_uri = f"data:application/pdf;base64,{b64}"
-    texto_compartir = urllib.parse.quote(f"Te comparto mi reporte premium de Zentix: {filename}. Descárgalo desde la app.")
-    mailto = f"mailto:?subject={urllib.parse.quote(titulo)}&body={texto_compartir}"
-    whatsapp = f"https://wa.me/?text={texto_compartir}"
-    html_block = f"""
-    <div style='background:#0b1220;border:1px solid rgba(96,165,250,.18);border-radius:20px;padding:12px;'>
-        <div style='display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;'>
-            <button onclick="window.open('{data_uri}','_blank')" style='background:#1d4ed8;color:white;border:none;border-radius:12px;padding:10px 14px;font-weight:700;cursor:pointer;'>Abrir en grande</button>
-            <button onclick="var w=window.open('{data_uri}','_blank'); setTimeout(function(){{ try{{w.print();}}catch(e){{}} }}, 900);" style='background:#0f766e;color:white;border:none;border-radius:12px;padding:10px 14px;font-weight:700;cursor:pointer;'>Imprimir</button>
-            <a href='{whatsapp}' target='_blank' style='background:#14532d;color:white;text-decoration:none;border-radius:12px;padding:10px 14px;font-weight:700;'>Compartir por WhatsApp</a>
-            <a href='{mailto}' style='background:#7c3aed;color:white;text-decoration:none;border-radius:12px;padding:10px 14px;font-weight:700;'>Compartir por correo</a>
-        </div>
-        <iframe src='{data_uri}' width='100%' height='780' style='border:none;border-radius:16px;background:#fff;'></iframe>
-    </div>
-    """
-    components.html(html_block, height=860, scrolling=True)
-
-
-def render_reportes_compactos(nombre_usuario, plan_actual, df_base, user_id=None):
-    section_header("Reportes premium", "Ábrelos solo cuando quieras para mantener la experiencia más limpia y menos saturada.")
-    tabs = st.tabs(["Diario", "Semanal", "Mensual"])
-    mapping = {"Diario": "Diario", "Semanal": "Semanal", "Mensual": "Mensual"}
-    for tab_name, tab in zip(["Diario", "Semanal", "Mensual"], tabs):
-        with tab:
-            fecha_ref = st.date_input(f"Fecha de referencia · {tab_name}", value=date.today(), key=f"reporte_fecha_ref_{tab_name}")
-            if tab_name == "Diario":
-                inicio_rep = fecha_ref
-                fin_rep = fecha_ref
-                if df_base is None or df_base.empty:
-                    df_periodo = pd.DataFrame()
-                else:
-                    df_periodo = df_base.copy()
-                    df_periodo["fecha"] = pd.to_datetime(df_periodo["fecha"], errors="coerce").dt.date
-                    df_periodo = df_periodo[df_periodo["fecha"] == fecha_ref].copy()
-            else:
-                df_periodo, inicio_rep, fin_rep = obtener_movimientos_periodo(df_base if df_base is not None else pd.DataFrame(), tab_name, fecha_ref)
-            resumen_rep = resumir_periodo_movimientos(df_periodo)
-            c1, c2, c3, c4 = st.columns(4)
-            with c1:
-                render_spotlight_metric("Movimientos", str(resumen_rep.get("conteo", 0)), "Incluidos")
-            with c2:
-                render_spotlight_metric("Ingresos", money(resumen_rep.get("ingresos", 0)), "Reales")
-            with c3:
-                render_spotlight_metric("Gastos", money(resumen_rep.get("gastos", 0)), "Operativos")
-            with c4:
-                render_spotlight_metric("Balance", money(resumen_rep.get("balance", 0)), "Neto")
-            if df_periodo is None or df_periodo.empty:
-                st.info(f"No hay movimientos para el reporte {tab_name.lower()}.")
-                continue
-            preview = df_periodo.copy().sort_values("fecha", ascending=False).head(10)
-            if "fecha" in preview.columns:
-                preview["fecha"] = pd.to_datetime(preview["fecha"], errors="coerce").dt.strftime("%Y-%m-%d")
-            cols = [c for c in ["fecha", "tipo", "categoria", "monto", "descripcion", "deuda_nombre", "prestamista"] if c in preview.columns]
-            st.dataframe(preview[cols], use_container_width=True)
-            if not REPORTLAB_AVAILABLE:
-                st.warning("Instala reportlab para habilitar la vista previa premium del reporte.")
-                continue
-            pdf_bytes = generar_pdf_reporte_premium(nombre_usuario, plan_actual.get("plan", "free").upper(), tab_name, inicio_rep, fin_rep, df_periodo, resumen_rep)
-            filename = f"zentix_reporte_{tab_name.lower()}_{inicio_rep.strftime('%Y%m%d')}_{fin_rep.strftime('%Y%m%d')}.pdf"
-            abrir = st.toggle(f"Abrir vista previa premium · {tab_name}", key=f"toggle_preview_{tab_name}")
-            st.download_button(f"Descargar PDF · {tab_name}", data=pdf_bytes, file_name=filename, mime="application/pdf", use_container_width=True)
-            if abrir and pdf_bytes:
-                st.markdown("<div class='report-preview-shell'><div class='section-title'>Vista previa y acciones premium</div><div class='section-caption'>Puedes previsualizar, imprimir o compartir el reporte desde aquí. En WhatsApp o correo la app abre el mensaje; el adjunto se termina de mandar desde tu dispositivo.</div></div>", unsafe_allow_html=True)
-                render_reporte_preview_modal(pdf_bytes, filename, titulo=f"Reporte {tab_name} Zentix")
-                registrar_evento_producto("report_preview_open", user_id=user_id, pagina="Análisis", detalle=f"{tab_name} {inicio_rep} {fin_rep}")
-
 def obtener_meta(user_id):
     result = (
         supabase.table("ahorro_meta")
@@ -5245,86 +4999,78 @@ if st.session_state.user is None:
                 st.image(str(icono_path), width=58)
         with col_sb_text:
             st.markdown('<div class="sidebar-brand-title">ZENTIX</div>', unsafe_allow_html=True)
-            st.markdown('<div class="sidebar-brand-sub">Registro primero · login después</div>', unsafe_allow_html=True)
-        st.markdown("<div class='sidebar-nav-note'>Empieza creando tu cuenta si eres nuevo. Si ya la tienes, entra con login. La navegación principal siempre irá por esta barra lateral.</div>", unsafe_allow_html=True)
+            st.markdown('<div class="sidebar-brand-sub">Acceso seguro</div>', unsafe_allow_html=True)
 
-    col_hero, col_form = st.columns([1.1, 1.0])
+    col_hero, col_form = st.columns([1.2, 0.95])
+
     with col_hero:
-        st.markdown("""
+        st.markdown(
+            """
             <div class="hero-card">
-                <div class="hero-badge">Experiencia premium · simple desde el primer segundo</div>
-                <div class="hero-title">Primero regístrate. Luego entra a tu panel.</div>
+                <div class="hero-badge">Finanzas personales · claridad total</div>
+                <div class="hero-title">Toma el control de tu dinero</div>
                 <div class="hero-subtitle">
-                    Reordené el acceso para que sea más lógico: si eres nuevo, crea tu cuenta; si ya existe, usa login. También dejé recuperación de contraseña integrada.
+                    Registra movimientos, analiza tus hábitos y construye un ahorro más sólido desde un solo lugar.
                 </div>
                 <div class="hero-pills">
-                    <span class="hero-pill">Registro guiado</span>
-                    <span class="hero-pill">Login claro</span>
-                    <span class="hero-pill">Recuperación de contraseña</span>
-                    <span class="hero-pill">Diseño mobile premium</span>
+                    <span class="hero-pill">Control diario</span>
+                    <span class="hero-pill">Análisis visual</span>
+                    <span class="hero-pill">Metas de ahorro</span>
+                    <span class="hero-pill">Todo en un panel</span>
                 </div>
             </div>
-        """, unsafe_allow_html=True)
+            """,
+            unsafe_allow_html=True
+        )
+
         if avatar_path.exists():
-            st.image(str(avatar_path), width=220)
-        st.markdown("<div class='auth-step-card'><div class='auth-step-title'>Cómo entrar</div><div class='auth-step-copy'>1. Regístrate si eres nuevo. 2. Revisa tu correo si tu configuración lo confirma. 3. Luego entra con login. 4. Si olvidas tu clave, usa recuperación.</div></div>", unsafe_allow_html=True)
+            st.image(str(avatar_path), width=210)
+
+        st.caption("Zentix te acompaña a entender mejor tu panorama financiero.")
         render_contexto_lanzamiento_acceso(launch_cfg)
 
     with col_form:
-        st.markdown('<div class="auth-shell">', unsafe_allow_html=True)
-        st.markdown('<div class="section-title">Acceso premium</div>', unsafe_allow_html=True)
-        st.markdown('<div class="section-caption">Dejé el flujo mucho más lógico y directo para que no se sienta pesado.</div>', unsafe_allow_html=True)
-        tab_reg, tab_login, tab_reset = st.tabs(["Registro", "Login", "Recuperar contraseña"])
+        st.markdown('<div class="login-box">', unsafe_allow_html=True)
+        st.markdown('<div class="section-title">Accede a tu cuenta</div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-caption">Ingresa o crea tu cuenta para continuar en tu panel personal.</div>', unsafe_allow_html=True)
 
-        with tab_reg:
-            st.markdown("<div class='auth-step-card'><div class='auth-step-title'>¿Eres nuevo?</div><div class='auth-step-copy'>Regístrate primero. Apenas termines, usa Login aquí mismo para entrar a tu panel.</div></div>", unsafe_allow_html=True)
-            reg_email = st.text_input("Correo para registro", key="reg_email")
-            reg_password = st.text_input("Contraseña para registro", type="password", key="reg_password")
-            reg_password_2 = st.text_input("Confirma tu contraseña", type="password", key="reg_password_2")
-            if st.button("Crear cuenta premium", key="btn_registro_premium", use_container_width=True, type="primary"):
+        if mostrar_paneles_internos():
+            if launch_cfg.get("app_stage") == "beta":
+                st.info("Zentix está en beta controlada. Puedes abrir o cerrar el registro público desde secrets sin tocar el resto de la app.")
+            elif launch_cfg.get("app_stage") == "public":
+                st.success("La app ya está en modo público. Mantén soporte y textos legales visibles para un lanzamiento más serio.")
+        else:
+            st.caption("Ingresa para continuar en tu espacio financiero personal.")
+
+        opciones_acceso = ["Login", "Registro"] if launch_cfg.get("allow_public_signup") else ["Login"]
+        choice = st.selectbox("Acceso", opciones_acceso)
+        email = st.text_input("Correo")
+        password = st.text_input("Contraseña", type="password")
+
+        if choice == "Registro":
+            if st.button("Crear cuenta", use_container_width=True):
                 if not launch_cfg.get("allow_public_signup"):
-                    st.warning("El registro público está cerrado en este momento.")
-                elif not reg_email.strip():
-                    st.error("Escribe tu correo.")
-                elif len(reg_password or "") < 6:
-                    st.error("La contraseña debe tener al menos 6 caracteres.")
-                elif reg_password != reg_password_2:
-                    st.error("Las contraseñas no coinciden.")
+                    st.warning("El registro público está cerrado en este momento. Escríbenos para pedir acceso.")
                 else:
                     try:
-                        supabase.auth.sign_up({"email": reg_email.strip(), "password": reg_password})
-                        registrar_evento_producto("signup_success", pagina="Acceso", detalle=reg_email.strip())
-                        st.success("Cuenta creada. Ahora entra desde la pestaña Login.")
+                        supabase.auth.sign_up({"email": email, "password": password})
+                        registrar_evento_producto("signup_success", pagina="Acceso", detalle=email)
+                        st.success("Cuenta creada correctamente. Ahora inicia sesión.")
                     except Exception as e:
                         registrar_evento_producto("signup_error", pagina="Acceso", detalle=str(e))
                         st.error(f"Error al registrar: {e}")
 
-        with tab_login:
-            st.markdown("<div class='auth-step-card'><div class='auth-step-title'>¿Ya tienes cuenta?</div><div class='auth-step-copy'>Perfecto. Haz login y Zentix te llevará directo a tu panel. Si es tu primera entrada, verás la guía corta del avatar.</div></div>", unsafe_allow_html=True)
-            login_email = st.text_input("Correo", key="login_email")
-            login_password = st.text_input("Contraseña", type="password", key="login_password")
-            if st.button("Entrar a Zentix", key="btn_login_premium", use_container_width=True, type="primary"):
+        if choice == "Login":
+            if st.button("Ingresar", use_container_width=True):
                 try:
-                    res = supabase.auth.sign_in_with_password({"email": login_email.strip(), "password": login_password})
+                    res = supabase.auth.sign_in_with_password({"email": email, "password": password})
                     st.session_state.user = res.user
-                    st.session_state["zentix_guide_hidden"] = False
-                    st.session_state["zentix_guide_step"] = 0
-                    registrar_evento_producto("login_success", user_id=getattr(res.user, "id", None), pagina="Acceso", detalle=login_email.strip())
-                    st.success("Bienvenido a Zentix.")
+                    registrar_evento_producto("login_success", user_id=getattr(res.user, "id", None), pagina="Acceso", detalle=email)
+                    st.success("Bienvenido a Zentix")
                     st.rerun()
                 except Exception as e:
                     registrar_evento_producto("login_error", pagina="Acceso", detalle=str(e))
                     st.error(f"Error al iniciar sesión: {e}")
-
-        with tab_reset:
-            st.markdown("<div class='auth-step-card'><div class='auth-step-title'>¿Olvidaste tu contraseña?</div><div class='auth-step-copy'>Escribe tu correo y Zentix te enviará el enlace para cambiarla.</div></div>", unsafe_allow_html=True)
-            reset_email = st.text_input("Correo para recuperación", key="reset_email")
-            if st.button("Enviar enlace de recuperación", key="btn_reset_password", use_container_width=True, type="secondary"):
-                ok, detalle = resetear_contrasena_supabase(reset_email)
-                if ok:
-                    st.success(detalle)
-                else:
-                    st.error(detalle)
 
         st.markdown('</div>', unsafe_allow_html=True)
         render_footer_producto(launch_cfg)
@@ -5353,7 +5099,7 @@ with st.sidebar:
             st.image(str(icono_path), width=58)
     with col_sb_text:
         st.markdown('<div class="sidebar-brand-title">ZENTIX</div>', unsafe_allow_html=True)
-        st.markdown('<div class="sidebar-brand-sub">Menú principal fijo</div>', unsafe_allow_html=True)
+        st.markdown('<div class="sidebar-brand-sub">Panel personal</div>', unsafe_allow_html=True)
 
     st.markdown(
         f"""
@@ -5378,7 +5124,6 @@ with st.sidebar:
     )
 
     st.markdown("### Navegación")
-    st.caption("Todo el flujo principal quedó en este panel lateral para que en celular y escritorio se sienta más limpio.")
     pagina_sidebar = st.radio(
         "Ir a",
         paginas_disponibles,
@@ -5391,9 +5136,54 @@ with st.sidebar:
         st.session_state.user = None
         st.rerun()
 
+st.markdown(
+    """
+    <div class="sticky-top-shell fade-up">
+        <div class="section-title" style="margin-top:0.05rem;">Navegación rápida</div>
+        <div class="section-caption">
+            Si el panel lateral se colapsa en Streamlit Cloud, usa estos accesos rápidos.
+        </div>
+    """,
+    unsafe_allow_html=True
+)
+
+tipo_inicio = "primary" if st.session_state.pagina == "Inicio" else "secondary"
+tipo_registrar = "primary" if st.session_state.pagina == "Registrar" else "secondary"
+tipo_analisis = "primary" if st.session_state.pagina == "Análisis" else "secondary"
+tipo_ahorro = "primary" if st.session_state.pagina == "Ahorro" else "secondary"
+tipo_perfil = "primary" if st.session_state.pagina == "Perfil" else "secondary"
+
+nav1, nav2, nav3, nav4, nav5 = st.columns(5)
+
+with nav1:
+    if st.button("Inicio", key="nav_inicio_top", use_container_width=True, type=tipo_inicio):
+        st.session_state.pagina = "Inicio"
+        st.rerun()
+
+with nav2:
+    if st.button("Registrar", key="nav_registrar_top", use_container_width=True, type=tipo_registrar):
+        st.session_state.pagina = "Registrar"
+        st.rerun()
+
+with nav3:
+    if st.button("Análisis", key="nav_analisis_top", use_container_width=True, type=tipo_analisis):
+        st.session_state.pagina = "Análisis"
+        st.rerun()
+
+with nav4:
+    if st.button("Ahorro", key="nav_ahorro_top", use_container_width=True, type=tipo_ahorro):
+        st.session_state.pagina = "Ahorro"
+        st.rerun()
+
+with nav5:
+    if st.button("Perfil", key="nav_perfil_top", use_container_width=True, type=tipo_perfil):
+        st.session_state.pagina = "Perfil"
+        st.rerun()
+
+st.markdown("</div>", unsafe_allow_html=True)
+
 pagina = st.session_state.pagina
 track_page_view_once(user_id, pagina)
-render_bienvenida_flotante(nombre_usuario, pagina)
 
 
 if not perfil or not perfil.get("onboarding_completo", False):
@@ -5403,7 +5193,7 @@ if not perfil or not perfil.get("onboarding_completo", False):
             <div class="hero-badge">Onboarding inicial</div>
             <div class="hero-title">Configura tu experiencia Zentix</div>
             <div class="hero-subtitle">
-                Define cómo quieres que te llame Zentix y selecciona tus categorías principales para personalizar tu registro financiero. Desde aquí ya arranca una guía más clara y premium.
+                Define cómo quieres que te llame Zentix y selecciona tus categorías principales para personalizar tu registro financiero.
             </div>
         </div>
         """,
@@ -5848,18 +5638,6 @@ if pagina == "Registrar":
                     errores.append("El monto debe ser mayor que 0.")
                 if tipo == "Ingreso (Deuda)" and not deuda_nombre.strip():
                     errores.append("Escribe un nombre para la deuda.")
-                if tipo == "Gasto":
-                    try:
-                        df_limites_eval = obtener_limites_categoria_usuario(user_id)
-                        if not df_limites_eval.empty and str(plan_usuario_actual.get("plan", "free")).lower() in {"pro", "premium", "paid", "plus"}:
-                            fila_lim = df_limites_eval[(df_limites_eval["categoria"] == categoria) & (df_limites_eval["activo"] == True)]
-                            if not fila_lim.empty:
-                                limite_val = float(fila_lim.iloc[0]["limite_mensual"] or 0)
-                                _, proyectado = evaluar_limite_categoria(df_mes if not df_mes.empty else pd.DataFrame(), categoria, float(monto or 0))
-                                if limite_val > 0 and proyectado > limite_val:
-                                    errores.append(f"Este gasto dejaría {categoria} en {money(proyectado)}, por encima de tu límite premium de {money(limite_val)}.")
-                    except Exception:
-                        pass
                 if tipo == "Ingreso (Deuda)" and not prestamista.strip():
                     errores.append("Indica quién prestó.")
                 if tipo == "Pago de deuda" and not deuda_id:
@@ -6047,25 +5825,23 @@ if pagina == "Análisis":
         )
         render_avatar(pagina, nombre_usuario, total_ingresos, total_gastos, saldo_disponible, ultimo_tipo)
 
-    render_reportes_compactos(nombre_usuario, plan_usuario_actual, df if not df.empty else pd.DataFrame(), user_id=user_id)
+    render_reporte_descargable(nombre_usuario, plan_usuario_actual, df if not df.empty else pd.DataFrame(), user_id=user_id)
 
-    with st.expander("Comparativas y patrones", expanded=False):
-        section_header("Comparativas y patrones", "Así viene cambiando tu comportamiento financiero.")
-        a1, a2, a3 = st.columns(3)
-        with a1:
-            render_list_card("Comparativa semanal", [f"Gasto: {money_delta(comparativa_periodos.get('gasto_semana_pct', 0.0))}", f"Ingreso: {money_delta(comparativa_periodos.get('ingreso_semana_pct', 0.0))}"], "Semana actual vs anterior.")
-        with a2:
-            render_list_card("Comparativa mensual", [f"Gasto: {money_delta(comparativa_periodos.get('gasto_mes_pct', 0.0))}", f"Ingreso: {money_delta(comparativa_periodos.get('ingreso_mes_pct', 0.0))}"], "Mes actual vs anterior.")
-        with a3:
-            render_list_card("Patrones detectados", patrones_comportamiento + [f"Deudas activas: {deudas_activas_global}"], "Zentix busca hábitos que explican tu comportamiento.")
+    section_header("Comparativas y patrones", "Así viene cambiando tu comportamiento financiero.")
+    a1, a2, a3 = st.columns(3)
+    with a1:
+        render_list_card("Comparativa semanal", [f"Gasto: {money_delta(comparativa_periodos.get('gasto_semana_pct', 0.0))}", f"Ingreso: {money_delta(comparativa_periodos.get('ingreso_semana_pct', 0.0))}"], "Semana actual vs anterior.")
+    with a2:
+        render_list_card("Comparativa mensual", [f"Gasto: {money_delta(comparativa_periodos.get('gasto_mes_pct', 0.0))}", f"Ingreso: {money_delta(comparativa_periodos.get('ingreso_mes_pct', 0.0))}"], "Mes actual vs anterior.")
+    with a3:
+        render_list_card("Patrones detectados", patrones_comportamiento + [f"Deudas activas: {deudas_activas_global}"], "Zentix busca hábitos que explican tu comportamiento.")
 
-    with st.expander("Insights personalizados", expanded=False):
-        section_header("Insights personalizados", "Tu perfil, tus alertas y tus mejores mejoras.")
-        b1, b2 = st.columns(2)
-        with b1:
-            render_list_card("Perfil financiero", [perfil_financiero.get("descripcion", "Sin perfil disponible."), perfil_financiero.get("microcopy", "")], "Identidad financiera detectada automáticamente.")
-        with b2:
-            render_list_card("Alertas + categorías", alertas_proactivas + sugerencias_categoria + [f"Saldo deuda pendiente: {money(saldo_pendiente_deudas_global)}"], recomendacion_accionable)
+    section_header("Insights personalizados", "Tu perfil, tus alertas y tus mejores mejoras.")
+    b1, b2 = st.columns(2)
+    with b1:
+        render_list_card("Perfil financiero", [perfil_financiero.get("descripcion", "Sin perfil disponible."), perfil_financiero.get("microcopy", "")], "Identidad financiera detectada automáticamente.")
+    with b2:
+        render_list_card("Alertas + categorías", alertas_proactivas + sugerencias_categoria + [f"Saldo deuda pendiente: {money(saldo_pendiente_deudas_global)}"], recomendacion_accionable)
 
     if not df_mes.empty:
         resumen = (
