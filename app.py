@@ -1236,6 +1236,13 @@ def limpiar_formulario_registrar():
         "registrar_deuda_limite": date.today() + timedelta(days=30),
         "registrar_pago_deuda_select": None,
         "registrar_pago_deuda_monto": 0.0,
+        "registrar_cxc_nombre": "",
+        "registrar_cxc_cliente": "",
+        "registrar_cxc_monto": 0.0,
+        "registrar_cxc_limite_toggle": False,
+        "registrar_cxc_limite": date.today() + timedelta(days=30),
+        "registrar_cobro_cxc_select": None,
+        "registrar_cobro_cxc_monto": 0.0,
     }
 
     for key, value in defaults.items():
@@ -2280,6 +2287,238 @@ def actualizar_deuda_pago_seguro(deuda_id, nuevo_saldo):
             return None
 
 
+def normalizar_estado_cxc(valor):
+    valor = str(valor or "").strip().lower()
+    if valor in {"cobrada", "cobrado", "paid", "cerrada", "cerrado"}:
+        return "cobrada"
+    if valor in {"vencida", "vencido", "overdue"}:
+        return "vencida"
+    return "activa"
+
+
+def obtener_cuentas_por_cobrar_usuario(user_id):
+    columnas = [
+        "id", "usuario_id", "nombre", "cliente", "monto_total",
+        "saldo_pendiente", "fecha", "fecha_limite", "descripcion",
+        "estado", "creado_en", "actualizado_en"
+    ]
+    try:
+        result = (
+            supabase.table("cuentas_por_cobrar")
+            .select("*")
+            .eq("usuario_id", user_id)
+            .order("fecha", desc=True)
+            .execute()
+        )
+        data = result.data if result.data else []
+    except Exception:
+        data = []
+
+    df_local = pd.DataFrame(data)
+
+    for col in columnas:
+        if col not in df_local.columns:
+            df_local[col] = None
+
+    if not df_local.empty:
+        for date_col in ["fecha", "fecha_limite", "creado_en", "actualizado_en"]:
+            if date_col in df_local.columns:
+                df_local[date_col] = pd.to_datetime(df_local[date_col], errors="coerce")
+        for num_col in ["monto_total", "saldo_pendiente"]:
+            if num_col in df_local.columns:
+                df_local[num_col] = pd.to_numeric(df_local[num_col], errors="coerce").fillna(0)
+        df_local["nombre"] = df_local["nombre"].fillna("Cuenta por cobrar")
+        df_local["cliente"] = df_local["cliente"].fillna("Sin cliente")
+        if "estado" in df_local.columns:
+            df_local["estado"] = df_local["estado"].apply(normalizar_estado_cxc)
+    else:
+        df_local = pd.DataFrame(columns=columnas)
+
+    return df_local
+
+
+def crear_cuenta_por_cobrar_segura(payload):
+    base = dict(payload)
+    base["estado"] = normalizar_estado_cxc(base.get("estado"))
+
+    candidatos = [
+        dict(base),
+        {k: v for k, v in base.items() if k not in {"descripcion", "actualizado_en"}},
+        {k: v for k, v in base.items() if k in {"usuario_id", "nombre", "cliente", "monto_total", "saldo_pendiente", "fecha", "fecha_limite", "estado"}},
+    ]
+
+    for candidate in candidatos:
+        try:
+            result = supabase.table("cuentas_por_cobrar").insert(candidate).execute()
+            if result.data:
+                return result.data[0]
+        except Exception:
+            continue
+
+    return None
+
+
+def actualizar_cuenta_por_cobrar_cobro_seguro(cxc_id, nuevo_saldo):
+    saldo_final = float(max(nuevo_saldo, 0))
+    payload = {
+        "saldo_pendiente": saldo_final,
+        "estado": "cobrada" if saldo_final <= 0 else "activa",
+        "actualizado_en": datetime.now().isoformat()
+    }
+
+    try:
+        return (
+            supabase.table("cuentas_por_cobrar")
+            .update(payload)
+            .eq("id", cxc_id)
+            .execute()
+        )
+    except Exception:
+        try:
+            return (
+                supabase.table("cuentas_por_cobrar")
+                .update({"saldo_pendiente": saldo_final})
+                .eq("id", cxc_id)
+                .execute()
+            )
+        except Exception:
+            return None
+
+
+def recalcular_cuentas_por_cobrar_desde_movimientos(user_id, df_movs, df_cxc_actuales=None):
+    existentes = df_cxc_actuales.copy() if df_cxc_actuales is not None and not df_cxc_actuales.empty else obtener_cuentas_por_cobrar_usuario(user_id)
+
+    if df_movs is None:
+        df_movs = pd.DataFrame()
+
+    df_base = df_movs.copy()
+    for col in ["cuenta_cobrar_nombre", "cliente_cxc", "descripcion", "fecha_limite_cxc", "fecha", "monto", "tipo"]:
+        if col not in df_base.columns:
+            df_base[col] = None
+
+    if not df_base.empty:
+        df_base["fecha"] = pd.to_datetime(df_base["fecha"], errors="coerce")
+        df_base["fecha_limite_cxc"] = pd.to_datetime(df_base["fecha_limite_cxc"], errors="coerce")
+        df_base["monto"] = pd.to_numeric(df_base["monto"], errors="coerce").fillna(0)
+
+    creadas = df_base[df_base["tipo"] == "Cuenta por cobrar"].copy() if not df_base.empty else pd.DataFrame()
+    cobradas = df_base[df_base["tipo"] == "Cobro cuenta por cobrar"].copy() if not df_base.empty else pd.DataFrame()
+
+    def build_key(nombre, cliente):
+        return f"{str(nombre or '').strip().lower()}||{str(cliente or '').strip().lower()}"
+
+    summaries = {}
+
+    if not creadas.empty:
+        creadas["cxc_key"] = creadas.apply(
+            lambda row: build_key(row.get("cuenta_cobrar_nombre") or row.get("descripcion") or "Cuenta por cobrar", row.get("cliente_cxc") or "Sin cliente"),
+            axis=1
+        )
+
+        if not cobradas.empty:
+            cobradas["cxc_key"] = cobradas.apply(
+                lambda row: build_key(row.get("cuenta_cobrar_nombre") or row.get("descripcion") or "Cuenta por cobrar", row.get("cliente_cxc") or "Sin cliente"),
+                axis=1
+            )
+            cobros_por_key = cobradas.groupby("cxc_key", dropna=False)["monto"].sum().to_dict()
+        else:
+            cobros_por_key = {}
+
+        for cxc_key, grupo in creadas.groupby("cxc_key", dropna=False):
+            grupo = grupo.sort_values("fecha")
+            primera = grupo.iloc[0]
+            monto_total = float(pd.to_numeric(grupo["monto"], errors="coerce").fillna(0).sum())
+            total_cobrado = float(cobros_por_key.get(cxc_key, 0) or 0)
+            saldo_pendiente = max(monto_total - total_cobrado, 0)
+            fechas_lim = pd.to_datetime(grupo["fecha_limite_cxc"], errors="coerce")
+            fecha_limite_val = fechas_lim.dropna().max() if not fechas_lim.dropna().empty else None
+            fecha_base = pd.to_datetime(primera.get("fecha"), errors="coerce")
+            summaries[cxc_key] = {
+                "nombre": (primera.get("cuenta_cobrar_nombre") or primera.get("descripcion") or "Cuenta por cobrar").strip(),
+                "cliente": (primera.get("cliente_cxc") or "Sin cliente").strip(),
+                "monto_total": monto_total,
+                "saldo_pendiente": saldo_pendiente,
+                "fecha": fecha_base,
+                "fecha_limite": fecha_limite_val,
+                "descripcion": (primera.get("descripcion") or "").strip(),
+                "estado": "cobrada" if saldo_pendiente <= 0 else "activa"
+            }
+
+    existentes_map = {}
+    if existentes is not None and not existentes.empty:
+        existentes = existentes.copy()
+        existentes["cxc_key"] = existentes.apply(lambda row: build_key(row.get("nombre"), row.get("cliente")), axis=1)
+        for _, row in existentes.iterrows():
+            key = row["cxc_key"]
+            if key not in existentes_map:
+                existentes_map[key] = row
+
+    all_keys = set(existentes_map.keys()) | set(summaries.keys())
+
+    for cxc_key in all_keys:
+        summary = summaries.get(cxc_key)
+        existente = existentes_map.get(cxc_key)
+
+        if summary:
+            payload = {
+                "usuario_id": user_id,
+                "nombre": summary["nombre"],
+                "cliente": summary["cliente"],
+                "monto_total": float(summary["monto_total"]),
+                "saldo_pendiente": float(summary["saldo_pendiente"]),
+                "fecha": summary["fecha"].isoformat() if pd.notna(summary["fecha"]) else datetime.now().isoformat(),
+                "fecha_limite": summary["fecha_limite"].isoformat() if pd.notna(summary["fecha_limite"]) else None,
+                "descripcion": summary["descripcion"],
+                "estado": normalizar_estado_cxc(summary["estado"]),
+                "actualizado_en": datetime.now().isoformat()
+            }
+            if existente is not None and existente.get("id") is not None:
+                try:
+                    (
+                        supabase.table("cuentas_por_cobrar")
+                        .update(payload)
+                        .eq("id", existente["id"])
+                        .execute()
+                    )
+                except Exception:
+                    try:
+                        (
+                            supabase.table("cuentas_por_cobrar")
+                            .update({k: v for k, v in payload.items() if k not in {"descripcion", "actualizado_en"}})
+                            .eq("id", existente["id"])
+                            .execute()
+                        )
+                    except Exception:
+                        pass
+            else:
+                crear_cuenta_por_cobrar_segura(payload)
+        else:
+            if existente is not None and existente.get("id") is not None:
+                payload = {
+                    "saldo_pendiente": 0.0,
+                    "estado": "cobrada",
+                    "actualizado_en": datetime.now().isoformat()
+                }
+                try:
+                    (
+                        supabase.table("cuentas_por_cobrar")
+                        .update(payload)
+                        .eq("id", existente["id"])
+                        .execute()
+                    )
+                except Exception:
+                    try:
+                        (
+                            supabase.table("cuentas_por_cobrar")
+                            .update({"saldo_pendiente": 0.0})
+                            .eq("id", existente["id"])
+                            .execute()
+                        )
+                    except Exception:
+                        pass
+
+    return obtener_cuentas_por_cobrar_usuario(user_id)
+
 
 def actualizar_movimiento_seguro(movimiento_id, payload):
     base = dict(payload)
@@ -2541,8 +2780,8 @@ def render_editor_movimientos(user_id, df_movs, df_deudas_local):
 
         tipo_edit = st.selectbox(
             "Tipo",
-            ["Ingreso", "Gasto", "Ingreso (Deuda)", "Pago de deuda"],
-            index=["Ingreso", "Gasto", "Ingreso (Deuda)", "Pago de deuda"].index(tipo_actual if tipo_actual in ["Ingreso", "Gasto", "Ingreso (Deuda)", "Pago de deuda"] else "Gasto"),
+            ["Ingreso", "Gasto", "Ingreso (Deuda)", "Pago de deuda", "Cuenta por cobrar", "Cobro cuenta por cobrar"],
+            index=["Ingreso", "Gasto", "Ingreso (Deuda)", "Pago de deuda", "Cuenta por cobrar", "Cobro cuenta por cobrar"].index(tipo_actual if tipo_actual in ["Ingreso", "Gasto", "Ingreso (Deuda)", "Pago de deuda", "Cuenta por cobrar", "Cobro cuenta por cobrar"] else "Gasto"),
             key=f"edit_tipo_{selected_id}"
         )
         fecha_edit = st.date_input("Fecha", value=fecha_actual, key=f"edit_fecha_{selected_id}")
@@ -2585,6 +2824,19 @@ def render_editor_movimientos(user_id, df_movs, df_deudas_local):
                 fecha_limite_edit = st.date_input("Fecha límite", value=fecha_limite_actual.date() if pd.notna(fecha_limite_actual) else fecha_edit + timedelta(days=30), key=f"edit_fecha_lim_{selected_id}")
             else:
                 fecha_limite_edit = None
+        elif tipo_edit == "Cuenta por cobrar":
+            categoria_edit = "Cuenta por cobrar"
+            deuda_nombre_edit = st.text_input("Nombre de la cuenta por cobrar", value=deuda_nombre_actual or descripcion_actual, key=f"edit_cxc_nombre_{selected_id}")
+            prestamista_edit = st.text_input("Cliente / quién debe", value=prestamista_actual, key=f"edit_cxc_cliente_{selected_id}")
+            usar_fecha_limite = st.checkbox("Tiene fecha límite", value=pd.notna(fecha_limite_actual), key=f"edit_cxc_lim_toggle_{selected_id}")
+            if usar_fecha_limite:
+                fecha_limite_edit = st.date_input("Fecha límite", value=fecha_limite_actual.date() if pd.notna(fecha_limite_actual) else fecha_edit + timedelta(days=30), key=f"edit_cxc_fecha_lim_{selected_id}")
+            else:
+                fecha_limite_edit = None
+        elif tipo_edit == "Cobro cuenta por cobrar":
+            categoria_edit = "Cobro cuenta por cobrar"
+            deuda_nombre_edit = st.text_input("Nombre de la cuenta por cobrar", value=deuda_nombre_actual or descripcion_actual, key=f"edit_cobro_cxc_nombre_{selected_id}")
+            prestamista_edit = st.text_input("Cliente / quién paga", value=prestamista_actual, key=f"edit_cobro_cxc_cliente_{selected_id}")
         else:
             categoria_edit = "Pago de deuda"
             deudas_ref = df_deudas_local.copy() if df_deudas_local is not None and not df_deudas_local.empty else pd.DataFrame()
@@ -2642,6 +2894,12 @@ def render_editor_movimientos(user_id, df_movs, df_deudas_local):
                     errores.append("Indica quién prestó.")
                 if tipo_edit == "Pago de deuda" and not str(deuda_nombre_edit or "").strip():
                     errores.append("Define la deuda a la que corresponde este pago.")
+                if tipo_edit == "Cuenta por cobrar" and not str(deuda_nombre_edit or "").strip():
+                    errores.append("Escribe un nombre para la cuenta por cobrar.")
+                if tipo_edit == "Cuenta por cobrar" and not str(prestamista_edit or "").strip():
+                    errores.append("Indica quién te debe.")
+                if tipo_edit == "Cobro cuenta por cobrar" and not str(deuda_nombre_edit or "").strip():
+                    errores.append("Define la cuenta por cobrar a la que corresponde este cobro.")
                 if es_recurrente_edit and proxima_edit and proxima_edit < fecha_edit:
                     errores.append("La próxima fecha recurrente no puede ser anterior al movimiento.")
                 if es_recurrente_edit and fecha_fin_edit and proxima_edit and fecha_fin_edit < proxima_edit:
@@ -2657,10 +2915,13 @@ def render_editor_movimientos(user_id, df_movs, df_deudas_local):
                         "monto": float(monto_edit),
                         "descripcion": str(descripcion_edit or "").strip(),
                         "emocion": emocion_edit if tipo_edit == "Gasto" else None,
-                        "deuda_id": deuda_id_edit if tipo_edit in ("Ingreso (Deuda)", "Pago de deuda") else None,
-                        "deuda_nombre": str(deuda_nombre_edit or "").strip() if tipo_edit in ("Ingreso (Deuda)", "Pago de deuda") else None,
-                        "prestamista": str(prestamista_edit or "").strip() if tipo_edit in ("Ingreso (Deuda)", "Pago de deuda") else None,
-                        "fecha_limite_deuda": datetime.combine(fecha_limite_edit, datetime.min.time()).isoformat() if fecha_limite_edit and tipo_edit in ("Ingreso (Deuda)", "Pago de deuda") else None,
+                        "deuda_id": deuda_id_edit if tipo_edit in ("Ingreso (Deuda)", "Pago de deuda", "Cuenta por cobrar", "Cobro cuenta por cobrar") else None,
+                        "deuda_nombre": str(deuda_nombre_edit or "").strip() if tipo_edit in ("Ingreso (Deuda)", "Pago de deuda", "Cuenta por cobrar", "Cobro cuenta por cobrar") else None,
+                        "prestamista": str(prestamista_edit or "").strip() if tipo_edit in ("Ingreso (Deuda)", "Pago de deuda", "Cuenta por cobrar", "Cobro cuenta por cobrar") else None,
+                        "fecha_limite_deuda": datetime.combine(fecha_limite_edit, datetime.min.time()).isoformat() if fecha_limite_edit and tipo_edit in ("Ingreso (Deuda)", "Pago de deuda", "Cuenta por cobrar", "Cobro cuenta por cobrar") else None,
+                        "cuenta_cobrar_nombre": str(deuda_nombre_edit or "").strip() if tipo_edit in ("Cuenta por cobrar", "Cobro cuenta por cobrar") else None,
+                        "cliente_cxc": str(prestamista_edit or "").strip() if tipo_edit in ("Cuenta por cobrar", "Cobro cuenta por cobrar") else None,
+                        "fecha_limite_cxc": datetime.combine(fecha_limite_edit, datetime.min.time()).isoformat() if fecha_limite_edit and tipo_edit in ("Cuenta por cobrar", "Cobro cuenta por cobrar") else None,
                         "es_recurrente": bool(es_recurrente_edit),
                         "frecuencia_recurrencia": frecuencia_edit if es_recurrente_edit else None,
                         "proxima_fecha_recurrencia": datetime.combine(proxima_edit, datetime.min.time()).isoformat() if es_recurrente_edit and proxima_edit else None,
@@ -2822,7 +3083,7 @@ def estimar_aporte_semanal_meta(df_base):
     if reciente.empty:
         reciente = df_tmp.copy()
 
-    ingresos_reales = reciente.loc[reciente["tipo"] == "Ingreso", "monto"].sum()
+    ingresos_reales = reciente.loc[reciente["tipo"].isin(["Ingreso", "Cobro cuenta por cobrar"]), "monto"].sum()
     gastos_operativos = reciente.loc[reciente["tipo"] == "Gasto", "monto"].sum()
     pagos_deuda = reciente.loc[reciente["tipo"] == "Pago de deuda", "monto"].sum()
 
@@ -2947,7 +3208,7 @@ def resumir_periodo_movimientos(df_periodo):
             "monto_categoria_top": 0.0
         }
 
-    ingresos = float(df_periodo[df_periodo["tipo"] == "Ingreso"]["monto"].sum())
+    ingresos = float(df_periodo[df_periodo["tipo"].isin(["Ingreso", "Cobro cuenta por cobrar"])]["monto"].sum())
     gastos = float(df_periodo[df_periodo["tipo"] == "Gasto"]["monto"].sum())
     ingresos_deuda = float(df_periodo[df_periodo["tipo"] == "Ingreso (Deuda)"]["monto"].sum())
     pagos_deuda = float(df_periodo[df_periodo["tipo"] == "Pago de deuda"]["monto"].sum())
@@ -3199,6 +3460,13 @@ def resetear_formulario_registro():
         "registrar_deuda_limite": date.today() + timedelta(days=30),
         "registrar_pago_deuda_select": None,
         "registrar_pago_deuda_monto": 0.0,
+        "registrar_cxc_nombre": "",
+        "registrar_cxc_cliente": "",
+        "registrar_cxc_monto": 0.0,
+        "registrar_cxc_limite_toggle": False,
+        "registrar_cxc_limite": date.today() + timedelta(days=30),
+        "registrar_cobro_cxc_select": None,
+        "registrar_cobro_cxc_monto": 0.0,
     }
     for key, value in defaults.items():
         st.session_state[key] = value
@@ -3289,7 +3557,7 @@ def generar_imagen_reporte_premium(nombre_usuario, plan_nombre, periodicidad, in
             categoria = str(row.get("categoria") or "-")
             monto = money(row.get("monto", 0) or 0)
             descripcion = str(row.get("descripcion") or "Sin descripción")[:52]
-            color = "#22c55e" if tipo == "Ingreso" else "#ef4444" if tipo == "Gasto" else "#3b82f6" if tipo == "Ingreso (Deuda)" else "#f59e0b"
+            color = "#22c55e" if tipo in ["Ingreso", "Cobro cuenta por cobrar"] else "#ef4444" if tipo == "Gasto" else "#3b82f6" if tipo == "Ingreso (Deuda)" else "#8b5cf6" if tipo == "Cuenta por cobrar" else "#f59e0b"
             draw.rounded_rectangle((90, y - 8, width - 90, y + 78), radius=18, fill="#ffffff", outline="#e2e8f0", width=1)
             draw.text((115, y + 10), f"{fecha_txt} · {tipo} · {categoria}", fill="#0f172a", font=font_label)
             draw.text((115, y + 42), descripcion, fill="#475569", font=font_small)
@@ -3586,16 +3854,16 @@ def obtener_comparativa_periodos(df_base):
             semana_anterior[semana_anterior["tipo"] == "Gasto"]["monto"].sum()
         ),
         "ingreso_semana_pct": cambio_pct(
-            semana_actual[semana_actual["tipo"] == "Ingreso"]["monto"].sum(),
-            semana_anterior[semana_anterior["tipo"] == "Ingreso"]["monto"].sum()
+            semana_actual[semana_actual["tipo"].isin(["Ingreso", "Cobro cuenta por cobrar"])]["monto"].sum(),
+            semana_anterior[semana_anterior["tipo"].isin(["Ingreso", "Cobro cuenta por cobrar"])]["monto"].sum()
         ),
         "gasto_mes_pct": cambio_pct(
             mes_actual[mes_actual["tipo"] == "Gasto"]["monto"].sum(),
             mes_anterior[mes_anterior["tipo"] == "Gasto"]["monto"].sum()
         ),
         "ingreso_mes_pct": cambio_pct(
-            mes_actual[mes_actual["tipo"] == "Ingreso"]["monto"].sum(),
-            mes_anterior[mes_anterior["tipo"] == "Ingreso"]["monto"].sum()
+            mes_actual[mes_actual["tipo"].isin(["Ingreso", "Cobro cuenta por cobrar"])]["monto"].sum(),
+            mes_anterior[mes_anterior["tipo"].isin(["Ingreso", "Cobro cuenta por cobrar"])]["monto"].sum()
         )
     }
 def construir_resumen_semanal_premium(df_base, meta_actual, ahorro_actual):
@@ -3638,7 +3906,7 @@ def construir_resumen_semanal_premium(df_base, meta_actual, ahorro_actual):
 
     gasto_actual = float(semana_actual[semana_actual["tipo"] == "Gasto"]["monto"].sum() or 0)
     gasto_anterior = float(semana_anterior[semana_anterior["tipo"] == "Gasto"]["monto"].sum() or 0)
-    ingreso_actual = float(semana_actual[semana_actual["tipo"] == "Ingreso"]["monto"].sum() or 0)
+    ingreso_actual = float(semana_actual[semana_actual["tipo"].isin(["Ingreso", "Cobro cuenta por cobrar"])]["monto"].sum() or 0)
 
     if gasto_anterior > 0 and gasto_actual < gasto_anterior:
         positivos.append(f"Bajaste tus gastos semanales en {money(gasto_anterior - gasto_actual)} frente a la semana pasada.")
@@ -3822,6 +4090,10 @@ def construir_chips_movimiento(row):
         chips.append(movimiento_chip("Deuda recibida", "debt"))
     elif tipo == "Pago de deuda":
         chips.append(movimiento_chip("Pago deuda", "pay"))
+    elif tipo == "Cuenta por cobrar":
+        chips.append(movimiento_chip("Cuenta por cobrar", "info"))
+    elif tipo == "Cobro cuenta por cobrar":
+        chips.append(movimiento_chip("Cobro recibido", "income"))
 
     if bool(row.get("es_recurrente")):
         chips.append(movimiento_chip("Recurrente", "recurrent"))
@@ -3834,6 +4106,9 @@ def construir_chips_movimiento(row):
 
     if tipo == "Pago de deuda" and monto > 0:
         chips.append(movimiento_chip("Reduce pendiente", "pay"))
+
+    if tipo == "Cobro cuenta por cobrar" and monto > 0:
+        chips.append(movimiento_chip("Entra a caja", "income"))
 
     return "".join(chips)
 
@@ -4127,7 +4402,7 @@ def construir_flujo_semanal(df_base):
         pass
     df_tmp["semana"] = df_tmp["fecha"].dt.to_period("W").apply(lambda r: r.start_time)
     resumen = (
-        df_tmp[df_tmp["tipo"].isin(["Ingreso", "Gasto", "Ingreso (Deuda)", "Pago de deuda"])]
+        df_tmp[df_tmp["tipo"].isin(["Ingreso", "Gasto", "Ingreso (Deuda)", "Pago de deuda", "Cuenta por cobrar", "Cobro cuenta por cobrar"])]
         .groupby(["semana", "tipo"], dropna=False)["monto"]
         .sum()
         .reset_index()
@@ -4338,7 +4613,9 @@ def render_registrar_spotlight(tipo, monto, categoria, deuda_nombre, prestamista
             "Ingreso": "Estás registrando dinero propio que sí alimenta tus KPIs reales.",
             "Gasto": "Este gasto impacta tu caja operativa y puede afectar tus patrones del mes.",
             "Ingreso (Deuda)": "Entra a caja, pero Zentix lo separa del ingreso real para que tu lectura siga siendo honesta.",
-            "Pago de deuda": "Este pago reduce obligación pendiente y mejora tu salud financiera, aunque salga de caja."
+            "Pago de deuda": "Este pago reduce obligación pendiente y mejora tu salud financiera, aunque salga de caja.",
+            "Cuenta por cobrar": "Registras dinero que te deben, pero aún no entra como ingreso real hasta cobrarlo.",
+            "Cobro cuenta por cobrar": "Este cobro sí entra a caja y mejora tu disponible sin inflar ventas no pagadas."
         }
         st.markdown(f"<div class='tiny-muted' style='margin-bottom:0.6rem;'>{info.get(tipo, 'Registro contextual.')}</div>", unsafe_allow_html=True)
         x1, x2 = st.columns(2)
@@ -4350,6 +4627,10 @@ def render_registrar_spotlight(tipo, monto, categoria, deuda_nombre, prestamista
             data = pd.DataFrame({"concepto": ["Pago actual", "Saldo actual", "Saldo luego"], "monto": [float(monto or 0), float(saldo_deuda_actual), float(max(saldo_deuda_actual - float(monto or 0), 0))]})
         elif tipo == "Ingreso (Deuda)":
             data = pd.DataFrame({"concepto": ["Ingreso por deuda", "Pendiente total actual"], "monto": [float(monto or 0), float(globals().get('saldo_pendiente_deudas_global', 0) or 0)]})
+        elif tipo == "Cuenta por cobrar":
+            data = pd.DataFrame({"concepto": ["Cuenta por cobrar", "Pendiente por cobrar actual"], "monto": [float(monto or 0), float(globals().get('saldo_pendiente_cxc_global', 0) or 0)]})
+        elif tipo == "Cobro cuenta por cobrar":
+            data = pd.DataFrame({"concepto": ["Cobro actual", "Pendiente por cobrar"], "monto": [float(monto or 0), float(globals().get('saldo_pendiente_cxc_global', 0) or 0)]})
         else:
             data = pd.DataFrame({"concepto": ["Este movimiento", "Promedio del tipo"], "monto": [float(monto or 0), float(promedio_tipo or 0)]})
         fig = px.bar(data, x="concepto", y="monto", title="Lectura rápida del movimiento", text_auto=True, color="concepto", color_discrete_sequence=CHART_COLORS)
@@ -4727,7 +5008,9 @@ def render_avatar(pagina, nombre, total_ingresos, total_gastos, ahorro_actual, u
         "Ingreso": "🟢 Último movimiento: ingreso",
         "Gasto": "🔴 Último movimiento: gasto",
         "Ingreso (Deuda)": "🔵 Último movimiento: ingreso por deuda",
-        "Pago de deuda": "🟠 Último movimiento: pago de deuda"
+        "Pago de deuda": "🟠 Último movimiento: pago de deuda",
+        "Cuenta por cobrar": "🟣 Último movimiento: cuenta por cobrar creada",
+        "Cobro cuenta por cobrar": "🟢 Último movimiento: cobro recibido"
     }.get(ultimo_tipo, "⚪ Aún no hay movimientos")
 
     contexto_ia = construir_contexto_zentix(
@@ -5121,7 +5404,7 @@ def ejecutar_lote_recordatorios(limit=25):
             df_user = obtener_movimientos(user_id_local)
             df_mes_user = _filtrar_mes_actual(df_user)
             total_gastos_user = float(df_mes_user[df_mes_user["tipo"] == "Gasto"]["monto"].sum()) if not df_mes_user.empty else 0.0
-            total_ingresos_user = float(df_mes_user[df_mes_user["tipo"] == "Ingreso"]["monto"].sum()) if not df_mes_user.empty else 0.0
+            total_ingresos_user = float(df_mes_user[df_mes_user["tipo"].isin(["Ingreso", "Cobro cuenta por cobrar"])]["monto"].sum()) if not df_mes_user.empty else 0.0
             total_entradas_deuda_user = float(df_mes_user[df_mes_user["tipo"] == "Ingreso (Deuda)"]["monto"].sum()) if not df_mes_user.empty else 0.0
             total_pagos_deuda_user = float(df_mes_user[df_mes_user["tipo"] == "Pago de deuda"]["monto"].sum()) if not df_mes_user.empty else 0.0
             saldo_disponible_user = total_ingresos_user + total_entradas_deuda_user - total_gastos_user - total_pagos_deuda_user
@@ -5737,23 +6020,36 @@ else:
 
 if not df_mes.empty:
     total_gastos = float(df_mes[df_mes["tipo"] == "Gasto"]["monto"].sum())
-    total_ingresos = float(df_mes[df_mes["tipo"] == "Ingreso"]["monto"].sum())
+    total_ingresos = float(df_mes[df_mes["tipo"].isin(["Ingreso", "Cobro cuenta por cobrar"])]["monto"].sum())
     total_entradas_deuda_mes = float(df_mes[df_mes["tipo"] == "Ingreso (Deuda)"]["monto"].sum())
     total_pagos_deuda_mes = float(df_mes[df_mes["tipo"] == "Pago de deuda"]["monto"].sum())
+    total_cuentas_cobrar_mes = float(df_mes[df_mes["tipo"] == "Cuenta por cobrar"]["monto"].sum())
+    total_cobros_cxc_mes = float(df_mes[df_mes["tipo"] == "Cobro cuenta por cobrar"]["monto"].sum())
 else:
     total_gastos = 0.0
     total_ingresos = 0.0
     total_entradas_deuda_mes = 0.0
     total_pagos_deuda_mes = 0.0
+    total_cuentas_cobrar_mes = 0.0
+    total_cobros_cxc_mes = 0.0
 
 df_deudas = obtener_deudas_usuario(user_id)
 df_deudas = recalcular_deudas_usuario_desde_movimientos(user_id, df if not df.empty else pd.DataFrame(), df_deudas)
+df_cxc = obtener_cuentas_por_cobrar_usuario(user_id)
+df_cxc = recalcular_cuentas_por_cobrar_desde_movimientos(user_id, df if not df.empty else pd.DataFrame(), df_cxc)
 if not df_deudas.empty:
     saldo_pendiente_deudas_global = float(df_deudas["saldo_pendiente"].sum())
     deudas_activas_global = int((df_deudas["saldo_pendiente"] > 0).sum())
 else:
     saldo_pendiente_deudas_global = 0.0
     deudas_activas_global = 0
+
+if not df_cxc.empty:
+    saldo_pendiente_cxc_global = float(df_cxc["saldo_pendiente"].sum())
+    cuentas_por_cobrar_activas_global = int((df_cxc["saldo_pendiente"] > 0).sum())
+else:
+    saldo_pendiente_cxc_global = 0.0
+    cuentas_por_cobrar_activas_global = 0
 
 saldo_disponible = total_ingresos + total_entradas_deuda_mes - total_gastos - total_pagos_deuda_mes
 ahorro_actual = float(saldo_disponible)
@@ -5890,7 +6186,7 @@ if pagina == "Inicio":
 
         with col_a:
             resumen_tipos = pd.DataFrame({
-                "Tipo": ["Ingreso", "Gasto", "Ingreso (Deuda)", "Pago de deuda"],
+                "Tipo": ["Ingreso", "Gasto", "Ingreso (Deuda)", "Pago de deuda", "Cuenta por cobrar", "Cobro cuenta por cobrar"],
                 "Monto": [
                     float(total_ingresos),
                     float(total_gastos),
@@ -5913,6 +6209,8 @@ if pagina == "Inicio":
                     "Gasto": "#EF4444",
                     "Ingreso (Deuda)": "#3B82F6",
                     "Pago de deuda": "#F59E0B",
+                    "Cuenta por cobrar": "#8B5CF6",
+                    "Cobro cuenta por cobrar": "#14B8A6",
                     "Sin datos": "#334155"
                 }
             )
@@ -5948,7 +6246,7 @@ if pagina == "Registrar":
     zentix_hero(nombre_usuario, saldo_disponible, total_ingresos, total_gastos)
     render_contexto_descubrimiento("Registrar")
     render_tutorial_zentix("Registrar", nombre_usuario, user_id, df, meta_guardada_global, preferencias_usuario_actual)
-    section_header("Registrar movimiento", "Agrega ingresos, gastos, deuda y recurrencias con una experiencia dinámica, limpia y premium.")
+    section_header("Registrar movimiento", "Agrega ingresos, gastos, deuda, cuentas por cobrar y recurrencias con una experiencia dinámica, limpia y premium.")
     ejecutar_reset_registrar_si_aplica()
 
     col_form, col_side = st.columns([1.15, 0.85])
@@ -5956,7 +6254,7 @@ if pagina == "Registrar":
     with col_form:
         tipo = st.radio(
             "Tipo de movimiento",
-            ["Ingreso", "Gasto", "Ingreso (Deuda)", "Pago de deuda"],
+            ["Ingreso", "Gasto", "Ingreso (Deuda)", "Pago de deuda", "Cuenta por cobrar", "Cobro cuenta por cobrar"],
             horizontal=True
         )
 
@@ -5966,8 +6264,12 @@ if pagina == "Registrar":
             st.markdown('<div class="pill-gasto">Gasto seleccionado</div>', unsafe_allow_html=True)
         elif tipo == "Ingreso (Deuda)":
             st.markdown('<div class="pill-debt">Ingreso por deuda seleccionado</div>', unsafe_allow_html=True)
-        else:
+        elif tipo == "Pago de deuda":
             st.markdown('<div class="pill-pay">Pago de deuda seleccionado</div>', unsafe_allow_html=True)
+        elif tipo == "Cuenta por cobrar":
+            st.markdown('<div class="pill-debt" style="background:rgba(139,92,246,0.14);border-color:rgba(139,92,246,0.28);color:#C4B5FD;">Cuenta por cobrar seleccionada</div>', unsafe_allow_html=True)
+        else:
+            st.markdown('<div class="pill-ingreso" style="background:rgba(20,184,166,0.14);border-color:rgba(20,184,166,0.28);color:#99F6E4;">Cobro de cuenta por cobrar seleccionado</div>', unsafe_allow_html=True)
 
         fecha_mov = st.date_input("Fecha", value=date.today(), key="registrar_fecha_mov")
         descripcion = st.text_input("Descripción", key="registrar_descripcion")
@@ -6008,6 +6310,11 @@ if pagina == "Registrar":
         prestamista = ""
         fecha_limite_deuda = None
         saldo_deuda_actual = 0.0
+        cuenta_cobrar_id = None
+        cuenta_cobrar_nombre = ""
+        cliente_cxc = ""
+        fecha_limite_cxc = None
+        saldo_cxc_actual = 0.0
 
         if tipo == "Ingreso":
             categorias_disponibles = obtener_categorias_usuario(user_id, "Ingreso")
@@ -6055,6 +6362,65 @@ if pagina == "Registrar":
                         key="registrar_deuda_limite"
                     )
                 st.caption("Este movimiento entra a caja, pero no contaminará tus KPIs de ingresos reales.")
+
+        elif tipo == "Cuenta por cobrar":
+            categoria = "Cuenta por cobrar"
+            with st.expander("🧾 Bloque de dinero que te deben", expanded=True):
+                cuenta_cobrar_nombre = st.text_input(
+                    "Nombre de la cuenta por cobrar",
+                    placeholder="Ej: Venta fiada, Pedido minimercado",
+                    key="registrar_cxc_nombre"
+                )
+                cliente_cxc = st.text_input(
+                    "Quién te debe",
+                    placeholder="Ej: Cliente Juan, Vecino, Distribuidor",
+                    key="registrar_cxc_cliente"
+                )
+                monto = st.number_input("Monto pendiente por cobrar", min_value=0.0, step=1000.0, key="registrar_cxc_monto")
+                activar_fecha_limite_cxc = st.checkbox("Agregar fecha límite de cobro", key="registrar_cxc_limite_toggle")
+                if activar_fecha_limite_cxc:
+                    fecha_limite_cxc = st.date_input(
+                        "Fecha límite de cobro",
+                        value=fecha_mov + timedelta(days=30),
+                        key="registrar_cxc_limite"
+                    )
+                deuda_nombre = cuenta_cobrar_nombre
+                prestamista = cliente_cxc
+                fecha_limite_deuda = fecha_limite_cxc
+                st.caption("Se registra como dinero pendiente por cobrar. No entra aún como ingreso real hasta que lo recibas.")
+
+        elif tipo == "Cobro cuenta por cobrar":
+            categoria = "Cobro cuenta por cobrar"
+            cxc_activas_df = df_cxc[df_cxc["saldo_pendiente"] > 0].copy() if not df_cxc.empty else pd.DataFrame()
+            if cxc_activas_df.empty:
+                st.info("Aún no tienes cuentas por cobrar activas registradas. Primero crea una 'Cuenta por cobrar'.")
+            else:
+                cxc_activas_df["label"] = cxc_activas_df.apply(
+                    lambda row: f"{row['nombre']} · {row['cliente']} · pendiente {money(row['saldo_pendiente'])}",
+                    axis=1
+                )
+                cxc_label = st.selectbox(
+                    "Selecciona una cuenta por cobrar",
+                    cxc_activas_df["label"].tolist(),
+                    key="registrar_cobro_cxc_select"
+                )
+                cxc_row = cxc_activas_df[cxc_activas_df["label"] == cxc_label].iloc[0]
+                cuenta_cobrar_id = cxc_row["id"]
+                cuenta_cobrar_nombre = cxc_row["nombre"]
+                cliente_cxc = cxc_row["cliente"]
+                saldo_cxc_actual = float(cxc_row["saldo_pendiente"] or 0)
+                fecha_limite_cxc = cxc_row["fecha_limite"].date() if pd.notna(cxc_row["fecha_limite"]) else None
+                monto = st.number_input(
+                    "Monto cobrado",
+                    min_value=0.0,
+                    max_value=float(saldo_cxc_actual) if saldo_cxc_actual > 0 else None,
+                    step=1000.0,
+                    key="registrar_cobro_cxc_monto"
+                )
+                deuda_nombre = cuenta_cobrar_nombre
+                prestamista = cliente_cxc
+                fecha_limite_deuda = fecha_limite_cxc
+                st.caption(f"Pendiente actual por cobrar: {money(saldo_cxc_actual)}")
 
         else:
             categoria = "Pago de deuda"
@@ -6111,6 +6477,14 @@ if pagina == "Registrar":
                         pass
                 if tipo == "Ingreso (Deuda)" and not prestamista.strip():
                     errores.append("Indica quién prestó.")
+                if tipo == "Cuenta por cobrar" and not cuenta_cobrar_nombre.strip():
+                    errores.append("Escribe un nombre para la cuenta por cobrar.")
+                if tipo == "Cuenta por cobrar" and not cliente_cxc.strip():
+                    errores.append("Indica quién te debe.")
+                if tipo == "Cobro cuenta por cobrar" and not cuenta_cobrar_id:
+                    errores.append("Selecciona una cuenta por cobrar activa para registrar el cobro.")
+                if tipo == "Cobro cuenta por cobrar" and saldo_cxc_actual > 0 and monto > saldo_cxc_actual:
+                    errores.append("El cobro no puede superar el saldo pendiente por cobrar.")
                 if tipo == "Pago de deuda" and not deuda_id:
                     errores.append("Selecciona una deuda activa para registrar el pago.")
                 if tipo == "Pago de deuda" and saldo_deuda_actual > 0 and monto > saldo_deuda_actual:
@@ -6127,6 +6501,8 @@ if pagina == "Registrar":
                     try:
                         deuda_creada = None
                         deuda_id_mov = deuda_id
+                        cxc_creada = None
+                        cuenta_cobrar_id_mov = cuenta_cobrar_id
 
                         if tipo == "Ingreso (Deuda)":
                             deuda_creada = crear_deuda_segura({
@@ -6146,6 +6522,24 @@ if pagina == "Registrar":
                                 st.stop()
                             deuda_id_mov = deuda_creada.get("id")
 
+                        if tipo == "Cuenta por cobrar":
+                            cxc_creada = crear_cuenta_por_cobrar_segura({
+                                "usuario_id": user_id,
+                                "nombre": cuenta_cobrar_nombre.strip(),
+                                "cliente": cliente_cxc.strip(),
+                                "monto_total": float(monto),
+                                "saldo_pendiente": float(monto),
+                                "fecha": datetime.combine(fecha_mov, datetime.min.time()).isoformat(),
+                                "fecha_limite": datetime.combine(fecha_limite_cxc, datetime.min.time()).isoformat() if fecha_limite_cxc else None,
+                                "descripcion": descripcion.strip(),
+                                "estado": "activa",
+                                "actualizado_en": datetime.now().isoformat()
+                            })
+                            if not cxc_creada or not isinstance(cxc_creada, dict) or not cxc_creada.get("id"):
+                                st.error("La cuenta por cobrar no se pudo crear en la tabla base 'cuentas_por_cobrar'. El movimiento no se guardó para evitar inconsistencias.")
+                                st.stop()
+                            cuenta_cobrar_id_mov = cxc_creada.get("id")
+
                         payload = {
                             "usuario_id": user_id,
                             "fecha": datetime.combine(fecha_mov, datetime.min.time()).isoformat(),
@@ -6154,10 +6548,14 @@ if pagina == "Registrar":
                             "monto": float(monto),
                             "descripcion": descripcion.strip(),
                             "emocion": emocion if tipo == "Gasto" else None,
-                            "deuda_id": deuda_id_mov,
+                            "deuda_id": deuda_id_mov if tipo in ["Ingreso (Deuda)", "Pago de deuda"] else cuenta_cobrar_id_mov if tipo in ["Cuenta por cobrar", "Cobro cuenta por cobrar"] else None,
                             "deuda_nombre": deuda_nombre.strip() if deuda_nombre else None,
                             "prestamista": prestamista.strip() if prestamista else None,
                             "fecha_limite_deuda": datetime.combine(fecha_limite_deuda, datetime.min.time()).isoformat() if fecha_limite_deuda else None,
+                            "cuenta_cobrar_id": cuenta_cobrar_id_mov if tipo in ["Cuenta por cobrar", "Cobro cuenta por cobrar"] else None,
+                            "cuenta_cobrar_nombre": cuenta_cobrar_nombre.strip() if cuenta_cobrar_nombre else deuda_nombre.strip() if deuda_nombre else None,
+                            "cliente_cxc": cliente_cxc.strip() if cliente_cxc else prestamista.strip() if prestamista else None,
+                            "fecha_limite_cxc": datetime.combine(fecha_limite_cxc, datetime.min.time()).isoformat() if fecha_limite_cxc else None,
                             "es_recurrente": bool(es_recurrente),
                             "frecuencia_recurrencia": frecuencia_recurrencia if es_recurrente else None,
                             "proxima_fecha_recurrencia": datetime.combine(proxima_fecha_recurrencia, datetime.min.time()).isoformat() if es_recurrente and proxima_fecha_recurrencia else None,
@@ -6296,6 +6694,8 @@ if pagina == "Análisis":
                 <div style="font-weight:800;font-size:1.1rem;">{money(total_pagos_deuda_mes)}</div>
                 <div class="tiny-muted" style="margin-top:0.6rem;">Saldo pendiente total</div>
                 <div style="font-weight:800;font-size:1.1rem;">{money(saldo_pendiente_deudas_global)}</div>
+                <div class="tiny-muted" style="margin-top:0.6rem;">Pendiente por cobrar</div>
+                <div style="font-weight:800;font-size:1.1rem;">{money(saldo_pendiente_cxc_global)}</div>
                 <div class="tiny-muted" style="margin-top:0.6rem;">Recurrentes activos</div>
                 <div style="font-weight:800;font-size:1.1rem;">{int(df[df["recurrente_activo"] == True].shape[0]) if not df.empty and "recurrente_activo" in df.columns else 0}</div>
             </div>
