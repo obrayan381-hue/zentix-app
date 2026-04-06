@@ -3235,6 +3235,322 @@ def resumir_periodo_movimientos(df_periodo):
 
 
 
+
+def obtener_modo_dashboard():
+    key = "zentix_dashboard_mode"
+    if key not in st.session_state:
+        st.session_state[key] = "Personal"
+    return st.session_state[key]
+
+
+def clasificar_estado_cxc_fila(row):
+    saldo = float(pd.to_numeric(row.get("saldo_pendiente", 0), errors="coerce") or 0)
+    total = float(pd.to_numeric(row.get("monto_total", 0), errors="coerce") or 0)
+    fecha_limite = pd.to_datetime(row.get("fecha_limite"), errors="coerce")
+    hoy = pd.Timestamp(date.today())
+
+    if saldo <= 0:
+        return "Cobrada total"
+    if total > 0 and saldo < total:
+        if pd.notna(fecha_limite) and fecha_limite.normalize() < hoy.normalize():
+            return "Vencida parcial"
+        return "Cobrada parcial"
+    if pd.notna(fecha_limite) and fecha_limite.normalize() < hoy.normalize():
+        return "Vencida"
+    return "Activa"
+
+
+def construir_resumen_cxc_dashboard(df_cxc_local):
+    if df_cxc_local is None or df_cxc_local.empty:
+        return {
+            "pendiente_total": 0.0,
+            "activas": 0,
+            "vencidas": 0,
+            "cobradas_parcial": 0,
+            "cobradas_total": 0,
+            "tabla": pd.DataFrame(columns=["nombre", "cliente", "saldo_pendiente", "monto_total", "fecha_limite", "estado_dashboard"])
+        }
+
+    df_tmp = df_cxc_local.copy()
+    df_tmp["monto_total"] = pd.to_numeric(df_tmp.get("monto_total"), errors="coerce").fillna(0)
+    df_tmp["saldo_pendiente"] = pd.to_numeric(df_tmp.get("saldo_pendiente"), errors="coerce").fillna(0)
+    if "fecha_limite" in df_tmp.columns:
+        df_tmp["fecha_limite"] = pd.to_datetime(df_tmp["fecha_limite"], errors="coerce")
+    else:
+        df_tmp["fecha_limite"] = pd.NaT
+    df_tmp["estado_dashboard"] = df_tmp.apply(clasificar_estado_cxc_fila, axis=1)
+
+    return {
+        "pendiente_total": float(df_tmp["saldo_pendiente"].sum()),
+        "activas": int((df_tmp["estado_dashboard"] == "Activa").sum()),
+        "vencidas": int(df_tmp["estado_dashboard"].isin(["Vencida", "Vencida parcial"]).sum()),
+        "cobradas_parcial": int((df_tmp["estado_dashboard"] == "Cobrada parcial").sum()),
+        "cobradas_total": int((df_tmp["estado_dashboard"] == "Cobrada total").sum()),
+        "tabla": df_tmp.sort_values(["saldo_pendiente", "fecha_limite"], ascending=[False, True]).copy()
+    }
+
+
+def construir_alertas_dashboard_pro(df_base, df_mes_actual, df_cxc_local, meta_actual, ahorro_actual):
+    alertas = []
+    if df_mes_actual is not None and not df_mes_actual.empty:
+        gastos_mes = df_mes_actual[df_mes_actual["tipo"] == "Gasto"].copy()
+        if not gastos_mes.empty:
+            top_gasto = (
+                gastos_mes.groupby("categoria", dropna=False)["monto"]
+                .sum()
+                .sort_values(ascending=False)
+            )
+            if not top_gasto.empty:
+                cat = str(top_gasto.index[0] or "Sin categoría")
+                monto_cat = float(top_gasto.iloc[0] or 0)
+                share = (monto_cat / float(gastos_mes["monto"].sum() or 1)) if float(gastos_mes["monto"].sum() or 0) > 0 else 0
+                if share >= 0.45:
+                    alertas.append(f"Ojo: {cat} ya representa {round(share * 100, 1)}% de tus gastos del mes.")
+
+        if meta_actual and float(meta_actual or 0) > 0 and float(ahorro_actual or 0) < float(meta_actual or 0) * 0.35:
+            alertas.append("Si sigues así, podrías quedar corto frente a tu meta de ahorro actual.")
+
+    resumen_cxc = construir_resumen_cxc_dashboard(df_cxc_local)
+    if resumen_cxc["vencidas"] > 0:
+        alertas.append(f"Tienes {resumen_cxc['vencidas']} cuenta(s) por cobrar vencida(s). Conviene gestionarlas primero.")
+
+    if df_base is not None and not df_base.empty and "fecha" in df_base.columns:
+        df_tmp = df_base.copy()
+        df_tmp["fecha"] = pd.to_datetime(df_tmp["fecha"], errors="coerce")
+        df_tmp = df_tmp.dropna(subset=["fecha"]).copy()
+        if not df_tmp.empty:
+            hoy = pd.Timestamp(date.today()).normalize()
+            inicio_semana = hoy - pd.Timedelta(days=hoy.weekday())
+            inicio_semana_prev = inicio_semana - pd.Timedelta(days=7)
+            fin_semana_prev = inicio_semana - pd.Timedelta(days=1)
+
+            actual = df_tmp[(df_tmp["fecha"].dt.normalize() >= inicio_semana) & (df_tmp["fecha"].dt.normalize() <= hoy)]
+            previa = df_tmp[(df_tmp["fecha"].dt.normalize() >= inicio_semana_prev) & (df_tmp["fecha"].dt.normalize() <= fin_semana_prev)]
+
+            gasto_actual = float(actual[actual["tipo"] == "Gasto"]["monto"].sum()) if not actual.empty else 0.0
+            gasto_previo = float(previa[previa["tipo"] == "Gasto"]["monto"].sum()) if not previa.empty else 0.0
+
+            if gasto_previo > 0:
+                cambio = ((gasto_actual - gasto_previo) / gasto_previo) * 100
+                if cambio >= 25:
+                    alertas.append(f"Tu gasto de esta semana subió {round(cambio, 1)}% frente a la semana pasada.")
+
+    if not alertas:
+        alertas.append("Tu panel está estable. Sigue registrando para que Zentix detecte alertas más finas.")
+    return alertas[:4]
+
+
+def construir_timeline_bancario(df_base, limite=12):
+    if df_base is None or df_base.empty:
+        return []
+
+    df_tmp = df_base.copy()
+    for col in ["fecha", "tipo", "categoria", "descripcion", "monto"]:
+        if col not in df_tmp.columns:
+            df_tmp[col] = None
+
+    df_tmp["fecha"] = pd.to_datetime(df_tmp["fecha"], errors="coerce")
+    df_tmp["monto"] = pd.to_numeric(df_tmp["monto"], errors="coerce").fillna(0)
+    df_tmp = df_tmp.dropna(subset=["fecha"]).sort_values("fecha", ascending=False).head(limite).copy()
+
+    hoy = pd.Timestamp(date.today()).normalize()
+    agrupado = []
+
+    for _, row in df_tmp.iterrows():
+        fecha_norm = row["fecha"].normalize()
+        diff = (hoy - fecha_norm).days
+        if diff == 0:
+            grupo = "Hoy"
+        elif diff == 1:
+            grupo = "Ayer"
+        else:
+            grupo = f"Hace {diff} días"
+
+        tipo = str(row.get("tipo") or "")
+        monto = float(row.get("monto") or 0)
+        signo = "+" if tipo in ["Ingreso", "Cobro cuenta por cobrar", "Ingreso (Deuda)"] else "-"
+        color = "#4ADE80" if tipo in ["Ingreso", "Cobro cuenta por cobrar"] else "#93C5FD" if tipo == "Ingreso (Deuda)" else "#F87171" if tipo == "Gasto" else "#FCD34D" if tipo == "Pago de deuda" else "#C4B5FD"
+        titulo = str(row.get("descripcion") or row.get("categoria") or tipo or "Movimiento").strip()
+        subtitulo = str(row.get("categoria") or tipo or "").strip()
+        agrupado.append({
+            "grupo": grupo,
+            "fecha": row["fecha"],
+            "titulo": titulo,
+            "subtitulo": subtitulo,
+            "tipo": tipo,
+            "monto_txt": f"{signo}{money(monto)}",
+            "color": color
+        })
+
+    return agrupado
+
+
+def construir_asesor_dashboard(nombre, modo_dashboard, total_ingresos_local, total_gastos_local, saldo_caja_real, saldo_cxc_pendiente, saldo_deuda_pendiente, df_mes_actual, df_cxc_local):
+    mensajes = []
+
+    if saldo_cxc_pendiente > max(float(total_ingresos_local or 0) * 0.35, 1):
+        mensajes.append(f"{nombre}, tienes una porción importante de tu flujo atrapada en cuentas por cobrar. Conviene cobrar antes de asumir que esa plata ya está disponible.")
+
+    if float(total_gastos_local or 0) > float(total_ingresos_local or 0) and float(total_ingresos_local or 0) > 0:
+        mensajes.append("Tus gastos del mes están por encima de tus ingresos reales. La prioridad es frenar fuga antes de expandir metas.")
+    elif float(total_ingresos_local or 0) > 0:
+        mensajes.append("Tus ingresos reales ya sostienen el mes. El foco ahora es mejorar calidad de caja y no mezclar cobros pendientes con dinero disponible.")
+
+    if saldo_deuda_pendiente > 0:
+        mensajes.append(f"Todavía cargas {money(saldo_deuda_pendiente)} en deuda pendiente. Mantenerla visible evita sobreestimar tu caja real.")
+
+    if df_mes_actual is not None and not df_mes_actual.empty:
+        gastos_mes = df_mes_actual[df_mes_actual["tipo"] == "Gasto"].copy()
+        if not gastos_mes.empty:
+            top = gastos_mes.groupby("categoria", dropna=False)["monto"].sum().sort_values(ascending=False)
+            if not top.empty:
+                mensajes.append(f"Este mes estás gastando más en {top.index[0]} que en otras categorías. Ahí está tu principal palanca de ajuste.")
+
+    resumen_cxc = construir_resumen_cxc_dashboard(df_cxc_local)
+    if resumen_cxc["vencidas"] > 0:
+        mensajes.append(f"Te conviene cobrar primero las {resumen_cxc['vencidas']} cuenta(s) vencida(s); esa acción mejora caja sin recortar operación.")
+    elif resumen_cxc["activas"] > 0:
+        mensajes.append(f"Tienes {resumen_cxc['activas']} cuenta(s) por cobrar activas. Buenas ventas, pero aún no son caja real.")
+
+    if modo_dashboard == "Negocio":
+        mensajes.append("Modo negocio activo: aquí importa más flujo real, cartera por cobrar y presión operativa que solo el ahorro personal.")
+    else:
+        mensajes.append("Modo personal activo: Zentix prioriza claridad de caja, control de gasto y avance hacia tus metas.")
+
+    mensajes = [m for m in mensajes if m]
+    return mensajes[:4]
+
+
+def render_dashboard_pro(nombre, df_base, df_mes_actual, df_cxc_local, total_ingresos_local, total_gastos_local,
+                         entradas_deuda_local, pagos_deuda_local, saldo_deuda_pendiente, meta_objetivo, ahorro_actual):
+    modo = obtener_modo_dashboard()
+    resumen_cxc = construir_resumen_cxc_dashboard(df_cxc_local)
+    saldo_caja_real = float(total_ingresos_local or 0) - float(total_gastos_local or 0) - float(pagos_deuda_local or 0)
+    flujo_neto_real = float(total_ingresos_local or 0) - float(total_gastos_local or 0)
+    alertas_dashboard = construir_alertas_dashboard_pro(df_base, df_mes_actual, df_cxc_local, meta_objetivo, ahorro_actual)
+    timeline = construir_timeline_bancario(df_base, limite=12)
+    mensajes_asesor = construir_asesor_dashboard(
+        nombre, modo, total_ingresos_local, total_gastos_local, saldo_caja_real,
+        resumen_cxc["pendiente_total"], saldo_deuda_pendiente, df_mes_actual, df_cxc_local
+    )
+
+    section_header("Dashboard pro", "Dinero real vs dinero proyectado, alertas, cartera y lectura ejecutiva en una sola vista.")
+
+    st.radio(
+        "Modo del dashboard",
+        ["Personal", "Negocio"],
+        horizontal=True,
+        key="zentix_dashboard_mode",
+        label_visibility="visible"
+    )
+
+    p1, p2, p3, p4 = st.columns(4)
+    with p1:
+        kpi_card("Dinero en caja real", money(saldo_caja_real), "Ingreso real - gasto - pagos de deuda", "balance")
+    with p2:
+        kpi_card("Por cobrar", money(resumen_cxc["pendiente_total"]), f"Activas: {resumen_cxc['activas']} · Vencidas: {resumen_cxc['vencidas']}", "saving")
+    with p3:
+        kpi_card("Deuda pendiente", money(saldo_deuda_pendiente), f"Entradas por deuda: {money(entradas_deuda_local)}", "balance")
+    with p4:
+        kpi_card("Flujo neto real", money(flujo_neto_real), "Ingresos reales - gastos operativos", "income" if flujo_neto_real >= 0 else "expense")
+
+    q1, q2, q3, q4 = st.columns(4)
+    with q1:
+        render_spotlight_metric("Cobradas total", str(resumen_cxc["cobradas_total"]), "Cuentas totalmente resueltas")
+    with q2:
+        render_spotlight_metric("Cobradas parcial", str(resumen_cxc["cobradas_parcial"]), "Abonos ya realizados")
+    with q3:
+        render_spotlight_metric("Vencidas", str(resumen_cxc["vencidas"]), "Requieren seguimiento")
+    with q4:
+        render_spotlight_metric("Modo activo", modo, "Personal o negocio")
+
+    col_left, col_right = st.columns([1.12, 0.88])
+
+    with col_left:
+        st.markdown(
+            """
+            <div class="soft-card">
+                <div class="section-title">Alertas inteligentes</div>
+                <div class="section-caption">Zentix te habla como asesor, no solo como registro.</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+        render_list_card("Alertas del momento", alertas_dashboard, "Acciones concretas para cuidar caja, cartera y meta.")
+
+        st.markdown(
+            """
+            <div class="soft-card">
+                <div class="section-title">Timeline premium</div>
+                <div class="section-caption">Historial reciente con lectura natural, tipo banco.</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+        if timeline:
+            grupos = []
+            actual = None
+            for item in timeline:
+                if actual != item["grupo"]:
+                    if actual is not None:
+                        grupos.append("</div>")
+                    grupos.append(f"<div class='premium-list-card'><div class='premium-list-head'><div class='premium-list-title'>{item['grupo']}</div><div class='premium-list-badge'>{item['fecha'].strftime('%Y-%m-%d')}</div></div>")
+                    actual = item["grupo"]
+                grupos.append(
+                    f"<div style='display:flex;justify-content:space-between;gap:1rem;padding:0.55rem 0;border-bottom:1px solid rgba(148,163,184,0.10);'>"
+                    f"<div><div style='font-weight:800;color:#F8FAFC;'>{item['titulo']}</div><div class='tiny-muted'>{item['subtitulo']} · {item['tipo']}</div></div>"
+                    f"<div style='font-weight:900;color:{item['color']};white-space:nowrap;'>{item['monto_txt']}</div></div>"
+                )
+            grupos.append("</div>")
+            st.markdown("".join(grupos), unsafe_allow_html=True)
+        else:
+            empty_state("Sin timeline todavía", "Cuando tengas movimientos recientes, aquí aparecerá una lectura tipo banco más natural y premium.")
+
+    with col_right:
+        st.markdown(
+            """
+            <div class="assistant-card">
+                <div class="assistant-title">Zentix asesor</div>
+                <div class="assistant-text">Lectura breve, accionable y con criterio de caja real.</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+        render_list_card("Qué te diría Zentix hoy", mensajes_asesor, "Interpretación premium para decidir mejor.")
+
+        tabla = resumen_cxc["tabla"]
+        st.markdown(
+            """
+            <div class="soft-card">
+                <div class="section-title">Estados de cuentas por cobrar</div>
+                <div class="section-caption">Verde = cobrada, amarillo = pendiente/parcial, rojo = vencida.</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+        if tabla is not None and not tabla.empty:
+            df_show = tabla[["nombre", "cliente", "saldo_pendiente", "monto_total", "fecha_limite", "estado_dashboard"]].copy()
+            df_show["fecha_limite"] = pd.to_datetime(df_show["fecha_limite"], errors="coerce").dt.strftime("%Y-%m-%d")
+            df_show["fecha_limite"] = df_show["fecha_limite"].fillna("—")
+            df_show["saldo_pendiente"] = df_show["saldo_pendiente"].apply(money)
+            df_show["monto_total"] = df_show["monto_total"].apply(money)
+            st.dataframe(
+                df_show.rename(columns={
+                    "nombre": "Cuenta",
+                    "cliente": "Cliente",
+                    "saldo_pendiente": "Pendiente",
+                    "monto_total": "Total",
+                    "fecha_limite": "Vence",
+                    "estado_dashboard": "Estado"
+                }),
+                use_container_width=True,
+                hide_index=True
+            )
+        else:
+            empty_state("Sin cartera activa", "Cuando registres cuentas por cobrar, aquí aparecerá su estado comercial.")
+
+
 def _draw_footer_report(canvas_obj, doc):
     canvas_obj.saveState()
     canvas_obj.setFont("Helvetica", 8)
@@ -6095,6 +6411,20 @@ if pagina == "Inicio":
     render_contexto_descubrimiento("Inicio")
     render_tutorial_zentix("Inicio", nombre_usuario, user_id, df, meta_guardada_global, preferencias_usuario_actual)
 
+    render_dashboard_pro(
+        nombre=nombre_usuario,
+        df_base=df if not df.empty else pd.DataFrame(),
+        df_mes_actual=df_mes if not df_mes.empty else pd.DataFrame(),
+        df_cxc_local=df_cxc if not df_cxc.empty else pd.DataFrame(),
+        total_ingresos_local=total_ingresos,
+        total_gastos_local=total_gastos,
+        entradas_deuda_local=total_entradas_deuda_mes,
+        pagos_deuda_local=total_pagos_deuda_mes,
+        saldo_deuda_pendiente=saldo_pendiente_deudas_global,
+        meta_objetivo=meta_guardada_global,
+        ahorro_actual=ahorro_actual
+    )
+
     col1, col2, col3, col4 = st.columns(4)
     with col1:
         kpi_card("Ingresos reales", money(total_ingresos), "Sin préstamos ni deuda", "income")
@@ -6143,7 +6473,7 @@ if pagina == "Inicio":
                 <div class="section-title">{perfil_financiero.get('titulo', 'Perfil en construcción')}</div>
                 <div class="section-caption">{insight_personalizado}</div>
                 <div class="tiny-muted">Microlectura: {perfil_financiero.get('microcopy', 'Sigue registrando para personalizar más.')}</div>
-                <div class="tiny-muted" style="margin-top:0.55rem;">Deuda pendiente actual: {money(saldo_pendiente_deudas_global)} · Proyección meta: {proyeccion_meta_global.get("mensaje", "Sin proyección")}</div>
+                <div class="tiny-muted" style="margin-top:0.55rem;">Deuda pendiente actual: {money(saldo_pendiente_deudas_global)} · Por cobrar: {money(saldo_pendiente_cxc_global)} · Proyección meta: {proyeccion_meta_global.get("mensaje", "Sin proyección")}</div>
             </div>
             """,
             unsafe_allow_html=True
