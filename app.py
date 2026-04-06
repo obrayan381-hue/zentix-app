@@ -1165,26 +1165,30 @@ def aplicar_estilo_zentix():
     }
     .sidebar-nav-note { color: #94A3B8; font-size: 0.84rem; line-height: 1.5; margin-top: 0.35rem; }
 
-    /* IMPORTANTE:
-       No ocultamos el botón de colapsar porque, si Streamlit decide cerrar el panel,
-       el usuario necesita una forma real de volver a abrirlo. */
-    @media (min-width: 769px) {
-        [data-testid="collapsedControl"] {
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-        }
-        [data-testid="stSidebar"] {
-            min-width: 300px;
-        }
+    [data-testid="collapsedControl"] {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
+        position: fixed;
+        top: 0.85rem;
+        left: 0.85rem;
+        z-index: 999999 !important;
+        background: rgba(15,23,42,0.96);
+        border: 1px solid rgba(96,165,250,0.28);
+        border-radius: 14px;
+        padding: 0.2rem 0.3rem;
+        box-shadow: 0 10px 24px rgba(0,0,0,0.28);
     }
 
-    @media (max-width: 768px) {
-        [data-testid="collapsedControl"] {
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-        }
+    [data-testid="collapsedControl"]:hover {
+        border-color: rgba(125,211,252,0.40);
+        box-shadow: 0 12px 28px rgba(37,99,235,0.22);
+    }
+
+    [data-testid="collapsedControl"] svg {
+        fill: #F8FAFC !important;
+        color: #F8FAFC !important;
     }
 
     #MainMenu {visibility: hidden;}
@@ -5412,6 +5416,52 @@ with st.sidebar:
     if st.button("Cerrar sesión", use_container_width=True):
         st.session_state.user = None
         st.rerun()
+
+st.markdown(
+    """
+    <div class="sticky-top-shell fade-up">
+        <div class="section-title" style="margin-top:0.05rem;">Navegación rápida</div>
+        <div class="section-caption">
+            Si el panel lateral se colapsa en Streamlit Cloud, usa estos accesos rápidos.
+        </div>
+    """,
+    unsafe_allow_html=True
+)
+
+tipo_inicio = "primary" if st.session_state.pagina == "Inicio" else "secondary"
+tipo_registrar = "primary" if st.session_state.pagina == "Registrar" else "secondary"
+tipo_analisis = "primary" if st.session_state.pagina == "Análisis" else "secondary"
+tipo_ahorro = "primary" if st.session_state.pagina == "Ahorro" else "secondary"
+tipo_perfil = "primary" if st.session_state.pagina == "Perfil" else "secondary"
+
+nav1, nav2, nav3, nav4, nav5 = st.columns(5)
+
+with nav1:
+    if st.button("Inicio", key="nav_inicio_top", use_container_width=True, type=tipo_inicio):
+        st.session_state.pagina = "Inicio"
+        st.rerun()
+
+with nav2:
+    if st.button("Registrar", key="nav_registrar_top", use_container_width=True, type=tipo_registrar):
+        st.session_state.pagina = "Registrar"
+        st.rerun()
+
+with nav3:
+    if st.button("Análisis", key="nav_analisis_top", use_container_width=True, type=tipo_analisis):
+        st.session_state.pagina = "Análisis"
+        st.rerun()
+
+with nav4:
+    if st.button("Ahorro", key="nav_ahorro_top", use_container_width=True, type=tipo_ahorro):
+        st.session_state.pagina = "Ahorro"
+        st.rerun()
+
+with nav5:
+    if st.button("Perfil", key="nav_perfil_top", use_container_width=True, type=tipo_perfil):
+        st.session_state.pagina = "Perfil"
+        st.rerun()
+
+st.markdown("</div>", unsafe_allow_html=True)
 
 pagina = st.session_state.pagina
 track_page_view_once(user_id, pagina)
