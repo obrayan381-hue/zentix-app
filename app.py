@@ -12,6 +12,7 @@ import uuid
 import smtplib
 import ssl
 from email.message import EmailMessage
+from streamlit.components.v1 import html as components_html
 
 try:
     from reportlab.lib import colors
@@ -1120,7 +1121,7 @@ def aplicar_estilo_zentix():
 
 
 def forzar_sidebar_abierto():
-    components.html("""
+    components_html("""
     <script>
     (function () {
         const SIDEBAR_WIDTH = "320px";
