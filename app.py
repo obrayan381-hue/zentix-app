@@ -6186,12 +6186,21 @@ if pagina == "Inicio":
 
         with col_a:
             resumen_tipos = pd.DataFrame({
-                "Tipo": ["Ingreso", "Gasto", "Ingreso (Deuda)", "Pago de deuda", "Cuenta por cobrar", "Cobro cuenta por cobrar"],
+                "Tipo": [
+                    "Ingreso",
+                    "Gasto",
+                    "Ingreso (Deuda)",
+                    "Pago de deuda",
+                    "Cuenta por cobrar",
+                    "Cobro cuenta por cobrar",
+                ],
                 "Monto": [
-                    float(total_ingresos),
-                    float(total_gastos),
-                    float(total_entradas_deuda_mes),
-                    float(total_pagos_deuda_mes)
+                    float(total_ingresos or 0),
+                    float(total_gastos or 0),
+                    float(total_entradas_deuda_mes or 0),
+                    float(total_pagos_deuda_mes or 0),
+                    float(total_cuentas_cobrar_mes or 0),
+                    float(total_cobros_cxc_mes or 0),
                 ]
             })
             resumen_tipos = resumen_tipos[resumen_tipos["Monto"] > 0]
