@@ -18,9 +18,9 @@ import streamlit.components.v1 as components
 
 try:
     from PIL import Image as PILImage, ImageDraw, ImageFont
-    PILLOW_AVAILABLE = True
+    PIL_AVAILABLE = True
 except Exception:
-    PILLOW_AVAILABLE = False
+    PIL_AVAILABLE = False
 
 try:
     from reportlab.lib import colors
@@ -903,14 +903,6 @@ def aplicar_estilo_zentix():
     .sticky-top-shell .section-caption {
         margin-bottom: 0.65rem;
     }
-    .nav-quick-label {
-        font-size: 0.78rem;
-        color: #93C5FD;
-        font-weight: 800;
-        letter-spacing: 0.05em;
-        text-transform: uppercase;
-        margin-bottom: 0.65rem;
-    }
     .fade-up {
         animation: zentixFadeUp 0.42s ease both;
     }
@@ -1179,6 +1171,40 @@ def aplicar_estilo_zentix():
     }
     .sidebar-nav-note { color: #94A3B8; font-size: 0.84rem; line-height: 1.5; margin-top: 0.35rem; }
     [data-testid="collapsedControl"] { display: none !important; }
+    .top-nav-premium {
+        position: sticky;
+        top: 0.55rem;
+        z-index: 40;
+        background: linear-gradient(180deg, rgba(7,12,22,0.92), rgba(7,12,22,0.82));
+        border: 1px solid rgba(96,165,250,0.14);
+        border-radius: 24px;
+        padding: 0.9rem 1rem;
+        margin-bottom: 1rem;
+        backdrop-filter: blur(12px);
+        box-shadow: 0 18px 34px rgba(0,0,0,0.22);
+    }
+    .top-nav-premium-title {
+        font-size: 0.82rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #93C5FD;
+        font-weight: 800;
+        margin-bottom: 0.65rem;
+    }
+    .report-image-shell {
+        background: linear-gradient(180deg, rgba(12,20,36,0.88), rgba(10,18,32,0.98));
+        border: 1px solid rgba(96,165,250,0.16);
+        border-radius: 24px;
+        padding: 1rem;
+        margin-top: 0.9rem;
+    }
+    .report-image-note {
+        color: #CBD5E1;
+        font-size: 0.9rem;
+        line-height: 1.6;
+        margin-bottom: 0.7rem;
+    }
+
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     </style>
@@ -1187,34 +1213,6 @@ def aplicar_estilo_zentix():
 
 def money(value):
     return f"${float(value):,.0f}"
-
-
-def reset_registrar_form():
-    defaults = {
-        "registrar_tipo": "Ingreso",
-        "registrar_fecha_mov": date.today(),
-        "registrar_descripcion": "",
-        "registrar_recurrente": False,
-        "registrar_frecuencia": "Semanal",
-        "registrar_proxima_fecha": date.today() + timedelta(days=7),
-        "registrar_fin_toggle": False,
-        "registrar_fecha_fin": date.today() + timedelta(days=7),
-        "registrar_recurrente_activo": True,
-        "registrar_categoria_ingreso": None,
-        "registrar_monto_ingreso": 0.0,
-        "registrar_categoria_gasto": None,
-        "registrar_monto_gasto": 0.0,
-        "registrar_emocion": "",
-        "registrar_deuda_nombre": "",
-        "registrar_prestamista": "",
-        "registrar_monto_deuda": 0.0,
-        "registrar_deuda_limite_toggle": False,
-        "registrar_deuda_limite": date.today() + timedelta(days=30),
-        "registrar_pago_deuda_select": None,
-        "registrar_pago_deuda_monto": 0.0,
-    }
-    for k, v in defaults.items():
-        st.session_state[k] = v
 
 
 def aplicar_estilo_plotly(fig, height=360):
@@ -3145,90 +3143,165 @@ def generar_pdf_reporte_premium(nombre_usuario, plan_nombre, periodicidad, inici
     return buffer.getvalue()
 
 
-def generar_reporte_visual_premium(nombre_usuario, plan_nombre, periodicidad, inicio, fin, df_periodo, resumen_periodo):
-    if not PILLOW_AVAILABLE:
+def resetear_formulario_registro():
+    defaults = {
+        "registrar_tipo": "Ingreso",
+        "registrar_fecha_mov": date.today(),
+        "registrar_descripcion": "",
+        "registrar_recurrente": False,
+        "registrar_frecuencia": "Semanal",
+        "registrar_proxima_fecha": date.today() + timedelta(days=7),
+        "registrar_fin_toggle": False,
+        "registrar_fecha_fin": date.today() + timedelta(days=7),
+        "registrar_recurrente_activo": True,
+        "registrar_categoria_ingreso": "Salario",
+        "registrar_categoria_gasto": "Comida",
+        "registrar_monto_ingreso": 0.0,
+        "registrar_monto_gasto": 0.0,
+        "registrar_emocion": "",
+        "registrar_deuda_nombre": "",
+        "registrar_prestamista": "",
+        "registrar_monto_deuda": 0.0,
+        "registrar_deuda_limite_toggle": False,
+        "registrar_deuda_limite": date.today() + timedelta(days=30),
+        "registrar_pago_deuda_select": None,
+        "registrar_pago_deuda_monto": 0.0,
+    }
+    for key, value in defaults.items():
+        st.session_state[key] = value
+
+
+def _font(size=24, bold=False):
+    if not PIL_AVAILABLE:
+        return None
+    candidates = []
+    if bold:
+        candidates += [
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+            "/usr/share/fonts/truetype/liberation2/LiberationSans-Bold.ttf",
+        ]
+    else:
+        candidates += [
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+            "/usr/share/fonts/truetype/liberation2/LiberationSans-Regular.ttf",
+        ]
+    for c in candidates:
+        try:
+            return ImageFont.truetype(c, size=size)
+        except Exception:
+            pass
+    return ImageFont.load_default()
+
+
+def generar_imagen_reporte_premium(nombre_usuario, plan_nombre, periodicidad, inicio, fin, resumen_periodo, df_periodo):
+    if not PIL_AVAILABLE:
         return None
 
     width = 1600
     height = 2000
-    bg = (6, 17, 31)
-    panel = (10, 24, 48)
-    line = (39, 95, 180)
-    white = (248, 250, 252)
-    muted = (148, 163, 184)
-    green = (34, 197, 94)
-    red = (239, 68, 68)
-    blue = (59, 130, 246)
-    amber = (245, 158, 11)
+    img = PILImage.new("RGB", (width, height), "#07111f")
+    draw = ImageDraw.Draw(img)
 
-    image = PILImage.new("RGB", (width, height), bg)
-    draw = ImageDraw.Draw(image)
+    # Background accents
+    draw.rectangle((0, 0, width, height), fill="#07111f")
+    draw.rounded_rectangle((50, 50, width - 50, 360), radius=36, fill="#0b1730", outline="#1d4ed8", width=2)
+    draw.rounded_rectangle((50, 400, width - 50, 740), radius=30, fill="#f8fbff", outline="#dbeafe", width=2)
+    draw.rounded_rectangle((50, 780, width - 50, height - 80), radius=30, fill="#f8fbff", outline="#dbeafe", width=2)
 
-    title_font = ImageFont.load_default()
-    body_font = ImageFont.load_default()
-    small_font = ImageFont.load_default()
+    font_title = _font(64, True)
+    font_sub = _font(28, False)
+    font_label = _font(24, True)
+    font_body = _font(24, False)
+    font_small = _font(20, False)
 
-    def card(x1, y1, x2, y2, fill, outline=line):
-        draw.rounded_rectangle((x1, y1, x2, y2), radius=28, fill=fill, outline=outline, width=2)
+    draw.text((90, 95), "ZENTIX", fill="#ffffff", font=font_title)
+    draw.text((92, 175), "Finanzas inteligentes con estilo fintech premium", fill="#bfdbfe", font=font_sub)
+    draw.text((92, 225), f"Reporte {periodicidad} · {inicio.strftime('%Y-%m-%d')} a {fin.strftime('%Y-%m-%d')}", fill="#cbd5e1", font=font_sub)
+    draw.text((92, 275), f"Usuario: {nombre_usuario} · Plan: {plan_nombre}", fill="#cbd5e1", font=font_sub)
 
-    def txt(x, y, value, fill=white, font=body_font):
-        draw.text((x, y), str(value), fill=fill, font=font)
-
-    card(50, 40, width - 50, 280, panel)
-    txt(90, 80, "ZENTIX", white, title_font)
-    txt(90, 120, "Reporte premium listo para guardar o imprimir", muted, body_font)
-    txt(90, 170, f"{periodicidad} · {inicio.strftime('%Y-%m-%d')} a {fin.strftime('%Y-%m-%d')}", white, body_font)
-    txt(90, 205, f"{nombre_usuario} · Plan {plan_nombre}", muted, body_font)
-
+    # KPI cards
     kpis = [
-        ("Movimientos", resumen_periodo.get("conteo", 0), white),
-        ("Ingresos", money(resumen_periodo.get("ingresos", 0)), green),
-        ("Gastos", money(resumen_periodo.get("gastos", 0)), red),
-        ("Balance", money(resumen_periodo.get("balance", 0)), blue if float(resumen_periodo.get("balance", 0) or 0) >= 0 else amber),
+        ("Movimientos", str(int(resumen_periodo.get("conteo", 0) or 0)), "#ffffff"),
+        ("Ingresos", money(resumen_periodo.get("ingresos", 0) or 0), "#22c55e"),
+        ("Gastos", money(resumen_periodo.get("gastos", 0) or 0), "#ef4444"),
+        ("Balance", money(resumen_periodo.get("balance", 0) or 0), "#3b82f6"),
     ]
-    kx = 50
-    for title, value, color in kpis:
-        card(kx, 320, kx + 350, 520, (9, 20, 40))
-        txt(kx + 28, 355, title, muted, body_font)
-        txt(kx + 28, 405, value, color, title_font)
-        kx += 385
+    x_positions = [90, 450, 810, 1170]
+    for (label, value, color), x in zip(kpis, x_positions):
+        draw.rounded_rectangle((x, 450, x + 280, 690), radius=24, fill="#eef6ff", outline="#dbeafe", width=2)
+        draw.text((x + 24, 490), label, fill="#475569", font=font_label)
+        draw.text((x + 24, 565), value, fill=color, font=_font(36, True))
 
-    ejecutivo = construir_resumen_ejecutivo_reporte(df_periodo, resumen_periodo)
-    card(50, 570, width - 50, 920, panel)
-    txt(90, 610, "Resumen ejecutivo", white, title_font)
-    y = 675
-    for line_text in ejecutivo:
-        txt(95, y, f"- {line_text}", white, body_font)
-        y += 42
+    # Executive summary
+    y = 830
+    draw.text((90, y), "Resumen ejecutivo", fill="#0f172a", font=_font(36, True))
+    y += 70
+    resumen_lineas = construir_resumen_ejecutivo_reporte(df_periodo, resumen_periodo)
+    for line in resumen_lineas:
+        draw.text((110, y), f"• {line}", fill="#334155", font=font_body)
+        y += 50
 
-    card(50, 970, width - 50, height - 60, panel)
-    txt(90, 1010, "Movimientos destacados", white, title_font)
+    y += 20
+    draw.text((90, y), "Movimientos destacados", fill="#0f172a", font=_font(34, True))
+    y += 60
 
-    preview = df_periodo.copy().sort_values("fecha", ascending=False).head(10) if df_periodo is not None and not df_periodo.empty else pd.DataFrame()
-    if preview.empty:
-        txt(95, 1080, "No hay movimientos en este periodo.", muted, body_font)
+    vista = df_periodo.copy().sort_values("fecha", ascending=False).head(10) if df_periodo is not None and not df_periodo.empty else pd.DataFrame()
+    if vista.empty:
+        draw.text((110, y), "Sin movimientos en este periodo.", fill="#64748b", font=font_body)
     else:
-        preview["fecha"] = pd.to_datetime(preview["fecha"], errors="coerce").dt.strftime("%Y-%m-%d")
-        y = 1080
-        for _, row in preview.iterrows():
+        for _, row in vista.iterrows():
+            fecha_txt = pd.to_datetime(row.get("fecha"), errors="coerce")
+            fecha_txt = fecha_txt.strftime("%Y-%m-%d") if pd.notna(fecha_txt) else "-"
             tipo = str(row.get("tipo") or "-")
-            monto_color = green if tipo == "Ingreso" else red if tipo == "Gasto" else blue if tipo == "Ingreso (Deuda)" else amber
-            txt(95, y, f"{row.get('fecha', '-')}", muted, small_font)
-            txt(250, y, tipo, white, body_font)
-            txt(530, y, str(row.get("categoria") or "-"), muted, body_font)
-            txt(850, y, money(row.get("monto", 0)), monto_color, body_font)
-            txt(1120, y, str(row.get("descripcion") or "Sin descripción")[:38], white, small_font)
-            y += 62
-            if y > height - 120:
+            categoria = str(row.get("categoria") or "-")
+            monto = money(row.get("monto", 0) or 0)
+            descripcion = str(row.get("descripcion") or "Sin descripción")[:52]
+            color = "#22c55e" if tipo == "Ingreso" else "#ef4444" if tipo == "Gasto" else "#3b82f6" if tipo == "Ingreso (Deuda)" else "#f59e0b"
+            draw.rounded_rectangle((90, y - 8, width - 90, y + 78), radius=18, fill="#ffffff", outline="#e2e8f0", width=1)
+            draw.text((115, y + 10), f"{fecha_txt} · {tipo} · {categoria}", fill="#0f172a", font=font_label)
+            draw.text((115, y + 42), descripcion, fill="#475569", font=font_small)
+            draw.text((width - 310, y + 24), monto, fill=color, font=_font(28, True))
+            y += 98
+            if y > height - 160:
                 break
 
-    footer = f"Generado por Zentix Intelligence · {datetime.now().strftime('%Y-%m-%d %H:%M')}"
-    txt(90, height - 95, footer, muted, small_font)
+    draw.text((90, height - 120), "Zentix Intelligence · Imagen premium lista para guardar o imprimir", fill="#475569", font=font_small)
 
     buf = io.BytesIO()
-    image.save(buf, format="PNG")
+    img.save(buf, format="PNG")
     buf.seek(0)
     return buf.getvalue()
+
+
+def render_nav_rapida_premium():
+    st.markdown("<div class='top-nav-premium fade-up'><div class='top-nav-premium-title'>Accesos rápidos</div>", unsafe_allow_html=True)
+    tipo_inicio = "primary" if st.session_state.pagina == "Inicio" else "secondary"
+    tipo_registrar = "primary" if st.session_state.pagina == "Registrar" else "secondary"
+    tipo_analisis = "primary" if st.session_state.pagina == "Análisis" else "secondary"
+    tipo_ahorro = "primary" if st.session_state.pagina == "Ahorro" else "secondary"
+    tipo_perfil = "primary" if st.session_state.pagina == "Perfil" else "secondary"
+    nav1, nav2, nav3, nav4, nav5 = st.columns(5)
+    with nav1:
+        if st.button("Inicio", key="nav_inicio_top", use_container_width=True, type=tipo_inicio):
+            st.session_state.pagina = "Inicio"
+            st.rerun()
+    with nav2:
+        if st.button("Registrar", key="nav_registrar_top", use_container_width=True, type=tipo_registrar):
+            st.session_state.pagina = "Registrar"
+            st.rerun()
+    with nav3:
+        if st.button("Análisis", key="nav_analisis_top", use_container_width=True, type=tipo_analisis):
+            st.session_state.pagina = "Análisis"
+            st.rerun()
+    with nav4:
+        if st.button("Ahorro", key="nav_ahorro_top", use_container_width=True, type=tipo_ahorro):
+            st.session_state.pagina = "Ahorro"
+            st.rerun()
+    with nav5:
+        if st.button("Perfil", key="nav_perfil_top", use_container_width=True, type=tipo_perfil):
+            st.session_state.pagina = "Perfil"
+            st.rerun()
+    st.markdown("</div>", unsafe_allow_html=True)
 
 
 def render_reporte_descargable(nombre_usuario, plan_actual, df_base, user_id=None):
@@ -3264,53 +3337,17 @@ def render_reporte_descargable(nombre_usuario, plan_actual, df_base, user_id=Non
         cols = [col for col in ["fecha", "tipo", "categoria", "monto", "descripcion", "deuda_nombre", "prestamista"] if col in preview.columns]
         st.dataframe(preview[cols], use_container_width=True)
 
-        st.markdown('<div class="report-preview-shell">', unsafe_allow_html=True)
-        st.markdown("#### Vista premium del reporte")
-        st.caption("Ahora puedes descargar una versión visual elegante en imagen y, si reportlab está activo, también un PDF listo para imprimir.")
+        if not REPORTLAB_AVAILABLE:
+            st.warning("Instala reportlab en tu entorno de Streamlit Cloud para habilitar el PDF premium.")
+            return
 
-        png_bytes = generar_reporte_visual_premium(
-            nombre_usuario,
-            plan_actual.get("plan", "free").upper(),
-            periodicidad,
-            inicio_rep,
-            fin_rep,
-            df_periodo,
-            resumen_rep
-        )
-
-        if png_bytes:
-            st.image(png_bytes, use_container_width=True)
-            descargado_png = st.download_button(
-                "Descargar reporte imagen (PNG)",
-                data=png_bytes,
-                file_name=f"zentix_reporte_{periodicidad.lower()}_{inicio_rep.strftime('%Y%m%d')}_{fin_rep.strftime('%Y%m%d')}.png",
-                mime="image/png",
-                use_container_width=True,
-                key=f"download_png_{periodicidad}_{inicio_rep}_{fin_rep}"
-            )
-            if descargado_png:
-                registrar_evento_producto("report_image_download", user_id=user_id, pagina="Análisis", detalle=f"{periodicidad} {inicio_rep} {fin_rep}")
-        else:
-            st.info("La vista visual premium no está disponible porque Pillow no está instalado en este entorno.")
-
-        if REPORTLAB_AVAILABLE:
-            pdf_bytes = generar_pdf_reporte_premium(nombre_usuario, plan_actual.get("plan", "free").upper(), periodicidad, inicio_rep, fin_rep, df_periodo, resumen_rep)
-            if pdf_bytes:
-                filename = f"zentix_reporte_{periodicidad.lower()}_{inicio_rep.strftime('%Y%m%d')}_{fin_rep.strftime('%Y%m%d')}.pdf"
-                descargado = st.download_button(
-                    "Descargar reporte PDF imprimible",
-                    data=pdf_bytes,
-                    file_name=filename,
-                    mime="application/pdf",
-                    use_container_width=True,
-                    key=f"download_pdf_{periodicidad}_{inicio_rep}_{fin_rep}"
-                )
-                if descargado:
-                    registrar_evento_producto("report_download", user_id=user_id, pagina="Análisis", detalle=f"{periodicidad} {inicio_rep} {fin_rep}")
-                st.caption("El PDF va listo para guardar, compartir o imprimir desde tu navegador.")
-        else:
-            st.info("El PDF aún no está disponible en este entorno, pero ya puedes descargar la imagen premium del reporte.")
-        st.markdown('</div>', unsafe_allow_html=True)
+        pdf_bytes = generar_pdf_reporte_premium(nombre_usuario, plan_actual.get("plan", "free").upper(), periodicidad, inicio_rep, fin_rep, df_periodo, resumen_rep)
+        if pdf_bytes:
+            filename = f"zentix_reporte_{periodicidad.lower()}_{inicio_rep.strftime('%Y%m%d')}_{fin_rep.strftime('%Y%m%d')}.pdf"
+            descargado = st.download_button("Descargar reporte PDF", data=pdf_bytes, file_name=filename, mime="application/pdf", use_container_width=True)
+            if descargado:
+                registrar_evento_producto("report_download", user_id=user_id, pagina="Análisis", detalle=f"{periodicidad} {inicio_rep} {fin_rep}")
+            st.caption("Descarga el PDF y podrás imprimirlo desde tu navegador o visor favorito.")
 def obtener_nombre_meta_guardado(user_id):
     try:
         result = (
@@ -5372,16 +5409,28 @@ def render_reportes_compactos(nombre_usuario, plan_actual, df_base, user_id=None
                 preview["fecha"] = pd.to_datetime(preview["fecha"], errors="coerce").dt.strftime("%Y-%m-%d")
             cols = [c for c in ["fecha", "tipo", "categoria", "monto", "descripcion", "deuda_nombre", "prestamista"] if c in preview.columns]
             st.dataframe(preview[cols], use_container_width=True)
-            if not REPORTLAB_AVAILABLE:
-                st.warning("Instala reportlab para habilitar la vista previa premium del reporte.")
-                continue
-            pdf_bytes = generar_pdf_reporte_premium(nombre_usuario, plan_actual.get("plan", "free").upper(), tab_name, inicio_rep, fin_rep, df_periodo, resumen_rep)
-            filename = f"zentix_reporte_{tab_name.lower()}_{inicio_rep.strftime('%Y%m%d')}_{fin_rep.strftime('%Y%m%d')}.pdf"
+            png_bytes = generar_imagen_reporte_premium(nombre_usuario, plan_actual.get("plan", "free").upper(), tab_name, inicio_rep, fin_rep, resumen_rep, df_periodo)
+            pdf_bytes = None
+            if REPORTLAB_AVAILABLE:
+                pdf_bytes = generar_pdf_reporte_premium(nombre_usuario, plan_actual.get("plan", "free").upper(), tab_name, inicio_rep, fin_rep, df_periodo, resumen_rep)
+            filename_base = f"zentix_reporte_{tab_name.lower()}_{inicio_rep.strftime('%Y%m%d')}_{fin_rep.strftime('%Y%m%d')}"
             abrir = st.toggle(f"Abrir vista previa premium · {tab_name}", key=f"toggle_preview_{tab_name}")
-            st.download_button(f"Descargar PDF · {tab_name}", data=pdf_bytes, file_name=filename, mime="application/pdf", use_container_width=True)
-            if abrir and pdf_bytes:
-                st.markdown("<div class='report-preview-shell'><div class='section-title'>Vista previa y acciones premium</div><div class='section-caption'>Puedes previsualizar, imprimir o compartir el reporte desde aquí. En WhatsApp o correo la app abre el mensaje; el adjunto se termina de mandar desde tu dispositivo.</div></div>", unsafe_allow_html=True)
-                render_reporte_preview_modal(pdf_bytes, filename, titulo=f"Reporte {tab_name} Zentix")
+            d1, d2 = st.columns(2)
+            with d1:
+                if pdf_bytes:
+                    st.download_button(f"Descargar PDF · {tab_name}", data=pdf_bytes, file_name=f"{filename_base}.pdf", mime="application/pdf", use_container_width=True)
+                else:
+                    st.info("PDF premium no disponible todavía en este entorno. La imagen premium sí está lista para descargar o imprimir.")
+            with d2:
+                if png_bytes:
+                    st.download_button(f"Descargar imagen · {tab_name}", data=png_bytes, file_name=f"{filename_base}.png", mime="image/png", use_container_width=True)
+            if abrir:
+                st.markdown("<div class='report-preview-shell'><div class='section-title'>Vista previa y acciones premium</div><div class='section-caption'>Puedes guardar una imagen premium del reporte y, cuando reportlab esté activo, descargar también el PDF listo para impresión física.</div></div>", unsafe_allow_html=True)
+                if png_bytes:
+                    st.markdown("<div class='report-image-shell'><div class='section-title'>Imagen premium del reporte</div><div class='report-image-note'>Esta versión queda lista para guardar, compartir o imprimir desde tu dispositivo sin perder el estilo visual de Zentix.</div></div>", unsafe_allow_html=True)
+                    st.image(png_bytes, use_container_width=True)
+                if pdf_bytes:
+                    render_reporte_preview_modal(pdf_bytes, f"{filename_base}.pdf", titulo=f"Reporte {tab_name} Zentix")
                 registrar_evento_producto("report_preview_open", user_id=user_id, pagina="Análisis", detalle=f"{tab_name} {inicio_rep} {fin_rep}")
 
 def obtener_meta(user_id):
@@ -5554,6 +5603,8 @@ with st.sidebar:
     if st.button("Cerrar sesión", use_container_width=True):
         st.session_state.user = None
         st.rerun()
+
+render_nav_rapida_premium()
 
 pagina = st.session_state.pagina
 track_page_view_once(user_id, pagina)
@@ -5872,8 +5923,7 @@ if pagina == "Registrar":
         tipo = st.radio(
             "Tipo de movimiento",
             ["Ingreso", "Gasto", "Ingreso (Deuda)", "Pago de deuda"],
-            horizontal=True,
-            key="registrar_tipo"
+            horizontal=True
         )
 
         if tipo == "Ingreso":
@@ -6087,15 +6137,15 @@ if pagina == "Registrar":
                             actualizar_deuda_pago_seguro(deuda_id, saldo_deuda_actual - float(monto))
 
                         registrar_evento_producto("movement_created", user_id=user_id, pagina="Registrar", detalle=f"{tipo} · {categoria}", valor=float(monto))
-                        reset_registrar_form()
-                        st.success("Movimiento guardado correctamente.")
+                        resetear_formulario_registro()
+                        st.success("Movimiento guardado correctamente. El formulario quedó limpio para el siguiente registro.")
                         st.rerun()
                     except Exception as e:
                         st.error(f"Error guardando movimiento: {e}")
 
         with col_btn_2:
             if st.button("Resetear formulario", use_container_width=True):
-                reset_registrar_form()
+                resetear_formulario_registro()
                 st.rerun()
 
     with col_side:
