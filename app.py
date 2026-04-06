@@ -1164,88 +1164,34 @@ def aplicar_estilo_zentix():
         margin-top: 0.9rem;
     }
     .sidebar-nav-note { color: #94A3B8; font-size: 0.84rem; line-height: 1.5; margin-top: 0.35rem; }
+
+    /* IMPORTANTE:
+       No ocultamos el botón de colapsar porque, si Streamlit decide cerrar el panel,
+       el usuario necesita una forma real de volver a abrirlo. */
     @media (min-width: 769px) {
         [data-testid="collapsedControl"] {
-            opacity: 0 !important;
-            pointer-events: none !important;
-            position: fixed !important;
-            left: -9999px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
         }
-        button[kind="header"] {
-            opacity: 0 !important;
-            pointer-events: none !important;
-        }
-        section[data-testid="stSidebar"] {
-            min-width: 320px !important;
-            width: 320px !important;
-            max-width: 320px !important;
-        }
-        section[data-testid="stSidebar"][aria-expanded="false"] {
-            transform: translateX(0%) !important;
-            min-width: 320px !important;
-            width: 320px !important;
-            max-width: 320px !important;
-            margin-left: 0 !important;
+        [data-testid="stSidebar"] {
+            min-width: 300px;
         }
     }
+
+    @media (max-width: 768px) {
+        [data-testid="collapsedControl"] {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+        }
+    }
+
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     </style>
     """, unsafe_allow_html=True)
 
-
-
-
-def forzar_sidebar_abierto():
-    components.html(
-        """
-        <script>
-        (function () {
-            const SIDEBAR_WIDTH = "320px";
-            const MOBILE_BREAKPOINT = 768;
-
-            function openSidebar() {
-                const doc = window.parent.document;
-                const sidebar = doc.querySelector('section[data-testid="stSidebar"]');
-                const collapsedControl = doc.querySelector('[data-testid="collapsedControl"]');
-                const headerButton = doc.querySelector('button[kind="header"]');
-                if (!sidebar) return;
-
-                const isDesktop = window.parent.innerWidth > MOBILE_BREAKPOINT;
-                const expanded = sidebar.getAttribute("aria-expanded");
-                const tooSmall = sidebar.offsetWidth < 200;
-
-                if ((expanded === "false" || tooSmall) && collapsedControl) {
-                    try { collapsedControl.click(); } catch (e) {}
-                }
-                if ((expanded === "false" || tooSmall) && headerButton) {
-                    try { headerButton.click(); } catch (e) {}
-                }
-
-                if (isDesktop) {
-                    sidebar.style.transform = "translateX(0)";
-                    sidebar.style.minWidth = SIDEBAR_WIDTH;
-                    sidebar.style.width = SIDEBAR_WIDTH;
-                    sidebar.style.maxWidth = SIDEBAR_WIDTH;
-                    sidebar.setAttribute("aria-expanded", "true");
-                }
-            }
-
-            openSidebar();
-            setTimeout(openSidebar, 250);
-            setTimeout(openSidebar, 900);
-            setTimeout(openSidebar, 1800);
-
-            const observer = new MutationObserver(() => openSidebar());
-            if (window.parent.document.body) {
-                observer.observe(window.parent.document.body, {subtree: true, childList: true, attributes: true});
-            }
-        })();
-        </script>
-        """,
-        height=0,
-        width=0,
-    )
 
 def money(value):
     return f"${float(value):,.0f}"
@@ -4783,7 +4729,6 @@ def obtener_categoria_top(df_mes):
 
 
 aplicar_estilo_zentix()
-forzar_sidebar_abierto()
 
 
 def obtener_movimientos(user_id):
