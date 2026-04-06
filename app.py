@@ -3316,16 +3316,30 @@ def construir_alertas_dashboard_pro(df_base, df_mes_actual, df_cxc_local, meta_a
 
     if df_base is not None and not df_base.empty and "fecha" in df_base.columns:
         df_tmp = df_base.copy()
-        df_tmp["fecha"] = pd.to_datetime(df_tmp["fecha"], errors="coerce")
+        df_tmp["fecha"] = pd.to_datetime(df_tmp["fecha"], errors="coerce", utc=True)
         df_tmp = df_tmp.dropna(subset=["fecha"]).copy()
+
         if not df_tmp.empty:
+            try:
+                df_tmp["fecha"] = df_tmp["fecha"].dt.tz_convert(None)
+            except Exception:
+                try:
+                    df_tmp["fecha"] = df_tmp["fecha"].dt.tz_localize(None)
+                except Exception:
+                    pass
+
+            df_tmp["fecha"] = pd.to_datetime(df_tmp["fecha"], errors="coerce")
+            df_tmp = df_tmp.dropna(subset=["fecha"]).copy()
+
+        if not df_tmp.empty:
+            df_tmp["fecha_norm"] = df_tmp["fecha"].dt.normalize()
             hoy = pd.Timestamp(date.today()).normalize()
             inicio_semana = hoy - pd.Timedelta(days=hoy.weekday())
             inicio_semana_prev = inicio_semana - pd.Timedelta(days=7)
             fin_semana_prev = inicio_semana - pd.Timedelta(days=1)
 
-            actual = df_tmp[(df_tmp["fecha"].dt.normalize() >= inicio_semana) & (df_tmp["fecha"].dt.normalize() <= hoy)]
-            previa = df_tmp[(df_tmp["fecha"].dt.normalize() >= inicio_semana_prev) & (df_tmp["fecha"].dt.normalize() <= fin_semana_prev)]
+            actual = df_tmp[(df_tmp["fecha_norm"] >= inicio_semana) & (df_tmp["fecha_norm"] <= hoy)]
+            previa = df_tmp[(df_tmp["fecha_norm"] >= inicio_semana_prev) & (df_tmp["fecha_norm"] <= fin_semana_prev)]
 
             gasto_actual = float(actual[actual["tipo"] == "Gasto"]["monto"].sum()) if not actual.empty else 0.0
             gasto_previo = float(previa[previa["tipo"] == "Gasto"]["monto"].sum()) if not previa.empty else 0.0
