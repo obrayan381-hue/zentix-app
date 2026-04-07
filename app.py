@@ -3363,16 +3363,33 @@ def construir_timeline_bancario(df_base, limite=12):
         if col not in df_tmp.columns:
             df_tmp[col] = None
 
+    df_tmp["fecha"] = pd.to_datetime(df_tmp["fecha"], errors="coerce", utc=True)
+    df_tmp = df_tmp.dropna(subset=["fecha"]).copy()
+
+    if df_tmp.empty:
+        return []
+
+    try:
+        df_tmp["fecha"] = df_tmp["fecha"].dt.tz_convert(None)
+    except Exception:
+        try:
+            df_tmp["fecha"] = df_tmp["fecha"].dt.tz_localize(None)
+        except Exception:
+            pass
+
     df_tmp["fecha"] = pd.to_datetime(df_tmp["fecha"], errors="coerce")
     df_tmp["monto"] = pd.to_numeric(df_tmp["monto"], errors="coerce").fillna(0)
     df_tmp = df_tmp.dropna(subset=["fecha"]).sort_values("fecha", ascending=False).head(limite).copy()
+
+    if df_tmp.empty:
+        return []
 
     hoy = pd.Timestamp(date.today()).normalize()
     agrupado = []
 
     for _, row in df_tmp.iterrows():
-        fecha_norm = row["fecha"].normalize()
-        diff = (hoy - fecha_norm).days
+        fecha_norm = pd.Timestamp(row["fecha"]).normalize()
+        diff = int((hoy - fecha_norm).days)
         if diff == 0:
             grupo = "Hoy"
         elif diff == 1:
