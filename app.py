@@ -48,7 +48,7 @@ DEFAULT_INGRESOS = [
     "Salario", "Freelance", "Ventas", "Inversiones", "Regalos", "Otros"
 ]
 
-CHART_COLORS = ["#34D399", "#F87171", "#4F8CFF", "#A78BFA", "#3DD9EB", "#FBBF24"]
+CHART_COLORS = ["#34D399", "#FB7185", "#4F7CFF", "#A78BFA", "#22D3EE", "#FBBF24"]
 
 icono_path = Path("icono_zentix_v2.png")
 if not icono_path.exists():
@@ -1206,58 +1206,93 @@ def aplicar_estilo_zentix():
     }
 
 
-    /* ===== ZENTIX · LIGHTER PREMIUM THEME ===== */
-
+    /* ===== ZENTIX PREMIUM REFINEMENT V3 ===== */
     :root {
-        --bg: #17263D;
-        --bg2: #1D2F4A;
-        --bg3: #243A59;
-
-        --panel: rgba(36, 54, 79, 0.92);
-        --panel-2: rgba(42, 62, 92, 0.96);
-        --panel-soft: rgba(52, 76, 112, 0.78);
-
-        --line: rgba(203, 213, 225, 0.18);
-        --line-strong: rgba(96, 165, 250, 0.30);
-
+        --bg: #0E1525;
+        --bg2: #131D31;
+        --panel: rgba(18, 27, 46, 0.92);
+        --panel-2: rgba(22, 33, 56, 0.96);
+        --line: rgba(148, 163, 184, 0.14);
+        --line-strong: rgba(96, 165, 250, 0.24);
         --text: #F8FAFC;
-        --text-soft: #E2E8F0;
-        --muted: #C7D2E0;
-
-        --blue: #4F8CFF;
-        --cyan: #3DD9EB;
+        --muted: #B8C3D9;
+        --blue: #4F7CFF;
+        --cyan: #22D3EE;
         --purple: #A78BFA;
         --green: #34D399;
-        --red: #F87171;
-        --teal: #14B8A6;
+        --red: #FB7185;
         --amber: #FBBF24;
     }
 
     .stApp {
         background:
-            radial-gradient(circle at top left, rgba(79,140,255,0.18), transparent 30%),
-            radial-gradient(circle at top right, rgba(125,211,252,0.14), transparent 24%),
-            linear-gradient(180deg, #17263D 0%, #1D2F4A 48%, #243A59 100%);
-    }
-
-    header[data-testid="stHeader"] {
-        background: rgba(23, 38, 61, 0.72);
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
+            radial-gradient(circle at 12% 10%, rgba(79,124,255,0.24), transparent 26%),
+            radial-gradient(circle at 88% 12%, rgba(34,211,238,0.12), transparent 22%),
+            radial-gradient(circle at 50% 100%, rgba(167,139,250,0.10), transparent 30%),
+            linear-gradient(160deg, #0E1525 0%, #121B2E 42%, #182642 100%);
     }
 
     [data-testid="stSidebar"] {
-        background: linear-gradient(180deg, rgba(31,46,72,0.96), rgba(25,39,62,0.98));
-        border-right: 1px solid rgba(203,213,225,0.10);
+        background:
+            linear-gradient(180deg, rgba(10,16,30,0.98), rgba(14,22,38,0.98));
+        border-right: 1px solid rgba(148,163,184,0.10);
+        box-shadow: inset -1px 0 0 rgba(255,255,255,0.02);
     }
 
-    [data-testid="stSidebarContent"] {
-        padding-top: 0.55rem;
+    header[data-testid="stHeader"] {
+        background: rgba(10,16,30,0.68);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
     }
 
-    h1, h2, h3 {
-        color: #F8FAFC !important;
-        letter-spacing: -0.02em;
+    .hero-card,
+    .soft-card,
+    .assistant-card,
+    .mini-soft-card,
+    .premium-list-card,
+    .feature-signal,
+    .tutorial-card,
+    .spotlight-shell,
+    .spotlight-side-card,
+    .launch-grid-card,
+    .movement-card,
+    .movement-side-shell,
+    .report-preview-shell,
+    .report-image-shell,
+    .login-box,
+    .auth-shell,
+    .limit-card-premium,
+    .sticky-top-shell,
+    .top-nav-premium,
+    .legal-footer,
+    .premium-floating-guide {
+        border: 1px solid rgba(148,163,184,0.12);
+        background:
+            linear-gradient(180deg, rgba(23,34,58,0.94), rgba(16,24,40,0.94));
+        box-shadow:
+            0 20px 44px rgba(2,6,23,0.28),
+            inset 0 1px 0 rgba(255,255,255,0.05);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+    }
+
+    .hero-card {
+        background:
+            radial-gradient(circle at top left, rgba(79,124,255,0.22), transparent 32%),
+            radial-gradient(circle at bottom right, rgba(167,139,250,0.10), transparent 28%),
+            linear-gradient(135deg, rgba(23,34,58,0.98), rgba(15,23,42,0.98));
+        border: 1px solid rgba(96,165,250,0.18);
+        box-shadow:
+            0 28px 56px rgba(2,6,23,0.32),
+            inset 0 1px 0 rgba(255,255,255,0.06);
+    }
+
+    .hero-badge,
+    .tutorial-badge,
+    .spotlight-badge {
+        background: rgba(79,124,255,0.14);
+        border: 1px solid rgba(125,211,252,0.22);
+        color: #DBEAFE;
     }
 
     .hero-subtitle,
@@ -1266,12 +1301,12 @@ def aplicar_estilo_zentix():
     .spotlight-copy,
     .premium-list-copy,
     .movement-meta,
-    .launch-grid-copy,
     .report-image-note,
     .auth-step-copy,
     .feature-signal-sub,
-    .spotlight-side-sub {
-        color: var(--text-soft);
+    .spotlight-side-sub,
+    .launch-grid-copy {
+        color: #D6DEEE;
     }
 
     .section-caption,
@@ -1285,60 +1320,64 @@ def aplicar_estilo_zentix():
     .movement-date,
     .movement-side-label,
     .spotlight-metric-label {
-        color: var(--muted);
+        color: #B8C3D9;
+    }
+
+    .hero-pill,
+    .feature-chip,
+    .tutorial-step-chip,
+    .movement-chip,
+    .premium-list-badge,
+    .spotlight-metric,
+    .movement-side-kpi,
+    .auth-step-card,
+    .sidebar-user-card {
+        background: rgba(30, 41, 59, 0.74);
+        border: 1px solid rgba(148,163,184,0.12);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
     }
 
     .stButton > button {
-        border: 1px solid rgba(203,213,225,0.16);
+        border: 1px solid rgba(148,163,184,0.16);
         background:
             radial-gradient(circle at top left, rgba(125,211,252,0.16), transparent 34%),
             radial-gradient(circle at bottom right, rgba(167,139,250,0.12), transparent 28%),
-            linear-gradient(135deg, rgba(52,76,112,0.98), rgba(42,62,92,0.98));
-        color: #F8FAFC;
+            linear-gradient(135deg, rgba(28,41,67,0.98), rgba(18,27,46,0.98));
         box-shadow:
-            inset 0 1px 0 rgba(255,255,255,0.05),
-            0 12px 26px rgba(8,15,30,0.16);
+            inset 0 1px 0 rgba(255,255,255,0.06),
+            0 14px 30px rgba(2,6,23,0.24);
+        color: #F8FAFC;
     }
 
     .stButton > button:hover {
         border-color: rgba(125,211,252,0.28);
         box-shadow:
-            inset 0 1px 0 rgba(255,255,255,0.06),
-            0 16px 30px rgba(79,140,255,0.14);
-        filter: brightness(1.03);
+            inset 0 1px 0 rgba(255,255,255,0.07),
+            0 18px 34px rgba(37,99,235,0.16);
+        filter: brightness(1.045);
     }
 
     .stButton > button[kind="primary"] {
         background:
             radial-gradient(circle at top left, rgba(125,211,252,0.24), transparent 34%),
-            radial-gradient(circle at bottom right, rgba(79,140,255,0.20), transparent 28%),
-            linear-gradient(135deg, rgba(63,116,255,1), rgba(79,140,255,1));
-        border: 1px solid rgba(191,219,254,0.20);
-        color: #FFFFFF;
+            radial-gradient(circle at bottom right, rgba(167,139,250,0.22), transparent 28%),
+            linear-gradient(135deg, rgba(40,66,146,1), rgba(79,124,255,0.96));
+        border: 1px solid rgba(147,197,253,0.28);
         box-shadow:
-            inset 0 1px 0 rgba(255,255,255,0.08),
-            0 18px 34px rgba(79,140,255,0.20);
+            inset 0 1px 0 rgba(255,255,255,0.10),
+            0 20px 38px rgba(37,99,235,0.20),
+            0 0 0 1px rgba(125,211,252,0.06);
     }
 
     .stButton > button[kind="primary"]:hover {
         background:
             radial-gradient(circle at top left, rgba(125,211,252,0.28), transparent 34%),
-            radial-gradient(circle at bottom right, rgba(96,165,250,0.24), transparent 28%),
-            linear-gradient(135deg, rgba(74,126,255,1), rgba(95,153,255,1));
-        border-color: rgba(224,242,254,0.26);
+            radial-gradient(circle at bottom right, rgba(196,181,253,0.22), transparent 28%),
+            linear-gradient(135deg, rgba(47,76,164,1), rgba(95,141,255,1));
+        border-color: rgba(191,219,254,0.34);
         box-shadow:
-            inset 0 1px 0 rgba(255,255,255,0.10),
-            0 20px 38px rgba(79,140,255,0.24);
-    }
-
-    .stButton > button[kind="secondary"] {
-        background:
-            radial-gradient(circle at top left, rgba(79,140,255,0.10), transparent 30%),
-            linear-gradient(135deg, rgba(46,69,104,0.98), rgba(42,62,92,0.98));
-        border: 1px solid rgba(203,213,225,0.16);
-        box-shadow:
-            inset 0 1px 0 rgba(255,255,255,0.04),
-            0 10px 22px rgba(8,15,30,0.14);
+            inset 0 1px 0 rgba(255,255,255,0.12),
+            0 22px 42px rgba(37,99,235,0.24);
     }
 
     .stTextInput > div > div > input,
@@ -1347,241 +1386,119 @@ def aplicar_estilo_zentix():
     textarea,
     .stSelectbox div[data-baseweb="select"] > div,
     .stMultiSelect div[data-baseweb="select"] > div {
-        background: rgba(53, 77, 112, 0.52) !important;
-        color: #F8FAFC !important;
-        border: 1px solid rgba(203,213,225,0.16) !important;
+        background: rgba(22, 33, 56, 0.88) !important;
+        border: 1px solid rgba(148,163,184,0.16) !important;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
     }
 
     .stRadio label {
-        background: rgba(53, 77, 112, 0.42);
-        border: 1px solid rgba(203,213,225,0.14);
-    }
-
-    .hero-card {
-        background:
-            radial-gradient(circle at top left, rgba(79,140,255,0.16), transparent 30%),
-            radial-gradient(circle at bottom right, rgba(61,217,235,0.10), transparent 24%),
-            linear-gradient(135deg, rgba(42,62,92,0.96), rgba(36,54,79,0.96));
-        border: 1px solid rgba(125,211,252,0.18);
-        box-shadow: 0 20px 42px rgba(8,15,30,0.18);
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-    }
-
-    .hero-badge {
-        background: rgba(79,140,255,0.14);
-        border: 1px solid rgba(125,211,252,0.24);
-        color: #E0F2FE;
-    }
-
-    .soft-card,
-    .assistant-card,
-    .mini-soft-card,
-    .premium-list-card,
-    .feature-signal,
-    .tutorial-card,
-    .spotlight-shell,
-    .spotlight-side-card,
-    .movement-card,
-    .launch-grid-card,
-    .report-preview-shell,
-    .report-image-shell,
-    .login-box,
-    .auth-shell,
-    .sticky-top-shell,
-    .top-nav-premium,
-    .movement-side-shell,
-    .limit-card-premium,
-    .legal-footer,
-    .premium-floating-guide {
-        background: linear-gradient(180deg, rgba(42,62,92,0.94), rgba(36,54,79,0.96));
-        border: 1px solid rgba(203,213,225,0.14);
-        box-shadow: 0 18px 40px rgba(8,15,30,0.16);
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-    }
-
-    .hero-card:hover,
-    .soft-card:hover,
-    .assistant-card:hover,
-    .mini-soft-card:hover,
-    .premium-list-card:hover,
-    .feature-signal:hover,
-    .tutorial-card:hover,
-    .spotlight-shell:hover,
-    .spotlight-side-card:hover,
-    .kpi-card:hover,
-    .movement-card:hover,
-    .launch-grid-card:hover,
-    .report-preview-shell:hover,
-    .report-image-shell:hover,
-    .login-box:hover,
-    .auth-shell:hover,
-    .movement-side-shell:hover {
-        transform: translateY(-2px);
-        border-color: rgba(125,211,252,0.24);
-        box-shadow: 0 18px 38px rgba(79,140,255,0.14);
-        filter: brightness(1.01);
-    }
-
-    .assistant-card,
-    .tutorial-card,
-    .spotlight-shell,
-    .feature-signal,
-    .premium-list-card,
-    .movement-card,
-    .movement-side-shell,
-    .auth-shell {
-        background:
-            radial-gradient(circle at top left, rgba(79,140,255,0.12), transparent 28%),
-            radial-gradient(circle at bottom right, rgba(61,217,235,0.08), transparent 24%),
-            linear-gradient(180deg, rgba(42,62,92,0.94), rgba(36,54,79,0.96));
-    }
-
-    .premium-list-badge,
-    .feature-chip,
-    .hero-pill,
-    .tutorial-step-chip,
-    .movement-chip,
-    .spotlight-metric,
-    .movement-side-kpi,
-    .sidebar-user-card,
-    .auth-step-card {
-        background: rgba(57, 82, 119, 0.52);
-        border: 1px solid rgba(203,213,225,0.14);
-        color: #F8FAFC;
-    }
-
-    .empty-card {
-        background: rgba(53, 77, 112, 0.30);
-        border: 1px dashed rgba(203,213,225,0.18);
-        color: #D6E2F0;
+        background: rgba(22,33,56,0.74);
+        border: 1px solid rgba(148,163,184,0.14);
     }
 
     .kpi-card {
-        background: linear-gradient(180deg, rgba(42,62,92,0.94), rgba(36,54,79,0.98));
-        border: 1px solid rgba(203,213,225,0.14);
-        box-shadow: 0 16px 34px rgba(8,15,30,0.14);
+        background:
+            linear-gradient(180deg, rgba(24,36,61,0.98), rgba(18,27,46,0.98));
+        border: 1px solid rgba(148,163,184,0.12);
+        box-shadow:
+            0 18px 36px rgba(2,6,23,0.24),
+            inset 0 1px 0 rgba(255,255,255,0.05);
     }
 
     .kpi-label {
-        color: #D6E2F0;
+        color: #C9D5E8;
+        font-weight: 700;
     }
 
     .kpi-value {
         color: #FFFFFF;
-    }
-
-    .kpi-foot {
-        color: #C7D2E0;
+        font-size: 1.9rem;
+        letter-spacing: -0.035em;
+        text-shadow: 0 1px 10px rgba(255,255,255,0.03);
     }
 
     .kpi-income {
-        border-color: rgba(52,211,153,0.26);
-        box-shadow: 0 16px 34px rgba(52,211,153,0.10);
+        border-color: rgba(52,211,153,0.22);
+        box-shadow: 0 18px 36px rgba(16,185,129,0.08), inset 0 1px 0 rgba(255,255,255,0.05);
     }
 
     .kpi-expense {
-        border-color: rgba(248,113,113,0.24);
-        box-shadow: 0 16px 34px rgba(248,113,113,0.10);
+        border-color: rgba(251,113,133,0.20);
+        box-shadow: 0 18px 36px rgba(244,63,94,0.08), inset 0 1px 0 rgba(255,255,255,0.05);
     }
 
     .kpi-balance {
-        border-color: rgba(79,140,255,0.26);
-        box-shadow: 0 16px 34px rgba(79,140,255,0.12);
+        border-color: rgba(79,124,255,0.24);
+        box-shadow: 0 18px 36px rgba(37,99,235,0.10), inset 0 1px 0 rgba(255,255,255,0.05);
     }
 
     .kpi-saving {
-        border-color: rgba(167,139,250,0.24);
-        box-shadow: 0 16px 34px rgba(167,139,250,0.10);
-    }
-
-    .kpi-debt {
-        border-color: rgba(96,165,250,0.28);
-        box-shadow: 0 16px 34px rgba(79,140,255,0.12);
-    }
-
-    .kpi-receivable {
-        border-color: rgba(167,139,250,0.28);
-        box-shadow: 0 16px 34px rgba(167,139,250,0.12);
-    }
-
-    .kpi-collected {
-        border-color: rgba(20,184,166,0.28);
-        box-shadow: 0 16px 34px rgba(20,184,166,0.12);
-    }
-
-    .kpi-pay {
-        border-color: rgba(251,191,36,0.26);
-        box-shadow: 0 16px 34px rgba(251,191,36,0.10);
+        border-color: rgba(167,139,250,0.22);
+        box-shadow: 0 18px 36px rgba(139,92,246,0.08), inset 0 1px 0 rgba(255,255,255,0.05);
     }
 
     .pill-ingreso {
-        background: rgba(52,211,153,0.14);
-        border: 1px solid rgba(52,211,153,0.24);
+        background: rgba(16,185,129,0.14);
+        border-color: rgba(52,211,153,0.22);
         color: #A7F3D0;
     }
 
     .pill-gasto {
-        background: rgba(248,113,113,0.14);
-        border: 1px solid rgba(248,113,113,0.24);
-        color: #FECACA;
+        background: rgba(244,63,94,0.14);
+        border-color: rgba(251,113,133,0.22);
+        color: #FBCFE8;
     }
 
     .pill-debt {
-        background: rgba(79,140,255,0.14);
-        border: 1px solid rgba(96,165,250,0.22);
-        color: #DBEAFE;
-    }
-
-    .pill-pay {
-        background: rgba(251,191,36,0.14);
-        border: 1px solid rgba(251,191,36,0.22);
-        color: #FDE68A;
-    }
-
-    .movement-chip-income {
-        background: rgba(52,211,153,0.16);
-        border-color: rgba(52,211,153,0.20);
-        color: #BBF7D0;
-    }
-
-    .movement-chip-expense {
-        background: rgba(248,113,113,0.16);
-        border-color: rgba(248,113,113,0.20);
-        color: #FECACA;
-    }
-
-    .movement-chip-debt {
-        background: rgba(79,140,255,0.16);
+        background: rgba(59,130,246,0.14);
         border-color: rgba(96,165,250,0.22);
         color: #DBEAFE;
     }
 
-    .movement-chip-pay {
-        background: rgba(251,191,36,0.16);
+    .pill-pay {
+        background: rgba(245,158,11,0.14);
         border-color: rgba(251,191,36,0.22);
         color: #FDE68A;
     }
 
-    .movement-chip-info {
-        background: rgba(20,184,166,0.16);
-        border-color: rgba(20,184,166,0.22);
-        color: #CCFBF1;
+    .movement-chip-income {
+        background: rgba(16,185,129,0.16);
+        border-color: rgba(52,211,153,0.22);
     }
 
-    .metric-income { color: #34D399 !important; }
-    .metric-expense { color: #F87171 !important; }
-    .metric-debt { color: #93C5FD !important; }
-    .metric-pay { color: #FBBF24 !important; }
+    .movement-chip-expense {
+        background: rgba(244,63,94,0.16);
+        border-color: rgba(251,113,133,0.20);
+    }
+
+    .movement-chip-debt {
+        background: rgba(59,130,246,0.18);
+        border-color: rgba(96,165,250,0.22);
+    }
+
+    .movement-chip-pay {
+        background: rgba(245,158,11,0.16);
+        border-color: rgba(251,191,36,0.22);
+    }
+
+    .movement-chip-info {
+        background: rgba(34,211,238,0.14);
+        border-color: rgba(34,211,238,0.22);
+    }
+
+    .empty-card {
+        background: linear-gradient(180deg, rgba(19,29,49,0.82), rgba(16,24,40,0.94));
+        border: 1px dashed rgba(148,163,184,0.18);
+    }
 
     div[data-testid="stProgressBar"] > div > div {
-        background: linear-gradient(90deg, #4F8CFF, #3DD9EB);
+        background: linear-gradient(90deg, #4F7CFF, #A78BFA);
     }
 
-    .legal-footer a {
-        color: #BFDBFE;
-    }
+    .metric-income { color: #6EE7B7 !important; }
+    .metric-expense { color: #FDA4AF !important; }
+    .metric-debt { color: #BFDBFE !important; }
+    .metric-pay { color: #FDE68A !important; }
 
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
@@ -1692,10 +1609,6 @@ def kpi_card(label, value, foot="", variant="balance"):
         "expense": "kpi-card kpi-expense",
         "balance": "kpi-card kpi-balance",
         "saving": "kpi-card kpi-saving",
-        "debt": "kpi-card kpi-debt",
-        "receivable": "kpi-card kpi-receivable",
-        "collected": "kpi-card kpi-collected",
-        "pay": "kpi-card kpi-pay",
     }
     st.markdown(
         f"""
@@ -6850,11 +6763,11 @@ if pagina == "Inicio":
 
     d1, d2, d3 = st.columns(3)
     with d1:
-        kpi_card("Entradas por deuda", money(total_entradas_deuda_mes), "No cuentan como ingreso real", "debt")
+        kpi_card("Entradas por deuda", money(total_entradas_deuda_mes), "No cuentan como ingreso real", "balance")
     with d2:
-        kpi_card("Pagos de deuda", money(total_pagos_deuda_mes), "Seguimiento de devolución", "pay")
+        kpi_card("Pagos de deuda", money(total_pagos_deuda_mes), "Seguimiento de devolución", "expense")
     with d3:
-        kpi_card("Saldo pendiente", money(saldo_pendiente_deudas_global), f"Deudas activas: {deudas_activas_global}", "debt")
+        kpi_card("Saldo pendiente", money(saldo_pendiente_deudas_global), f"Deudas activas: {deudas_activas_global}", "saving")
 
     render_inicio_spotlight(
         df_base=df if not df.empty else pd.DataFrame(),
