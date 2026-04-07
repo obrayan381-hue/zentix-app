@@ -48,7 +48,7 @@ DEFAULT_INGRESOS = [
     "Salario", "Freelance", "Ventas", "Inversiones", "Regalos", "Otros"
 ]
 
-CHART_COLORS = ["#22C55E", "#EF4444", "#3B82F6", "#8B5CF6", "#06B6D4", "#F59E0B"]
+CHART_COLORS = ["#34D399", "#F87171", "#4F8CFF", "#A78BFA", "#3DD9EB", "#FBBF24"]
 
 icono_path = Path("icono_zentix_v2.png")
 if not icono_path.exists():
@@ -1206,50 +1206,49 @@ def aplicar_estilo_zentix():
     }
 
 
-    /* ===== PREMIUM OVERRIDE · ZENTIX VISUAL UPGRADE ===== */
+    /* ===== ZENTIX · LIGHTER PREMIUM THEME ===== */
 
     :root {
-        --bg: #0B1220;
-        --bg2: #0F172A;
-        --bg3: #111827;
+        --bg: #17263D;
+        --bg2: #1D2F4A;
+        --bg3: #243A59;
 
-        --panel: rgba(15, 23, 42, 0.72);
-        --panel-2: rgba(15, 23, 42, 0.84);
-        --panel-soft: rgba(15, 23, 42, 0.64);
+        --panel: rgba(36, 54, 79, 0.92);
+        --panel-2: rgba(42, 62, 92, 0.96);
+        --panel-soft: rgba(52, 76, 112, 0.78);
 
-        --line: rgba(148, 163, 184, 0.10);
-        --line-strong: rgba(96, 165, 250, 0.14);
-        --line-hover: rgba(125, 211, 252, 0.22);
+        --line: rgba(203, 213, 225, 0.18);
+        --line-strong: rgba(96, 165, 250, 0.30);
 
         --text: #F8FAFC;
-        --text-soft: #CBD5E1;
-        --muted: #94A3B8;
+        --text-soft: #E2E8F0;
+        --muted: #C7D2E0;
 
-        --blue: #60A5FA;
-        --cyan: #7DD3FC;
+        --blue: #4F8CFF;
+        --cyan: #3DD9EB;
         --purple: #A78BFA;
-        --green: #4ADE80;
+        --green: #34D399;
         --red: #F87171;
         --teal: #14B8A6;
-        --amber: #F59E0B;
+        --amber: #FBBF24;
     }
 
     .stApp {
         background:
-            radial-gradient(circle at top left, rgba(59,130,246,0.14), transparent 28%),
-            radial-gradient(circle at top right, rgba(139,92,246,0.10), transparent 24%),
-            linear-gradient(180deg, #0B1220 0%, #0F172A 48%, #111827 100%);
+            radial-gradient(circle at top left, rgba(79,140,255,0.18), transparent 30%),
+            radial-gradient(circle at top right, rgba(125,211,252,0.14), transparent 24%),
+            linear-gradient(180deg, #17263D 0%, #1D2F4A 48%, #243A59 100%);
     }
 
     header[data-testid="stHeader"] {
-        background: rgba(11, 18, 32, 0.72);
+        background: rgba(23, 38, 61, 0.72);
         backdrop-filter: blur(10px);
         -webkit-backdrop-filter: blur(10px);
     }
 
     [data-testid="stSidebar"] {
-        background: linear-gradient(180deg, rgba(15,23,42,0.96), rgba(17,24,39,0.98));
-        border-right: 1px solid rgba(148,163,184,0.08);
+        background: linear-gradient(180deg, rgba(31,46,72,0.96), rgba(25,39,62,0.98));
+        border-right: 1px solid rgba(203,213,225,0.10);
     }
 
     [data-testid="stSidebarContent"] {
@@ -1272,7 +1271,7 @@ def aplicar_estilo_zentix():
     .auth-step-copy,
     .feature-signal-sub,
     .spotlight-side-sub {
-        color: #CBD5E1;
+        color: var(--text-soft);
     }
 
     .section-caption,
@@ -1286,74 +1285,60 @@ def aplicar_estilo_zentix():
     .movement-date,
     .movement-side-label,
     .spotlight-metric-label {
-        color: #94A3B8;
+        color: var(--muted);
     }
 
     .stButton > button {
-        width: 100%;
-        min-height: 58px;
-        border-radius: 22px;
-        border: 1px solid rgba(148,163,184,0.14);
+        border: 1px solid rgba(203,213,225,0.16);
         background:
-            radial-gradient(circle at top left, rgba(125,211,252,0.18), transparent 34%),
-            radial-gradient(circle at bottom right, rgba(139,92,246,0.14), transparent 28%),
-            linear-gradient(135deg, rgba(17,24,39,0.98), rgba(15,23,42,0.98));
+            radial-gradient(circle at top left, rgba(125,211,252,0.16), transparent 34%),
+            radial-gradient(circle at bottom right, rgba(167,139,250,0.12), transparent 28%),
+            linear-gradient(135deg, rgba(52,76,112,0.98), rgba(42,62,92,0.98));
         color: #F8FAFC;
-        font-weight: 800;
-        font-size: 1rem;
-        letter-spacing: 0.01em;
-        padding: 0.95rem 1.15rem;
         box-shadow:
-            inset 0 1px 0 rgba(255,255,255,0.04),
-            0 10px 24px rgba(0,0,0,0.26);
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-        transition:
-            transform 0.18s ease,
-            box-shadow 0.18s ease,
-            border-color 0.18s ease,
-            background 0.18s ease,
-            filter 0.18s ease;
+            inset 0 1px 0 rgba(255,255,255,0.05),
+            0 12px 26px rgba(8,15,30,0.16);
     }
 
     .stButton > button:hover {
-        transform: translateY(-2px);
-        border-color: rgba(125,211,252,0.22);
+        border-color: rgba(125,211,252,0.28);
         box-shadow:
-            inset 0 1px 0 rgba(255,255,255,0.05),
-            0 18px 38px rgba(37,99,235,0.12);
+            inset 0 1px 0 rgba(255,255,255,0.06),
+            0 16px 30px rgba(79,140,255,0.14);
         filter: brightness(1.03);
     }
 
     .stButton > button[kind="primary"] {
         background:
-            radial-gradient(circle at top left, rgba(125,211,252,0.26), transparent 34%),
-            radial-gradient(circle at bottom right, rgba(167,139,250,0.20), transparent 30%),
-            linear-gradient(135deg, rgba(30,41,59,1), rgba(37,99,235,0.92));
-        border: 1px solid rgba(148,163,184,0.14);
+            radial-gradient(circle at top left, rgba(125,211,252,0.24), transparent 34%),
+            radial-gradient(circle at bottom right, rgba(79,140,255,0.20), transparent 28%),
+            linear-gradient(135deg, rgba(63,116,255,1), rgba(79,140,255,1));
+        border: 1px solid rgba(191,219,254,0.20);
         color: #FFFFFF;
         box-shadow:
-            inset 0 1px 0 rgba(255,255,255,0.06),
-            0 16px 34px rgba(29,78,216,0.18);
+            inset 0 1px 0 rgba(255,255,255,0.08),
+            0 18px 34px rgba(79,140,255,0.20);
     }
 
     .stButton > button[kind="primary"]:hover {
-        transform: translateY(-2px);
-        border-color: rgba(125,211,252,0.26);
+        background:
+            radial-gradient(circle at top left, rgba(125,211,252,0.28), transparent 34%),
+            radial-gradient(circle at bottom right, rgba(96,165,250,0.24), transparent 28%),
+            linear-gradient(135deg, rgba(74,126,255,1), rgba(95,153,255,1));
+        border-color: rgba(224,242,254,0.26);
         box-shadow:
-            inset 0 1px 0 rgba(255,255,255,0.08),
-            0 20px 40px rgba(37,99,235,0.18);
-        filter: brightness(1.04);
+            inset 0 1px 0 rgba(255,255,255,0.10),
+            0 20px 38px rgba(79,140,255,0.24);
     }
 
     .stButton > button[kind="secondary"] {
         background:
-            radial-gradient(circle at top left, rgba(59,130,246,0.10), transparent 30%),
-            linear-gradient(135deg, rgba(17,24,39,0.98), rgba(15,23,42,0.98));
-        border: 1px solid rgba(148,163,184,0.14);
+            radial-gradient(circle at top left, rgba(79,140,255,0.10), transparent 30%),
+            linear-gradient(135deg, rgba(46,69,104,0.98), rgba(42,62,92,0.98));
+        border: 1px solid rgba(203,213,225,0.16);
         box-shadow:
             inset 0 1px 0 rgba(255,255,255,0.04),
-            0 10px 22px rgba(0,0,0,0.22);
+            0 10px 22px rgba(8,15,30,0.14);
     }
 
     .stTextInput > div > div > input,
@@ -1362,52 +1347,31 @@ def aplicar_estilo_zentix():
     textarea,
     .stSelectbox div[data-baseweb="select"] > div,
     .stMultiSelect div[data-baseweb="select"] > div {
-        background: rgba(15,23,42,0.82) !important;
+        background: rgba(53, 77, 112, 0.52) !important;
         color: #F8FAFC !important;
-        border: 1px solid rgba(148,163,184,0.14) !important;
-        border-radius: 15px !important;
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid rgba(203,213,225,0.16) !important;
     }
 
     .stRadio label {
-        background: rgba(15,23,42,0.72);
-        border: 1px solid rgba(148,163,184,0.12);
+        background: rgba(53, 77, 112, 0.42);
+        border: 1px solid rgba(203,213,225,0.14);
     }
 
     .hero-card {
         background:
-            radial-gradient(circle at top left, rgba(59,130,246,0.16), transparent 30%),
-            radial-gradient(circle at bottom right, rgba(139,92,246,0.10), transparent 24%),
-            linear-gradient(135deg, rgba(15,23,42,0.86), rgba(15,23,42,0.74));
-        border: 1px solid rgba(96,165,250,0.14);
-        border-radius: 28px;
-        padding: 1.35rem;
-        box-shadow: 0 18px 40px rgba(0,0,0,0.24);
-        backdrop-filter: blur(14px);
-        -webkit-backdrop-filter: blur(14px);
-        margin-bottom: 1rem;
+            radial-gradient(circle at top left, rgba(79,140,255,0.16), transparent 30%),
+            radial-gradient(circle at bottom right, rgba(61,217,235,0.10), transparent 24%),
+            linear-gradient(135deg, rgba(42,62,92,0.96), rgba(36,54,79,0.96));
+        border: 1px solid rgba(125,211,252,0.18);
+        box-shadow: 0 20px 42px rgba(8,15,30,0.18);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
     }
 
     .hero-badge {
-        background: rgba(59,130,246,0.10);
-        border: 1px solid rgba(96,165,250,0.18);
-        color: #DBEAFE;
-    }
-
-    .hero-pill,
-    .feature-chip,
-    .premium-list-badge,
-    .tutorial-step-chip,
-    .movement-chip,
-    .spotlight-metric,
-    .movement-side-kpi,
-    .auth-step-card,
-    .sidebar-user-card {
-        background: rgba(15,23,42,0.72);
-        border: 1px solid rgba(148,163,184,0.10);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
+        background: rgba(79,140,255,0.14);
+        border: 1px solid rgba(125,211,252,0.24);
+        color: #E0F2FE;
     }
 
     .soft-card,
@@ -1430,11 +1394,11 @@ def aplicar_estilo_zentix():
     .limit-card-premium,
     .legal-footer,
     .premium-floating-guide {
-        background: rgba(15, 23, 42, 0.72);
-        backdrop-filter: blur(14px);
-        -webkit-backdrop-filter: blur(14px);
-        border: 1px solid rgba(148,163,184,0.10);
-        box-shadow: 0 18px 40px rgba(0,0,0,0.24);
+        background: linear-gradient(180deg, rgba(42,62,92,0.94), rgba(36,54,79,0.96));
+        border: 1px solid rgba(203,213,225,0.14);
+        box-shadow: 0 18px 40px rgba(8,15,30,0.16);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
     }
 
     .hero-card:hover,
@@ -1455,8 +1419,8 @@ def aplicar_estilo_zentix():
     .auth-shell:hover,
     .movement-side-shell:hover {
         transform: translateY(-2px);
-        border-color: rgba(125,211,252,0.22);
-        box-shadow: 0 18px 38px rgba(37,99,235,0.12);
+        border-color: rgba(125,211,252,0.24);
+        box-shadow: 0 18px 38px rgba(79,140,255,0.14);
         filter: brightness(1.01);
     }
 
@@ -1469,136 +1433,134 @@ def aplicar_estilo_zentix():
     .movement-side-shell,
     .auth-shell {
         background:
-            radial-gradient(circle at top left, rgba(59,130,246,0.12), transparent 28%),
-            radial-gradient(circle at bottom right, rgba(139,92,246,0.08), transparent 24%),
-            rgba(15, 23, 42, 0.72);
+            radial-gradient(circle at top left, rgba(79,140,255,0.12), transparent 28%),
+            radial-gradient(circle at bottom right, rgba(61,217,235,0.08), transparent 24%),
+            linear-gradient(180deg, rgba(42,62,92,0.94), rgba(36,54,79,0.96));
+    }
+
+    .premium-list-badge,
+    .feature-chip,
+    .hero-pill,
+    .tutorial-step-chip,
+    .movement-chip,
+    .spotlight-metric,
+    .movement-side-kpi,
+    .sidebar-user-card,
+    .auth-step-card {
+        background: rgba(57, 82, 119, 0.52);
+        border: 1px solid rgba(203,213,225,0.14);
+        color: #F8FAFC;
     }
 
     .empty-card {
-        background: rgba(15, 23, 42, 0.58);
-        border: 1px dashed rgba(148,163,184,0.14);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        color: #94A3B8;
+        background: rgba(53, 77, 112, 0.30);
+        border: 1px dashed rgba(203,213,225,0.18);
+        color: #D6E2F0;
     }
 
     .kpi-card {
-        background: rgba(15, 23, 42, 0.72);
-        backdrop-filter: blur(14px);
-        -webkit-backdrop-filter: blur(14px);
-        border: 1px solid rgba(148,163,184,0.10);
-        border-radius: 22px;
-        padding: 1rem 1.05rem;
-        min-height: 128px;
-        box-shadow: 0 18px 40px rgba(0,0,0,0.24);
+        background: linear-gradient(180deg, rgba(42,62,92,0.94), rgba(36,54,79,0.98));
+        border: 1px solid rgba(203,213,225,0.14);
+        box-shadow: 0 16px 34px rgba(8,15,30,0.14);
     }
 
     .kpi-label {
-        font-size: 0.84rem;
-        color: #CBD5E1;
-        margin-bottom: 0.45rem;
-        font-weight: 700;
+        color: #D6E2F0;
     }
 
     .kpi-value {
-        font-size: 1.9rem;
-        font-weight: 900;
-        letter-spacing: -0.03em;
-        color: #F8FAFC;
-        line-height: 1.05;
-        margin-bottom: 0.22rem;
+        color: #FFFFFF;
     }
 
     .kpi-foot {
-        font-size: 0.82rem;
-        color: #94A3B8;
+        color: #C7D2E0;
     }
 
     .kpi-income {
-        border-color: rgba(74,222,128,0.22);
-        box-shadow: 0 18px 38px rgba(34,197,94,0.08);
+        border-color: rgba(52,211,153,0.26);
+        box-shadow: 0 16px 34px rgba(52,211,153,0.10);
     }
 
     .kpi-expense {
-        border-color: rgba(248,113,113,0.22);
-        box-shadow: 0 18px 38px rgba(239,68,68,0.08);
+        border-color: rgba(248,113,113,0.24);
+        box-shadow: 0 16px 34px rgba(248,113,113,0.10);
     }
 
     .kpi-balance {
-        border-color: rgba(96,165,250,0.20);
-        box-shadow: 0 18px 38px rgba(37,99,235,0.08);
+        border-color: rgba(79,140,255,0.26);
+        box-shadow: 0 16px 34px rgba(79,140,255,0.12);
     }
 
     .kpi-saving {
-        border-color: rgba(167,139,250,0.22);
-        box-shadow: 0 18px 38px rgba(139,92,246,0.08);
+        border-color: rgba(167,139,250,0.24);
+        box-shadow: 0 16px 34px rgba(167,139,250,0.10);
     }
 
     .kpi-debt {
-        border-color: rgba(96,165,250,0.24);
-        box-shadow: 0 18px 38px rgba(59,130,246,0.10);
+        border-color: rgba(96,165,250,0.28);
+        box-shadow: 0 16px 34px rgba(79,140,255,0.12);
     }
 
     .kpi-receivable {
-        border-color: rgba(167,139,250,0.24);
-        box-shadow: 0 18px 38px rgba(139,92,246,0.10);
+        border-color: rgba(167,139,250,0.28);
+        box-shadow: 0 16px 34px rgba(167,139,250,0.12);
     }
 
     .kpi-collected {
-        border-color: rgba(20,184,166,0.24);
-        box-shadow: 0 18px 38px rgba(20,184,166,0.10);
+        border-color: rgba(20,184,166,0.28);
+        box-shadow: 0 16px 34px rgba(20,184,166,0.12);
     }
 
     .kpi-pay {
-        border-color: rgba(245,158,11,0.24);
-        box-shadow: 0 18px 38px rgba(245,158,11,0.10);
+        border-color: rgba(251,191,36,0.26);
+        box-shadow: 0 16px 34px rgba(251,191,36,0.10);
     }
 
     .pill-ingreso {
-        background: rgba(34,197,94,0.14);
-        border: 1px solid rgba(34,197,94,0.24);
-        color: #86EFAC;
+        background: rgba(52,211,153,0.14);
+        border: 1px solid rgba(52,211,153,0.24);
+        color: #A7F3D0;
     }
 
     .pill-gasto {
-        background: rgba(239,68,68,0.14);
-        border: 1px solid rgba(239,68,68,0.24);
-        color: #FCA5A5;
+        background: rgba(248,113,113,0.14);
+        border: 1px solid rgba(248,113,113,0.24);
+        color: #FECACA;
     }
 
     .pill-debt {
-        background: rgba(59,130,246,0.14);
+        background: rgba(79,140,255,0.14);
         border: 1px solid rgba(96,165,250,0.22);
-        color: #BFDBFE;
+        color: #DBEAFE;
     }
 
     .pill-pay {
-        background: rgba(245,158,11,0.14);
-        border: 1px solid rgba(245,158,11,0.22);
+        background: rgba(251,191,36,0.14);
+        border: 1px solid rgba(251,191,36,0.22);
         color: #FDE68A;
     }
 
     .movement-chip-income {
-        background: rgba(34,197,94,0.16);
-        border-color: rgba(34,197,94,0.20);
+        background: rgba(52,211,153,0.16);
+        border-color: rgba(52,211,153,0.20);
         color: #BBF7D0;
     }
 
     .movement-chip-expense {
-        background: rgba(239,68,68,0.16);
-        border-color: rgba(239,68,68,0.20);
+        background: rgba(248,113,113,0.16);
+        border-color: rgba(248,113,113,0.20);
         color: #FECACA;
     }
 
     .movement-chip-debt {
-        background: rgba(59,130,246,0.16);
+        background: rgba(79,140,255,0.16);
         border-color: rgba(96,165,250,0.22);
         color: #DBEAFE;
     }
 
     .movement-chip-pay {
-        background: rgba(245,158,11,0.16);
-        border-color: rgba(245,158,11,0.22);
+        background: rgba(251,191,36,0.16);
+        border-color: rgba(251,191,36,0.22);
         color: #FDE68A;
     }
 
@@ -1608,10 +1570,18 @@ def aplicar_estilo_zentix():
         color: #CCFBF1;
     }
 
-    .metric-income { color: #4ADE80 !important; }
+    .metric-income { color: #34D399 !important; }
     .metric-expense { color: #F87171 !important; }
     .metric-debt { color: #93C5FD !important; }
-    .metric-pay { color: #FCD34D !important; }
+    .metric-pay { color: #FBBF24 !important; }
+
+    div[data-testid="stProgressBar"] > div > div {
+        background: linear-gradient(90deg, #4F8CFF, #3DD9EB);
+    }
+
+    .legal-footer a {
+        color: #BFDBFE;
+    }
 
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
