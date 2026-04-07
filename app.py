@@ -1205,6 +1205,414 @@ def aplicar_estilo_zentix():
         margin-bottom: 0.7rem;
     }
 
+
+    /* ===== PREMIUM OVERRIDE · ZENTIX VISUAL UPGRADE ===== */
+
+    :root {
+        --bg: #0B1220;
+        --bg2: #0F172A;
+        --bg3: #111827;
+
+        --panel: rgba(15, 23, 42, 0.72);
+        --panel-2: rgba(15, 23, 42, 0.84);
+        --panel-soft: rgba(15, 23, 42, 0.64);
+
+        --line: rgba(148, 163, 184, 0.10);
+        --line-strong: rgba(96, 165, 250, 0.14);
+        --line-hover: rgba(125, 211, 252, 0.22);
+
+        --text: #F8FAFC;
+        --text-soft: #CBD5E1;
+        --muted: #94A3B8;
+
+        --blue: #60A5FA;
+        --cyan: #7DD3FC;
+        --purple: #A78BFA;
+        --green: #4ADE80;
+        --red: #F87171;
+        --teal: #14B8A6;
+        --amber: #F59E0B;
+    }
+
+    .stApp {
+        background:
+            radial-gradient(circle at top left, rgba(59,130,246,0.14), transparent 28%),
+            radial-gradient(circle at top right, rgba(139,92,246,0.10), transparent 24%),
+            linear-gradient(180deg, #0B1220 0%, #0F172A 48%, #111827 100%);
+    }
+
+    header[data-testid="stHeader"] {
+        background: rgba(11, 18, 32, 0.72);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+    }
+
+    [data-testid="stSidebar"] {
+        background: linear-gradient(180deg, rgba(15,23,42,0.96), rgba(17,24,39,0.98));
+        border-right: 1px solid rgba(148,163,184,0.08);
+    }
+
+    [data-testid="stSidebarContent"] {
+        padding-top: 0.55rem;
+    }
+
+    h1, h2, h3 {
+        color: #F8FAFC !important;
+        letter-spacing: -0.02em;
+    }
+
+    .hero-subtitle,
+    .assistant-text,
+    .tutorial-copy,
+    .spotlight-copy,
+    .premium-list-copy,
+    .movement-meta,
+    .launch-grid-copy,
+    .report-image-note,
+    .auth-step-copy,
+    .feature-signal-sub,
+    .spotlight-side-sub {
+        color: #CBD5E1;
+    }
+
+    .section-caption,
+    .tiny-muted,
+    .kpi-foot,
+    .chat-label,
+    .chat-input-label,
+    .quick-action-note,
+    .sidebar-brand-sub,
+    .sidebar-user-label,
+    .movement-date,
+    .movement-side-label,
+    .spotlight-metric-label {
+        color: #94A3B8;
+    }
+
+    .stButton > button {
+        width: 100%;
+        min-height: 58px;
+        border-radius: 22px;
+        border: 1px solid rgba(148,163,184,0.14);
+        background:
+            radial-gradient(circle at top left, rgba(125,211,252,0.18), transparent 34%),
+            radial-gradient(circle at bottom right, rgba(139,92,246,0.14), transparent 28%),
+            linear-gradient(135deg, rgba(17,24,39,0.98), rgba(15,23,42,0.98));
+        color: #F8FAFC;
+        font-weight: 800;
+        font-size: 1rem;
+        letter-spacing: 0.01em;
+        padding: 0.95rem 1.15rem;
+        box-shadow:
+            inset 0 1px 0 rgba(255,255,255,0.04),
+            0 10px 24px rgba(0,0,0,0.26);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        transition:
+            transform 0.18s ease,
+            box-shadow 0.18s ease,
+            border-color 0.18s ease,
+            background 0.18s ease,
+            filter 0.18s ease;
+    }
+
+    .stButton > button:hover {
+        transform: translateY(-2px);
+        border-color: rgba(125,211,252,0.22);
+        box-shadow:
+            inset 0 1px 0 rgba(255,255,255,0.05),
+            0 18px 38px rgba(37,99,235,0.12);
+        filter: brightness(1.03);
+    }
+
+    .stButton > button[kind="primary"] {
+        background:
+            radial-gradient(circle at top left, rgba(125,211,252,0.26), transparent 34%),
+            radial-gradient(circle at bottom right, rgba(167,139,250,0.20), transparent 30%),
+            linear-gradient(135deg, rgba(30,41,59,1), rgba(37,99,235,0.92));
+        border: 1px solid rgba(148,163,184,0.14);
+        color: #FFFFFF;
+        box-shadow:
+            inset 0 1px 0 rgba(255,255,255,0.06),
+            0 16px 34px rgba(29,78,216,0.18);
+    }
+
+    .stButton > button[kind="primary"]:hover {
+        transform: translateY(-2px);
+        border-color: rgba(125,211,252,0.26);
+        box-shadow:
+            inset 0 1px 0 rgba(255,255,255,0.08),
+            0 20px 40px rgba(37,99,235,0.18);
+        filter: brightness(1.04);
+    }
+
+    .stButton > button[kind="secondary"] {
+        background:
+            radial-gradient(circle at top left, rgba(59,130,246,0.10), transparent 30%),
+            linear-gradient(135deg, rgba(17,24,39,0.98), rgba(15,23,42,0.98));
+        border: 1px solid rgba(148,163,184,0.14);
+        box-shadow:
+            inset 0 1px 0 rgba(255,255,255,0.04),
+            0 10px 22px rgba(0,0,0,0.22);
+    }
+
+    .stTextInput > div > div > input,
+    .stNumberInput input,
+    .stDateInput input,
+    textarea,
+    .stSelectbox div[data-baseweb="select"] > div,
+    .stMultiSelect div[data-baseweb="select"] > div {
+        background: rgba(15,23,42,0.82) !important;
+        color: #F8FAFC !important;
+        border: 1px solid rgba(148,163,184,0.14) !important;
+        border-radius: 15px !important;
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+    }
+
+    .stRadio label {
+        background: rgba(15,23,42,0.72);
+        border: 1px solid rgba(148,163,184,0.12);
+    }
+
+    .hero-card {
+        background:
+            radial-gradient(circle at top left, rgba(59,130,246,0.16), transparent 30%),
+            radial-gradient(circle at bottom right, rgba(139,92,246,0.10), transparent 24%),
+            linear-gradient(135deg, rgba(15,23,42,0.86), rgba(15,23,42,0.74));
+        border: 1px solid rgba(96,165,250,0.14);
+        border-radius: 28px;
+        padding: 1.35rem;
+        box-shadow: 0 18px 40px rgba(0,0,0,0.24);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+        margin-bottom: 1rem;
+    }
+
+    .hero-badge {
+        background: rgba(59,130,246,0.10);
+        border: 1px solid rgba(96,165,250,0.18);
+        color: #DBEAFE;
+    }
+
+    .hero-pill,
+    .feature-chip,
+    .premium-list-badge,
+    .tutorial-step-chip,
+    .movement-chip,
+    .spotlight-metric,
+    .movement-side-kpi,
+    .auth-step-card,
+    .sidebar-user-card {
+        background: rgba(15,23,42,0.72);
+        border: 1px solid rgba(148,163,184,0.10);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+    }
+
+    .soft-card,
+    .assistant-card,
+    .mini-soft-card,
+    .premium-list-card,
+    .feature-signal,
+    .tutorial-card,
+    .spotlight-shell,
+    .spotlight-side-card,
+    .movement-card,
+    .launch-grid-card,
+    .report-preview-shell,
+    .report-image-shell,
+    .login-box,
+    .auth-shell,
+    .sticky-top-shell,
+    .top-nav-premium,
+    .movement-side-shell,
+    .limit-card-premium,
+    .legal-footer,
+    .premium-floating-guide {
+        background: rgba(15, 23, 42, 0.72);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+        border: 1px solid rgba(148,163,184,0.10);
+        box-shadow: 0 18px 40px rgba(0,0,0,0.24);
+    }
+
+    .hero-card:hover,
+    .soft-card:hover,
+    .assistant-card:hover,
+    .mini-soft-card:hover,
+    .premium-list-card:hover,
+    .feature-signal:hover,
+    .tutorial-card:hover,
+    .spotlight-shell:hover,
+    .spotlight-side-card:hover,
+    .kpi-card:hover,
+    .movement-card:hover,
+    .launch-grid-card:hover,
+    .report-preview-shell:hover,
+    .report-image-shell:hover,
+    .login-box:hover,
+    .auth-shell:hover,
+    .movement-side-shell:hover {
+        transform: translateY(-2px);
+        border-color: rgba(125,211,252,0.22);
+        box-shadow: 0 18px 38px rgba(37,99,235,0.12);
+        filter: brightness(1.01);
+    }
+
+    .assistant-card,
+    .tutorial-card,
+    .spotlight-shell,
+    .feature-signal,
+    .premium-list-card,
+    .movement-card,
+    .movement-side-shell,
+    .auth-shell {
+        background:
+            radial-gradient(circle at top left, rgba(59,130,246,0.12), transparent 28%),
+            radial-gradient(circle at bottom right, rgba(139,92,246,0.08), transparent 24%),
+            rgba(15, 23, 42, 0.72);
+    }
+
+    .empty-card {
+        background: rgba(15, 23, 42, 0.58);
+        border: 1px dashed rgba(148,163,184,0.14);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        color: #94A3B8;
+    }
+
+    .kpi-card {
+        background: rgba(15, 23, 42, 0.72);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+        border: 1px solid rgba(148,163,184,0.10);
+        border-radius: 22px;
+        padding: 1rem 1.05rem;
+        min-height: 128px;
+        box-shadow: 0 18px 40px rgba(0,0,0,0.24);
+    }
+
+    .kpi-label {
+        font-size: 0.84rem;
+        color: #CBD5E1;
+        margin-bottom: 0.45rem;
+        font-weight: 700;
+    }
+
+    .kpi-value {
+        font-size: 1.9rem;
+        font-weight: 900;
+        letter-spacing: -0.03em;
+        color: #F8FAFC;
+        line-height: 1.05;
+        margin-bottom: 0.22rem;
+    }
+
+    .kpi-foot {
+        font-size: 0.82rem;
+        color: #94A3B8;
+    }
+
+    .kpi-income {
+        border-color: rgba(74,222,128,0.22);
+        box-shadow: 0 18px 38px rgba(34,197,94,0.08);
+    }
+
+    .kpi-expense {
+        border-color: rgba(248,113,113,0.22);
+        box-shadow: 0 18px 38px rgba(239,68,68,0.08);
+    }
+
+    .kpi-balance {
+        border-color: rgba(96,165,250,0.20);
+        box-shadow: 0 18px 38px rgba(37,99,235,0.08);
+    }
+
+    .kpi-saving {
+        border-color: rgba(167,139,250,0.22);
+        box-shadow: 0 18px 38px rgba(139,92,246,0.08);
+    }
+
+    .kpi-debt {
+        border-color: rgba(96,165,250,0.24);
+        box-shadow: 0 18px 38px rgba(59,130,246,0.10);
+    }
+
+    .kpi-receivable {
+        border-color: rgba(167,139,250,0.24);
+        box-shadow: 0 18px 38px rgba(139,92,246,0.10);
+    }
+
+    .kpi-collected {
+        border-color: rgba(20,184,166,0.24);
+        box-shadow: 0 18px 38px rgba(20,184,166,0.10);
+    }
+
+    .kpi-pay {
+        border-color: rgba(245,158,11,0.24);
+        box-shadow: 0 18px 38px rgba(245,158,11,0.10);
+    }
+
+    .pill-ingreso {
+        background: rgba(34,197,94,0.14);
+        border: 1px solid rgba(34,197,94,0.24);
+        color: #86EFAC;
+    }
+
+    .pill-gasto {
+        background: rgba(239,68,68,0.14);
+        border: 1px solid rgba(239,68,68,0.24);
+        color: #FCA5A5;
+    }
+
+    .pill-debt {
+        background: rgba(59,130,246,0.14);
+        border: 1px solid rgba(96,165,250,0.22);
+        color: #BFDBFE;
+    }
+
+    .pill-pay {
+        background: rgba(245,158,11,0.14);
+        border: 1px solid rgba(245,158,11,0.22);
+        color: #FDE68A;
+    }
+
+    .movement-chip-income {
+        background: rgba(34,197,94,0.16);
+        border-color: rgba(34,197,94,0.20);
+        color: #BBF7D0;
+    }
+
+    .movement-chip-expense {
+        background: rgba(239,68,68,0.16);
+        border-color: rgba(239,68,68,0.20);
+        color: #FECACA;
+    }
+
+    .movement-chip-debt {
+        background: rgba(59,130,246,0.16);
+        border-color: rgba(96,165,250,0.22);
+        color: #DBEAFE;
+    }
+
+    .movement-chip-pay {
+        background: rgba(245,158,11,0.16);
+        border-color: rgba(245,158,11,0.22);
+        color: #FDE68A;
+    }
+
+    .movement-chip-info {
+        background: rgba(20,184,166,0.16);
+        border-color: rgba(20,184,166,0.22);
+        color: #CCFBF1;
+    }
+
+    .metric-income { color: #4ADE80 !important; }
+    .metric-expense { color: #F87171 !important; }
+    .metric-debt { color: #93C5FD !important; }
+    .metric-pay { color: #FCD34D !important; }
+
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     </style>
@@ -1314,6 +1722,10 @@ def kpi_card(label, value, foot="", variant="balance"):
         "expense": "kpi-card kpi-expense",
         "balance": "kpi-card kpi-balance",
         "saving": "kpi-card kpi-saving",
+        "debt": "kpi-card kpi-debt",
+        "receivable": "kpi-card kpi-receivable",
+        "collected": "kpi-card kpi-collected",
+        "pay": "kpi-card kpi-pay",
     }
     st.markdown(
         f"""
@@ -6468,11 +6880,11 @@ if pagina == "Inicio":
 
     d1, d2, d3 = st.columns(3)
     with d1:
-        kpi_card("Entradas por deuda", money(total_entradas_deuda_mes), "No cuentan como ingreso real", "balance")
+        kpi_card("Entradas por deuda", money(total_entradas_deuda_mes), "No cuentan como ingreso real", "debt")
     with d2:
-        kpi_card("Pagos de deuda", money(total_pagos_deuda_mes), "Seguimiento de devolución", "expense")
+        kpi_card("Pagos de deuda", money(total_pagos_deuda_mes), "Seguimiento de devolución", "pay")
     with d3:
-        kpi_card("Saldo pendiente", money(saldo_pendiente_deudas_global), f"Deudas activas: {deudas_activas_global}", "saving")
+        kpi_card("Saldo pendiente", money(saldo_pendiente_deudas_global), f"Deudas activas: {deudas_activas_global}", "debt")
 
     render_inicio_spotlight(
         df_base=df if not df.empty else pd.DataFrame(),
