@@ -122,8 +122,7 @@ def aplicar_estilo_zentix():
     }
 
     [data-testid="stToolbar"],
-    [data-testid="stDecoration"],
-    [data-testid="collapsedControl"] {
+    [data-testid="stDecoration"] {
         display: none !important;
     }
 
@@ -847,6 +846,123 @@ def aplicar_estilo_zentix():
         background: linear-gradient(180deg, #FFFFFF, #F8FAFC);
         border: 1px solid rgba(148,163,184,0.22);
         box-shadow: 0 8px 18px rgba(15,23,42,0.05);
+    }
+
+
+    /* ===== V3 · contraste, sidebar desplegable y pastel charts ===== */
+    [data-testid="collapsedControl"] {
+        display: block !important;
+        position: fixed !important;
+        top: 0.85rem;
+        left: 0.85rem;
+        z-index: 1001 !important;
+        background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(248,250,252,0.98));
+        border: 1px solid rgba(99,102,241,0.16);
+        border-radius: 16px;
+        box-shadow: 0 14px 28px rgba(79,70,229,0.10);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+    }
+
+    [data-testid="collapsedControl"] button {
+        border-radius: 14px !important;
+        min-height: 42px !important;
+        min-width: 42px !important;
+        background: transparent !important;
+        color: #4338CA !important;
+        border: none !important;
+        box-shadow: none !important;
+    }
+
+    [data-testid="collapsedControl"] svg {
+        fill: #4338CA !important;
+        color: #4338CA !important;
+    }
+
+    .premium-floating-guide {
+        background:
+            radial-gradient(circle at top left, rgba(255,255,255,0.20), transparent 28%),
+            linear-gradient(135deg, #1E1B4B 0%, #312E81 42%, #4F46E5 100%) !important;
+        border: 1px solid rgba(191,219,254,0.20) !important;
+        box-shadow: 0 26px 50px rgba(49,46,129,0.24) !important;
+        color: #FFFFFF !important;
+    }
+
+    .premium-floating-guide-title,
+    .premium-floating-guide-copy,
+    .premium-floating-guide .tiny-muted,
+    .premium-floating-guide .assistant-mini,
+    .premium-floating-guide .section-caption,
+    .premium-floating-guide .sidebar-nav-note {
+        color: #FFFFFF !important;
+    }
+
+    .premium-floating-guide .tiny-muted {
+        opacity: 0.84;
+    }
+
+    .spotlight-side-card,
+    .movement-side-shell,
+    .mini-soft-card,
+    .feature-signal,
+    .launch-grid-card {
+        background: linear-gradient(180deg, #F7FAFF 0%, #EEF4FF 100%) !important;
+        border-color: rgba(59,130,246,0.16) !important;
+        box-shadow: 0 16px 30px rgba(37,99,235,0.06) !important;
+    }
+
+    .spotlight-side-card .spotlight-side-title,
+    .spotlight-side-card .spotlight-side-sub,
+    .spotlight-side-card .tiny-muted,
+    .movement-side-shell .movement-side-value,
+    .movement-side-shell .movement-side-label,
+    .movement-side-shell .tiny-muted,
+    .mini-soft-card .tiny-muted,
+    .feature-signal .feature-signal-title,
+    .feature-signal .feature-signal-sub,
+    .launch-grid-card .launch-grid-title,
+    .launch-grid-card .launch-grid-copy {
+        color: #0F172A !important;
+    }
+
+    .sidebar-user-card {
+        background: linear-gradient(180deg, #FFFFFF 0%, #F8FAFF 100%) !important;
+        border: 1px solid rgba(99,102,241,0.12) !important;
+        box-shadow: 0 12px 24px rgba(79,70,229,0.06) !important;
+    }
+
+    [data-testid="stSidebar"] .stButton > button {
+        min-height: 48px !important;
+        border-radius: 18px !important;
+        font-weight: 800 !important;
+        letter-spacing: 0.01em;
+    }
+
+    [data-testid="stSidebar"] .stButton > button[kind="primary"] {
+        background: linear-gradient(135deg, #4F46E5 0%, #2563EB 55%, #06B6D4 100%) !important;
+        box-shadow: 0 16px 30px rgba(79,70,229,0.20) !important;
+    }
+
+    .home-pie-card {
+        border-radius: 24px;
+        padding: 1rem 1.05rem;
+        background: linear-gradient(180deg, #FFFFFF 0%, #F8FBFF 100%);
+        border: 1px solid rgba(148,163,184,0.16);
+        box-shadow: 0 14px 26px rgba(15,23,42,0.05);
+        margin-bottom: 0.9rem;
+    }
+
+    .home-pie-title {
+        font-size: 1rem;
+        font-weight: 900;
+        color: #0F172A;
+        margin-bottom: 0.18rem;
+    }
+
+    .home-pie-sub {
+        font-size: 0.85rem;
+        color: #64748B;
+        margin-bottom: 0.55rem;
     }
 
 
@@ -5398,6 +5514,68 @@ def render_resumen_general_chart(df_mes_actual):
     st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
     st.markdown("</div>", unsafe_allow_html=True)
 
+def render_inicio_pie_charts(df_mes_actual, df_deudas_local, df_cxc_local):
+    p1, p2, p3 = st.columns(3)
+
+    with p1:
+        st.markdown("<div class='home-pie-card'>", unsafe_allow_html=True)
+        st.markdown("<div class='home-pie-title'>Gasto por categoría</div><div class='home-pie-sub'>Más visual para interpretar rápido dónde se está yendo tu dinero.</div>", unsafe_allow_html=True)
+        if df_mes_actual is None or df_mes_actual.empty:
+            st.markdown("<div class='tiny-muted'>Aún no hay datos del mes para esta lectura.</div>", unsafe_allow_html=True)
+        else:
+            gastos = df_mes_actual.copy()
+            gastos = gastos[gastos["tipo"] == "Gasto"].copy()
+            if gastos.empty:
+                st.markdown("<div class='tiny-muted'>Todavía no tienes gastos en el periodo.</div>", unsafe_allow_html=True)
+            else:
+                data = gastos.groupby("categoria", dropna=False)["monto"].sum().reset_index()
+                data["categoria"] = data["categoria"].fillna("Sin categoría")
+                fig = px.pie(data, values="monto", names="categoria", hole=0.55, color_discrete_sequence=["#EF4444", "#F97316", "#F59E0B", "#FB7185", "#A855F7", "#38BDF8"])
+                aplicar_estilo_plotly(fig, height=320)
+                fig.update_traces(textposition="inside", textinfo="percent+label")
+                st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    with p2:
+        st.markdown("<div class='home-pie-card'>", unsafe_allow_html=True)
+        st.markdown("<div class='home-pie-title'>Deudas activas</div><div class='home-pie-sub'>Distribución del pendiente para leer presión financiera de un vistazo.</div>", unsafe_allow_html=True)
+        if df_deudas_local is None or df_deudas_local.empty:
+            st.markdown("<div class='tiny-muted'>No tienes deudas activas registradas.</div>", unsafe_allow_html=True)
+        else:
+            deuda_chart = df_deudas_local.copy()
+            deuda_chart["saldo_pendiente"] = pd.to_numeric(deuda_chart.get("saldo_pendiente"), errors="coerce").fillna(0)
+            deuda_chart = deuda_chart[deuda_chart["saldo_pendiente"] > 0].copy()
+            if deuda_chart.empty:
+                st.markdown("<div class='tiny-muted'>No tienes saldo pendiente en deudas.</div>", unsafe_allow_html=True)
+            else:
+                fig = px.pie(deuda_chart, values="saldo_pendiente", names="nombre", hole=0.55, color_discrete_sequence=["#3B82F6", "#60A5FA", "#818CF8", "#22D3EE", "#A78BFA", "#93C5FD"])
+                aplicar_estilo_plotly(fig, height=320)
+                fig.update_traces(textposition="inside", textinfo="percent+label")
+                st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    with p3:
+        st.markdown("<div class='home-pie-card'>", unsafe_allow_html=True)
+        st.markdown("<div class='home-pie-title'>Por cobrar</div><div class='home-pie-sub'>Quién te debe y cuánto concentra de tu cartera pendiente.</div>", unsafe_allow_html=True)
+        if df_cxc_local is None or df_cxc_local.empty:
+            st.markdown("<div class='tiny-muted'>No tienes cartera pendiente registrada.</div>", unsafe_allow_html=True)
+        else:
+            cxc_chart = df_cxc_local.copy()
+            cxc_chart["saldo_pendiente"] = pd.to_numeric(cxc_chart.get("saldo_pendiente"), errors="coerce").fillna(0)
+            cxc_chart = cxc_chart[cxc_chart["saldo_pendiente"] > 0].copy()
+            if cxc_chart.empty:
+                st.markdown("<div class='tiny-muted'>No tienes cuentas por cobrar pendientes.</div>", unsafe_allow_html=True)
+            else:
+                group_col = "cliente" if "cliente" in cxc_chart.columns else "nombre"
+                data = cxc_chart.groupby(group_col, dropna=False)["saldo_pendiente"].sum().reset_index()
+                data[group_col] = data[group_col].fillna("Sin cliente")
+                fig = px.pie(data, values="saldo_pendiente", names=group_col, hole=0.55, color_discrete_sequence=["#06B6D4", "#22C55E", "#8B5CF6", "#4F46E5", "#38BDF8", "#2DD4BF"])
+                aplicar_estilo_plotly(fig, height=320)
+                fig.update_traces(textposition="inside", textinfo="percent+label")
+                st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+        st.markdown("</div>", unsafe_allow_html=True)
+
+
 
 def render_home_hub(nombre_usuario, user_id, df, df_mes, df_deudas, df_cxc, total_ingresos, total_gastos,
                     total_entradas_deuda_mes, total_pagos_deuda_mes, saldo_pendiente_deudas_global,
@@ -5435,11 +5613,17 @@ def render_home_hub(nombre_usuario, user_id, df, df_mes, df_deudas, df_cxc, tota
         with d4:
             kpi_card("Pendiente", money(saldo_pendiente_deudas_global), f"{deudas_activas_global} deuda(s) activas", "debt")
 
-        c1, c2 = st.columns([1.2, 0.8])
+        c1, c2 = st.columns([1.15, 0.85])
         with c1:
             render_resumen_general_chart(df_mes if df_mes is not None else pd.DataFrame())
         with c2:
             render_recent_activity_feed(df if df is not None else pd.DataFrame(), limit=6)
+
+        render_inicio_pie_charts(
+            df_mes if df_mes is not None else pd.DataFrame(),
+            df_deudas if df_deudas is not None else pd.DataFrame(),
+            df_cxc if df_cxc is not None else pd.DataFrame()
+        )
 
         s1, s2, s3 = st.columns(3)
         with s1:
@@ -5917,11 +6101,11 @@ def render_bienvenida_flotante(nombre, pagina_actual):
         return
 
     tips = {
-        "Inicio": "Tu resumen está arriba. La profundidad quedó por pestañas para que la vista principal respire.",
-        "Registrar": "Aquí manda la acción. El formulario quedó como foco y el contexto vive en tarjetas secundarias.",
-        "Análisis": "Todo el detalle está aquí, sin contaminar la vista principal del dashboard.",
-        "Ahorro": "Tu meta ahora se siente como módulo propio, no como otro bloque perdido en medio del panel.",
-        "Perfil": "Configuración, recordatorios y plan viven en una capa aparte, como en una app bancaria seria."
+        "Inicio": "Te dejo a mano accesos rápidos y lectura corta del momento para que Zentix se sienta más guiado y premium.",
+        "Registrar": "Registra más rápido desde aquí y luego vuelve al panel principal sin perder el hilo.",
+        "Análisis": "Desde análisis puedes profundizar en gráficas, patrones y reportes cuando lo necesites.",
+        "Ahorro": "Tu meta y tus recordatorios viven aquí como módulo aparte, más claro y menos saturado.",
+        "Perfil": "Aquí ajustas tu cuenta, plan, recordatorios y configuración general de Zentix."
     }
     mensaje = tips.get(pagina_actual, "Estoy aquí para ayudarte a moverte rápido por Zentix.")
     avatar_html = ""
@@ -5932,24 +6116,29 @@ def render_bienvenida_flotante(nombre, pagina_actual):
         except Exception:
             avatar_html = ""
 
+    ultimo = st.session_state.get("zentix_last_tipo") or "Sin movimientos"
     st.markdown(f"""
     <div class='premium-floating-guide'>
-        <div style='display:flex;gap:0.8rem;align-items:flex-start;'>
+        <div style='display:flex;gap:0.85rem;align-items:flex-start;'>
             <div>{avatar_html}</div>
             <div style='flex:1;'>
-                <div class='premium-floating-guide-title'>Zentix Assist</div>
+                <div class='premium-floating-guide-title'>Zentix IA</div>
                 <div class='premium-floating-guide-copy'>{mensaje}</div>
-                <div class='tiny-muted' style='margin-top:0.45rem;'>Vista actual: {pagina_actual}</div>
+                <div class='tiny-muted' style='margin-top:0.45rem;'>Último movimiento: {ultimo} · Vista actual: {pagina_actual}</div>
             </div>
         </div>
     </div>
     """, unsafe_allow_html=True)
-    c1, c2 = st.columns(2)
-    with c1:
-        if st.button("Abrir análisis", key=f"guide_open_analysis_{pagina_actual}", use_container_width=True, type="primary"):
+
+    a1, a2, a3 = st.columns(3)
+    with a1:
+        if st.button("➕ Registrar", key=f"guide_quick_register_{pagina_actual}", use_container_width=True, type="primary"):
+            ir_a_pagina("Registrar")
+    with a2:
+        if st.button("📈 Análisis", key=f"guide_quick_analysis_{pagina_actual}", use_container_width=True, type="secondary"):
             ir_a_pagina("Análisis")
-    with c2:
-        if st.button("Ocultar guía", key=f"guide_hide_{pagina_actual}", use_container_width=True, type="secondary"):
+    with a3:
+        if st.button("Ocultar", key=f"guide_hide_{pagina_actual}", use_container_width=True, type="secondary"):
             st.session_state["zentix_guide_hidden"] = True
             st.rerun()
 
@@ -6229,7 +6418,7 @@ with st.sidebar:
     if st.button("⚙️ Perfil", key="sidebar_perfil", use_container_width=True, type="primary" if st.session_state.pagina == "Perfil" else "secondary"):
         ir_a_pagina("Perfil")
 
-    st.markdown("<div class='sidebar-nav-note'>La barra lateral quedó como apoyo, no como protagonista. El dashboard ahora manda.</div>", unsafe_allow_html=True)
+    st.markdown("<div class='sidebar-nav-note'>Este panel lateral puede mantenerse visible o plegarse con el botón superior izquierdo. La idea es que se sienta como un drawer premium de app móvil.</div>", unsafe_allow_html=True)
 
     if st.button("Cerrar sesión", use_container_width=True):
         st.session_state.user = None
