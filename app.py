@@ -966,6 +966,119 @@ def aplicar_estilo_zentix():
     }
 
 
+    /* ===== V4 · sidebar toggle definitivo + contraste real ===== */
+    .assistant-card {
+        background: linear-gradient(180deg, #FFFFFF 0%, #F6FAFF 100%) !important;
+        border: 1px solid rgba(59,130,246,0.16) !important;
+        box-shadow: 0 18px 34px rgba(37,99,235,0.08) !important;
+        border-radius: 24px !important;
+        padding: 1rem 1.05rem !important;
+        color: #0F172A !important;
+    }
+
+    .assistant-title,
+    .assistant-text,
+    .assistant-mini,
+    .quick-action-note,
+    .chat-label,
+    .chat-input-label,
+    .assistant-card .tiny-muted {
+        color: #0F172A !important;
+    }
+
+    .assistant-mini {
+        opacity: 0.92;
+    }
+
+    .assistant-text {
+        line-height: 1.7;
+    }
+
+    .chat-bubble-ai {
+        background: linear-gradient(180deg, #EEF4FF 0%, #E0ECFF 100%) !important;
+        border: 1px solid rgba(96,165,250,0.20) !important;
+        color: #0F172A !important;
+        box-shadow: 0 10px 18px rgba(37,99,235,0.06);
+    }
+
+    .chat-bubble-user {
+        background: #FFFFFF !important;
+        border: 1px solid rgba(148,163,184,0.18) !important;
+        color: #0F172A !important;
+        box-shadow: 0 8px 16px rgba(15,23,42,0.04);
+    }
+
+    .assistant-card .stButton > button[kind="primary"] {
+        background: linear-gradient(135deg, #4F46E5 0%, #2563EB 55%, #06B6D4 100%) !important;
+        color: #FFFFFF !important;
+        border: none !important;
+        box-shadow: 0 16px 30px rgba(79,70,229,0.20) !important;
+    }
+
+    .assistant-card .stButton > button[kind="secondary"] {
+        background: linear-gradient(180deg, #FFFFFF 0%, #F8FBFF 100%) !important;
+        color: #0F172A !important;
+        border: 1px solid rgba(99,102,241,0.16) !important;
+    }
+
+    .assistant-card input,
+    .assistant-card textarea,
+    .assistant-card [data-baseweb="select"] > div {
+        color: #0F172A !important;
+        background: #FFFFFF !important;
+    }
+
+    .assistant-card p,
+    .assistant-card span,
+    .assistant-card div,
+    .assistant-card label {
+        color: inherit;
+    }
+
+    .zentix-sidebar-fab {
+        position: fixed;
+        top: 0.9rem;
+        left: 0.9rem;
+        z-index: 1000000;
+        width: 52px;
+        height: 52px;
+        border: none;
+        border-radius: 18px;
+        background: linear-gradient(135deg, #4F46E5 0%, #2563EB 55%, #06B6D4 100%);
+        color: #FFFFFF;
+        box-shadow: 0 18px 34px rgba(79,70,229,0.26);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;
+    }
+
+    .zentix-sidebar-fab:hover {
+        transform: translateY(-1px) scale(1.02);
+        box-shadow: 0 22px 38px rgba(79,70,229,0.30);
+        filter: brightness(1.02);
+    }
+
+    .zentix-sidebar-fab svg {
+        width: 22px;
+        height: 22px;
+        stroke: currentColor;
+    }
+
+    .zentix-sidebar-fab.is-open {
+        left: 18.8rem;
+    }
+
+    @media (max-width: 900px) {
+        .zentix-sidebar-fab.is-open {
+            left: 0.9rem;
+        }
+    }
+
+
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     </style>
@@ -1101,6 +1214,88 @@ def render_transition_overlay():
     components.html(splash, height=0)
     st.session_state["zentix_show_transition"] = False
 
+
+
+
+def render_sidebar_toggle_fab():
+    components.html(
+        """
+        <script>
+        (function() {
+          const doc = window.parent.document;
+          const existing = doc.getElementById('zentix-sidebar-fab');
+          if (existing) {
+            updateState(existing);
+            return;
+          }
+
+          const fab = doc.createElement('button');
+          fab.id = 'zentix-sidebar-fab';
+          fab.className = 'zentix-sidebar-fab';
+          fab.setAttribute('aria-label', 'Mostrar u ocultar menú lateral');
+          fab.innerHTML = `
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round">
+              <path d="M4 7h16"></path>
+              <path d="M4 12h16"></path>
+              <path d="M4 17h16"></path>
+            </svg>`;
+
+          function isVisible(el) {
+            if (!el) return false;
+            const style = window.getComputedStyle(el);
+            const rect = el.getBoundingClientRect();
+            return style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 0 && rect.height > 0;
+          }
+
+          function findToggleButton() {
+            const candidates = Array.from(doc.querySelectorAll('button'));
+            const keywords = ['sidebar', 'barra lateral', 'toggle sidebar', 'collapse sidebar', 'expand sidebar', 'show sidebar', 'hide sidebar'];
+            for (const btn of candidates) {
+              const text = [btn.getAttribute('aria-label') || '', btn.getAttribute('title') || '', btn.innerText || '']
+                .join(' ')
+                .toLowerCase();
+              if (keywords.some(k => text.includes(k)) && isVisible(btn)) return btn;
+            }
+            const collapsed = doc.querySelector('[data-testid="collapsedControl"] button');
+            if (isVisible(collapsed)) return collapsed;
+            const sidebar = doc.querySelector('section[data-testid="stSidebar"]');
+            if (sidebar) {
+              const inside = sidebar.querySelector('button[kind="header"], button[aria-label], button[title]');
+              if (isVisible(inside)) return inside;
+            }
+            return null;
+          }
+
+          function sidebarIsOpen() {
+            const sidebar = doc.querySelector('section[data-testid="stSidebar"]');
+            if (!sidebar) return false;
+            const style = window.getComputedStyle(sidebar);
+            const rect = sidebar.getBoundingClientRect();
+            return style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 180 && style.transform !== 'translateX(-100%)';
+          }
+
+          function updateState(el) {
+            el.classList.toggle('is-open', sidebarIsOpen() && window.innerWidth > 900);
+          }
+
+          fab.addEventListener('click', function() {
+            const toggle = findToggleButton();
+            if (toggle) {
+              toggle.click();
+              setTimeout(() => updateState(fab), 240);
+              setTimeout(() => updateState(fab), 700);
+            }
+          });
+
+          doc.body.appendChild(fab);
+          updateState(fab);
+          window.addEventListener('resize', () => updateState(fab));
+          setInterval(() => updateState(fab), 1200);
+        })();
+        </script>
+        """,
+        height=0,
+    )
 
 def zentix_brand_header():
     st.markdown("<div class='zentix-brand-shell fade-up'>", unsafe_allow_html=True)
@@ -6426,6 +6621,7 @@ with st.sidebar:
 
 render_nav_rapida_premium()
 render_transition_overlay()
+render_sidebar_toggle_fab()
 
 pagina = st.session_state.pagina
 track_page_view_once(user_id, pagina)
