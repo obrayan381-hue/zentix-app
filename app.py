@@ -67,13 +67,13 @@ def aplicar_estilo_zentix():
     st.markdown("""
     <style>
     :root {
-        --app-bg: #F5F7FB;
-        --app-bg-2: #EEF3FA;
+        --app-bg: #F6F8FC;
+        --app-bg-2: #EEF3FB;
         --surface: #FFFFFF;
         --surface-soft: #F8FAFC;
         --surface-alt: #F1F5F9;
         --line: rgba(15, 23, 42, 0.08);
-        --line-strong: rgba(37, 99, 235, 0.18);
+        --line-strong: rgba(79, 70, 229, 0.18);
         --text: #0F172A;
         --muted: #64748B;
         --blue: #4F46E5;
@@ -83,139 +83,48 @@ def aplicar_estilo_zentix():
         --green: #22C55E;
         --red: #EF4444;
         --amber: #F59E0B;
-        --pink: #EC4899;
         --shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
         --shadow-soft: 0 10px 24px rgba(15, 23, 42, 0.05);
-        --radius-xl: 26px;
-        --radius-lg: 22px;
-        --radius-md: 18px;
     }
 
-    html, body, [class*="css"]  {
-        color: var(--text);
-    }
-
+    html, body, [class*="css"] { color: var(--text); }
     .stApp {
         background:
             radial-gradient(circle at top left, rgba(79,70,229,0.08), transparent 24%),
             radial-gradient(circle at top right, rgba(6,182,212,0.08), transparent 20%),
             linear-gradient(180deg, var(--app-bg) 0%, var(--app-bg-2) 100%);
     }
-
-    [data-testid="stAppViewContainer"] {
-        background: transparent;
-    }
-
-    .block-container {
-        max-width: 1400px;
-        padding-top: 1.15rem;
-        padding-right: 1.15rem;
-        padding-left: 1.15rem;
-        padding-bottom: 6rem;
-    }
-
+    [data-testid="stAppViewContainer"] { background: transparent; }
+    .block-container { max-width: 1420px; padding-top: 1.05rem; padding-right: 1rem; padding-left: 1rem; padding-bottom: 6rem; }
     header[data-testid="stHeader"] {
-        background: rgba(255, 255, 255, 0.80);
+        background: rgba(255,255,255,0.84);
         backdrop-filter: blur(12px);
         -webkit-backdrop-filter: blur(12px);
         border-bottom: 1px solid rgba(15,23,42,0.04);
     }
-
-    [data-testid="stToolbar"],
-    [data-testid="stDecoration"],
-    [data-testid="collapsedControl"] {
-        display: none !important;
-    }
-
+    [data-testid="stToolbar"], [data-testid="stDecoration"], [data-testid="collapsedControl"] { display: none !important; }
     [data-testid="stSidebar"] {
-        background: linear-gradient(180deg, rgba(255,255,255,0.95), rgba(248,250,252,0.96));
+        background: linear-gradient(180deg, rgba(255,255,255,0.97), rgba(248,250,252,0.98));
         border-right: 1px solid rgba(15,23,42,0.06);
-        box-shadow: inset -1px 0 0 rgba(255,255,255,0.8);
     }
-
-    [data-testid="stSidebar"] * {
-        color: var(--text);
-    }
-
-    [data-testid="stSidebarContent"] {
-        padding-top: 1rem;
-        padding-left: 0.6rem;
-        padding-right: 0.6rem;
-    }
-
-    h1, h2, h3 {
-        color: var(--text) !important;
-        letter-spacing: -0.03em;
-    }
-
-    p, label, .stMarkdown, .stCaption, span, div {
-        color: inherit;
-    }
-
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 0.55rem;
-        background: transparent;
-        margin-bottom: 1rem;
-        flex-wrap: wrap;
-    }
-
-    .stTabs [data-baseweb="tab"] {
-        height: auto;
-        padding: 0.72rem 1rem;
-        border-radius: 999px;
-        background: rgba(255,255,255,0.84);
-        border: 1px solid rgba(15,23,42,0.06);
-        color: #334155;
-        font-weight: 700;
-    }
-
-    .stTabs [aria-selected="true"] {
-        background: linear-gradient(135deg, rgba(79,70,229,0.12), rgba(37,99,235,0.10));
-        border-color: rgba(79,70,229,0.22);
-        color: #312E81;
-        box-shadow: 0 10px 24px rgba(79,70,229,0.08);
-    }
+    [data-testid="stSidebar"] * { color: var(--text); }
+    [data-testid="stSidebarContent"] { padding-top: .95rem; padding-left: .55rem; padding-right: .55rem; }
+    h1, h2, h3 { color: var(--text) !important; letter-spacing: -0.03em; }
+    p, label, .stMarkdown, .stCaption, span, div { color: inherit; }
 
     .stButton > button {
-        width: 100%;
-        min-height: 54px;
-        border-radius: 18px;
-        border: 1px solid rgba(15, 23, 42, 0.08);
-        background: linear-gradient(180deg, rgba(255,255,255,1), rgba(248,250,252,1));
-        color: #0F172A;
-        font-weight: 800;
-        font-size: 0.98rem;
-        letter-spacing: 0.01em;
-        padding: 0.82rem 1rem;
+        width: 100%; min-height: 52px; border-radius: 18px; border: 1px solid rgba(15,23,42,0.08);
+        background: linear-gradient(180deg, rgba(255,255,255,1), rgba(248,250,252,1)); color: #0F172A;
+        font-weight: 800; font-size: .95rem; padding: .75rem .95rem;
         box-shadow: 0 10px 20px rgba(15,23,42,0.05);
-        transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, filter 0.18s ease;
+        transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease, filter .18s ease;
     }
-
-    .stButton > button:hover {
-        transform: translateY(-2px);
-        border-color: rgba(79, 70, 229, 0.20);
-        box-shadow: 0 16px 28px rgba(15,23,42,0.08);
-    }
-
+    .stButton > button:hover { transform: translateY(-2px); border-color: rgba(79,70,229,0.20); box-shadow: 0 14px 26px rgba(15,23,42,0.07); }
     .stButton > button[kind="primary"] {
-        background:
-            radial-gradient(circle at top left, rgba(255,255,255,0.22), transparent 30%),
-            linear-gradient(135deg, #5B5CF8 0%, #4F46E5 42%, #7C3AED 100%);
-        border: none;
-        color: #FFFFFF;
-        box-shadow: 0 18px 32px rgba(79,70,229,0.22);
+        background: radial-gradient(circle at top left, rgba(255,255,255,0.22), transparent 30%), linear-gradient(135deg, #5B5CF8 0%, #4F46E5 45%, #7C3AED 100%);
+        border: none; color: #FFFFFF; box-shadow: 0 18px 34px rgba(79,70,229,0.22);
     }
-
-    .stButton > button[kind="primary"]:hover {
-        box-shadow: 0 22px 38px rgba(79,70,229,0.28);
-        filter: brightness(1.02);
-    }
-
-    .stButton > button[kind="secondary"] {
-        background: linear-gradient(180deg, rgba(255,255,255,1), rgba(248,250,252,1));
-        color: #334155;
-        border: 1px solid rgba(148,163,184,0.22);
-    }
+    .stButton > button[kind="secondary"] { background: linear-gradient(180deg, rgba(255,255,255,1), rgba(248,250,252,1)); color: #334155; border: 1px solid rgba(148,163,184,0.22); }
 
     .stTextInput > div > div > input,
     .stNumberInput input,
@@ -223,282 +132,55 @@ def aplicar_estilo_zentix():
     textarea,
     .stSelectbox div[data-baseweb="select"] > div,
     .stMultiSelect div[data-baseweb="select"] > div {
-        background: rgba(255,255,255,0.96) !important;
-        color: var(--text) !important;
-        border: 1px solid rgba(148,163,184,0.20) !important;
-        border-radius: 16px !important;
-        min-height: 52px !important;
-        box-shadow: inset 0 1px 0 rgba(255,255,255,0.9), 0 6px 12px rgba(15,23,42,0.03);
+        background: rgba(255,255,255,0.98) !important; color: var(--text) !important;
+        border: 1px solid rgba(148,163,184,0.18) !important; border-radius: 16px !important;
+        min-height: 52px !important; box-shadow: inset 0 1px 0 rgba(255,255,255,0.9), 0 6px 12px rgba(15,23,42,0.03);
     }
+    .stTextInput > label, .stNumberInput > label, .stDateInput > label, .stSelectbox > label, .stRadio > label, .stMultiSelect > label { color: #334155 !important; font-weight: 700 !important; }
+    .stRadio [role="radiogroup"] { gap: .55rem; flex-wrap: wrap; }
+    .stRadio label { background: rgba(255,255,255,0.96); padding: .42rem .82rem; border-radius: 999px; border: 1px solid rgba(148,163,184,0.20); color: #334155 !important; }
+    .stAlert { border-radius: 18px; border: 1px solid rgba(148,163,184,0.16); }
 
-    .stTextInput > label, .stNumberInput > label, .stDateInput > label,
-    .stSelectbox > label, .stRadio > label, .stMultiSelect > label {
-        color: #334155 !important;
-        font-weight: 700 !important;
-    }
-
-    .stRadio [role="radiogroup"] {
-        gap: 0.6rem;
-        flex-wrap: wrap;
-    }
-
-    .stRadio label {
-        background: rgba(255,255,255,0.96);
-        padding: 0.42rem 0.85rem;
-        border-radius: 999px;
-        border: 1px solid rgba(148,163,184,0.20);
-        color: #334155 !important;
-    }
-
-    .stAlert {
-        border-radius: 18px;
-        border: 1px solid rgba(148,163,184,0.18);
-    }
-
-    .zentix-brand-shell {
-        background: rgba(255,255,255,0.90);
-        border: 1px solid rgba(15,23,42,0.06);
-        border-radius: 24px;
-        box-shadow: var(--shadow-soft);
-        padding: 0.95rem 1.05rem;
-        margin-bottom: 1rem;
-    }
-
-    .zentix-brand-title {
-        font-size: 1.6rem;
-        font-weight: 900;
-        line-height: 1;
-        margin: 0;
-        letter-spacing: -0.04em;
-        color: #0F172A;
-    }
-
-    .zentix-brand-sub {
-        color: var(--muted);
-        margin-top: 5px;
-        font-size: 0.94rem;
-    }
+    .zentix-brand-shell { background: rgba(255,255,255,0.92); border: 1px solid rgba(15,23,42,0.06); border-radius: 24px; box-shadow: var(--shadow-soft); padding: .95rem 1.05rem; margin-bottom: .95rem; }
+    .zentix-brand-title { font-size: 1.6rem; font-weight: 900; letter-spacing: -0.04em; color: #0F172A; }
+    .zentix-brand-sub { color: var(--muted); margin-top: 5px; font-size: .93rem; }
 
     .hero-card {
-        background:
-            radial-gradient(circle at top left, rgba(255,255,255,0.22), transparent 32%),
-            radial-gradient(circle at bottom right, rgba(255,255,255,0.08), transparent 24%),
-            linear-gradient(135deg, #5B5CF8 0%, #4F46E5 42%, #7C3AED 100%);
-        border: none;
-        border-radius: 30px;
-        padding: 1.3rem;
-        box-shadow: 0 28px 50px rgba(79,70,229,0.22);
-        margin-bottom: 1rem;
-        color: #fff;
+        background: radial-gradient(circle at top left, rgba(255,255,255,0.22), transparent 32%), radial-gradient(circle at bottom right, rgba(255,255,255,0.08), transparent 24%), linear-gradient(135deg, #5B5CF8 0%, #4F46E5 46%, #7C3AED 100%);
+        border: none; border-radius: 30px; padding: 1.28rem; box-shadow: 0 28px 50px rgba(79,70,229,0.22); margin-bottom: 1rem; color: #fff;
     }
+    .hero-badge { display:inline-block; padding:.36rem .78rem; border-radius:999px; background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.18); color:#F8FAFC; font-size:.76rem; font-weight:700; margin-bottom:.85rem; }
+    .hero-title { font-size: 2rem; font-weight: 900; line-height:1.02; margin:0 0 .35rem 0; color:#fff; letter-spacing:-0.04em; }
+    .hero-subtitle { color: rgba(255,255,255,0.92); font-size: 1rem; line-height: 1.55; margin:0; }
+    .hero-pills { display:flex; flex-wrap:wrap; gap:.55rem; margin-top:1rem; }
+    .hero-pill { display:inline-block; padding:.42rem .8rem; border-radius:999px; background:rgba(255,255,255,0.14); border:1px solid rgba(255,255,255,0.18); color:#fff; font-size:.82rem; font-weight:600; }
 
-    .hero-badge {
-        display: inline-block;
-        padding: 0.36rem 0.78rem;
-        border-radius: 999px;
-        background: rgba(255,255,255,0.16);
-        border: 1px solid rgba(255,255,255,0.18);
-        color: #F8FAFC;
-        font-size: 0.76rem;
-        font-weight: 700;
-        margin-bottom: 0.85rem;
+    .section-title { font-size:1.12rem; font-weight:900; color:var(--text); margin-top:.35rem; margin-bottom:.18rem; letter-spacing:-0.03em; }
+    .section-caption, .tiny-muted, .kpi-foot, .chat-label, .chat-input-label, .quick-action-note, .sidebar-brand-sub, .sidebar-user-label, .movement-date, .movement-side-label, .spotlight-metric-label, .premium-list-copy, .assistant-mini, .feature-signal-sub, .spotlight-side-sub, .movement-meta, .report-image-note, .auth-step-copy, .launch-grid-copy, .sidebar-nav-note { color: var(--muted) !important; }
+
+    .soft-card, .mini-soft-card, .premium-list-card, .feature-signal, .tutorial-card, .spotlight-shell, .spotlight-side-card, .movement-card, .launch-grid-card, .report-preview-shell, .report-image-shell, .movement-side-shell, .sticky-top-shell, .top-nav-premium, .legal-footer, .limit-card-premium, .login-box, .auth-shell, .sidebar-user-card, .movement-side-kpi, .spotlight-metric {
+        border-radius: 24px; padding: 1rem 1.05rem; border: 1px solid rgba(15,23,42,0.06); box-shadow: var(--shadow-soft); background: linear-gradient(180deg, rgba(255,255,255,1), rgba(248,250,252,1));
     }
+    .premium-list-card.theme-blue, .spotlight-metric.theme-blue { background: linear-gradient(180deg, #EEF4FF, #F8FBFF); border-color: rgba(37,99,235,0.14); }
+    .premium-list-card.theme-purple, .spotlight-metric.theme-purple { background: linear-gradient(180deg, #F5F3FF, #FBF8FF); border-color: rgba(124,58,237,0.14); }
+    .premium-list-card.theme-green, .spotlight-metric.theme-green { background: linear-gradient(180deg, #ECFDF5, #F6FFF9); border-color: rgba(34,197,94,0.14); }
+    .premium-list-card.theme-amber, .spotlight-metric.theme-amber { background: linear-gradient(180deg, #FFFBEB, #FFFDF5); border-color: rgba(245,158,11,0.14); }
+    .premium-list-card.theme-rose, .spotlight-metric.theme-rose { background: linear-gradient(180deg, #FFF1F2, #FFF7F8); border-color: rgba(239,68,68,0.14); }
+    .premium-list-card.theme-cyan, .spotlight-metric.theme-cyan { background: linear-gradient(180deg, #ECFEFF, #F4FDFF); border-color: rgba(6,182,212,0.14); }
+    .hero-card:hover, .soft-card:hover, .assistant-card:hover, .mini-soft-card:hover, .premium-list-card:hover, .feature-signal:hover, .tutorial-card:hover, .spotlight-shell:hover, .spotlight-side-card:hover, .kpi-card:hover, .movement-card:hover, .launch-grid-card:hover, .report-preview-shell:hover, .report-image-shell:hover, .auth-shell:hover, .movement-side-shell:hover { transform: translateY(-2px); box-shadow: var(--shadow); border-color: rgba(79,70,229,0.14); }
 
-    .hero-title {
-        font-size: 2rem;
-        font-weight: 900;
-        line-height: 1.02;
-        margin: 0 0 0.35rem 0;
-        color: #FFFFFF;
-        letter-spacing: -0.04em;
+    .assistant-card, .login-box, .auth-shell, .empty-card {
+        background: radial-gradient(circle at top left, rgba(255,255,255,0.18), transparent 30%), linear-gradient(135deg, #172554 0%, #1D4ED8 52%, #4F46E5 100%);
+        border: none; color: #FFFFFF; box-shadow: 0 24px 46px rgba(37,99,235,0.18);
     }
+    .assistant-title, .auth-step-title { color: #FFFFFF !important; }
+    .assistant-text, .chat-bubble-user { color: rgba(255,255,255,0.94) !important; }
+    .assistant-card { padding: 1rem 1.05rem; border-radius: 26px; }
+    .assistant-mini { color: rgba(255,255,255,0.82) !important; }
+    .chat-bubble-ai { background: rgba(255,255,255,0.16); border: 1px solid rgba(255,255,255,0.18); color:#fff; border-radius:16px; padding:.8rem .9rem; margin-bottom:.55rem; line-height:1.5; font-size:.92rem; }
+    .chat-bubble-user { background: rgba(15,23,42,0.14); border:1px solid rgba(255,255,255,0.16); border-radius:16px; padding:.8rem .9rem; margin-bottom:.55rem; line-height:1.5; font-size:.92rem; }
 
-    .hero-subtitle {
-        color: rgba(255,255,255,0.90);
-        font-size: 1rem;
-        line-height: 1.55;
-        margin: 0;
-    }
-
-    .hero-pills {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.55rem;
-        margin-top: 1rem;
-    }
-
-    .hero-pill {
-        display: inline-block;
-        padding: 0.42rem 0.8rem;
-        border-radius: 999px;
-        background: rgba(255,255,255,0.14);
-        border: 1px solid rgba(255,255,255,0.18);
-        color: #FFFFFF;
-        font-size: 0.82rem;
-        font-weight: 600;
-    }
-
-    .section-title {
-        font-size: 1.18rem;
-        font-weight: 900;
-        color: var(--text);
-        margin-top: 0.35rem;
-        margin-bottom: 0.18rem;
-        letter-spacing: -0.03em;
-    }
-
-    .section-caption,
-    .tiny-muted,
-    .kpi-foot,
-    .chat-label,
-    .chat-input-label,
-    .quick-action-note,
-    .sidebar-brand-sub,
-    .sidebar-user-label,
-    .movement-date,
-    .movement-side-label,
-    .spotlight-metric-label,
-    .premium-list-copy,
-    .assistant-mini,
-    .feature-signal-sub,
-    .spotlight-side-sub,
-    .movement-meta,
-    .report-image-note,
-    .auth-step-copy,
-    .launch-grid-copy,
-    .sidebar-nav-note {
-        color: var(--muted) !important;
-    }
-
-    .soft-card,
-    .mini-soft-card,
-    .premium-list-card,
-    .feature-signal,
-    .tutorial-card,
-    .spotlight-shell,
-    .spotlight-side-card,
-    .movement-card,
-    .launch-grid-card,
-    .report-preview-shell,
-    .report-image-shell,
-    .movement-side-shell,
-    .sticky-top-shell,
-    .top-nav-premium,
-    .legal-footer,
-    .limit-card-premium,
-    .auth-step-card,
-    .sidebar-user-card,
-    .movement-side-kpi,
-    .spotlight-metric,
-    .feature-chip,
-    .tutorial-step-chip,
-    .premium-list-badge,
-    .hero-pill,
-    .movement-chip {
-        background: linear-gradient(180deg, rgba(255,255,255,1), rgba(248,250,252,1));
-        border: 1px solid rgba(15,23,42,0.06);
-        box-shadow: var(--shadow-soft);
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-    }
-
-    .soft-card,
-    .mini-soft-card,
-    .premium-list-card,
-    .feature-signal,
-    .tutorial-card,
-    .spotlight-shell,
-    .spotlight-side-card,
-    .movement-card,
-    .launch-grid-card,
-    .report-preview-shell,
-    .report-image-shell,
-    .movement-side-shell,
-    .sticky-top-shell,
-    .top-nav-premium,
-    .legal-footer,
-    .limit-card-premium,
-    .login-box,
-    .auth-shell {
-        border-radius: 24px;
-        padding: 1rem 1.05rem;
-    }
-
-    .hero-card:hover,
-    .soft-card:hover,
-    .assistant-card:hover,
-    .mini-soft-card:hover,
-    .premium-list-card:hover,
-    .feature-signal:hover,
-    .tutorial-card:hover,
-    .spotlight-shell:hover,
-    .spotlight-side-card:hover,
-    .kpi-card:hover,
-    .movement-card:hover,
-    .launch-grid-card:hover,
-    .report-preview-shell:hover,
-    .report-image-shell:hover,
-    .auth-shell:hover,
-    .movement-side-shell:hover {
-        transform: translateY(-2px);
-        box-shadow: var(--shadow);
-        border-color: rgba(79,70,229,0.14);
-    }
-
-    .assistant-card,
-    .auth-shell,
-    .login-box,
-    .empty-card,
-    .premium-floating-guide {
-        background:
-            radial-gradient(circle at top left, rgba(255,255,255,0.18), transparent 30%),
-            linear-gradient(135deg, #172554 0%, #1D4ED8 52%, #4F46E5 100%);
-        border: none;
-        color: #FFFFFF;
-        box-shadow: 0 24px 46px rgba(37,99,235,0.18);
-    }
-
-    .assistant-title,
-    .premium-floating-guide-title,
-    .auth-step-title {
-        color: #FFFFFF !important;
-    }
-
-    .assistant-text,
-    .premium-floating-guide-copy,
-    .chat-bubble-user {
-        color: rgba(255,255,255,0.94) !important;
-    }
-
-    .chat-bubble-ai {
-        background: rgba(255,255,255,0.16);
-        border: 1px solid rgba(255,255,255,0.18);
-        color: #FFFFFF;
-        border-radius: 16px;
-        padding: 0.8rem 0.9rem;
-        margin-bottom: 0.55rem;
-        line-height: 1.5;
-        font-size: 0.92rem;
-    }
-
-    .chat-bubble-user {
-        background: rgba(15,23,42,0.14);
-        border: 1px solid rgba(255,255,255,0.16);
-        border-radius: 16px;
-        padding: 0.8rem 0.9rem;
-        margin-bottom: 0.55rem;
-        line-height: 1.5;
-        font-size: 0.92rem;
-    }
-
-    .kpi-card {
-        border-radius: 22px;
-        padding: 1rem;
-        min-height: 124px;
-        border: 1px solid rgba(15,23,42,0.06);
-        box-shadow: var(--shadow-soft);
-    }
-
+    .kpi-card { border-radius:22px; padding:1rem; min-height:124px; border:1px solid rgba(15,23,42,0.06); box-shadow: var(--shadow-soft); }
     .kpi-income { background: linear-gradient(180deg, #ECFDF5, #F0FDF4); border-color: rgba(34,197,94,0.18); }
     .kpi-expense { background: linear-gradient(180deg, #FEF2F2, #FFF1F2); border-color: rgba(239,68,68,0.18); }
     .kpi-balance { background: linear-gradient(180deg, #EFF6FF, #EEF2FF); border-color: rgba(37,99,235,0.18); }
@@ -507,155 +189,60 @@ def aplicar_estilo_zentix():
     .kpi-pay { background: linear-gradient(180deg, #FFFBEB, #FEF3C7); border-color: rgba(245,158,11,0.18); }
     .kpi-receivable { background: linear-gradient(180deg, #F5F3FF, #F3E8FF); border-color: rgba(168,85,247,0.18); }
     .kpi-collected { background: linear-gradient(180deg, #ECFEFF, #CFFAFE); border-color: rgba(6,182,212,0.18); }
+    .kpi-label { font-size:.82rem; color:#475569; margin-bottom:.55rem; font-weight:700; }
+    .kpi-value { font-size:1.72rem; font-weight:900; color:#0F172A; line-height:1.05; margin-bottom:.25rem; letter-spacing:-0.04em; }
+    .kpi-foot { font-size:.82rem; }
 
-    .kpi-label { font-size: 0.82rem; color: #475569; margin-bottom: 0.55rem; font-weight: 700; }
-    .kpi-value { font-size: 1.72rem; font-weight: 900; color: #0F172A; line-height: 1.05; margin-bottom: 0.25rem; letter-spacing: -0.04em; }
-    .kpi-foot { font-size: 0.82rem; }
+    .pill-ingreso, .pill-gasto, .pill-debt, .pill-pay { display:inline-block; padding:.42rem .82rem; border-radius:999px; font-weight:800; margin-bottom:.8rem; }
+    .pill-ingreso { background:#DCFCE7; border:1px solid #86EFAC; color:#166534; }
+    .pill-gasto { background:#FEE2E2; border:1px solid #FCA5A5; color:#B91C1C; }
+    .pill-debt { background:#DBEAFE; border:1px solid #93C5FD; color:#1D4ED8; }
+    .pill-pay { background:#FEF3C7; border:1px solid #FCD34D; color:#B45309; }
 
-    .pill-ingreso, .pill-gasto, .pill-debt, .pill-pay {
-        display: inline-block;
-        padding: 0.42rem 0.82rem;
-        border-radius: 999px;
-        font-weight: 800;
-        margin-bottom: 0.8rem;
-    }
-    .pill-ingreso { background: #DCFCE7; border: 1px solid #86EFAC; color: #166534; }
-    .pill-gasto { background: #FEE2E2; border: 1px solid #FCA5A5; color: #B91C1C; }
-    .pill-debt { background: #DBEAFE; border: 1px solid #93C5FD; color: #1D4ED8; }
-    .pill-pay { background: #FEF3C7; border: 1px solid #FCD34D; color: #B45309; }
+    .movement-chip { display:inline-block; padding:.28rem .66rem; border-radius:999px; font-size:.72rem; font-weight:800; border:1px solid rgba(148,163,184,0.16); background: rgba(255,255,255,0.92); color:#334155; }
+    .movement-chip-income { background:#DCFCE7; border-color:#86EFAC; color:#166534; }
+    .movement-chip-expense { background:#FEE2E2; border-color:#FCA5A5; color:#B91C1C; }
+    .movement-chip-debt { background:#DBEAFE; border-color:#93C5FD; color:#1D4ED8; }
+    .movement-chip-pay { background:#FEF3C7; border-color:#FCD34D; color:#B45309; }
+    .movement-chip-info { background:#E0F2FE; border-color:#7DD3FC; color:#0C4A6E; }
+    .movement-chip-recurrent { background:#F5F3FF; border-color:#C4B5FD; color:#6D28D9; }
+    .movement-chip-alert { background:#FFF1F2; border-color:#FDA4AF; color:#BE123C; }
 
-    .movement-chip { color: #334155; }
-    .movement-chip-income { background: #DCFCE7; border-color: #86EFAC; color: #166534; }
-    .movement-chip-expense { background: #FEE2E2; border-color: #FCA5A5; color: #B91C1C; }
-    .movement-chip-debt { background: #DBEAFE; border-color: #93C5FD; color: #1D4ED8; }
-    .movement-chip-pay { background: #FEF3C7; border-color: #FCD34D; color: #B45309; }
-    .movement-chip-info { background: #E0F2FE; border-color: #7DD3FC; color: #0C4A6E; }
-    .movement-chip-recurrent { background: #F5F3FF; border-color: #C4B5FD; color: #6D28D9; }
-    .movement-chip-alert { background: #FFF1F2; border-color: #FDA4AF; color: #BE123C; }
+    .top-nav-premium { position: sticky; top: .35rem; z-index: 30; padding:.72rem .78rem; margin-bottom:.95rem; background: rgba(255,255,255,0.86); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+    .nav-dock-links { display:flex; gap:.5rem; flex-wrap:wrap; align-items:center; }
+    .nav-dock-link { display:inline-flex; align-items:center; gap:.46rem; padding:.58rem .82rem; border-radius:999px; text-decoration:none; font-weight:800; font-size:.84rem; color:#334155; background: linear-gradient(180deg, rgba(255,255,255,1), rgba(248,250,252,1)); border:1px solid rgba(148,163,184,0.18); box-shadow: 0 8px 16px rgba(15,23,42,0.05); }
+    .nav-dock-link:hover { border-color: rgba(79,70,229,0.22); box-shadow:0 12px 22px rgba(79,70,229,0.10); color:#312E81; }
+    .nav-dock-link.is-active { color:#FFFFFF; border:none; background: linear-gradient(135deg, #5B5CF8 0%, #4F46E5 50%, #7C3AED 100%); box-shadow: 0 14px 26px rgba(79,70,229,0.24), 0 0 0 2px rgba(255,255,255,0.85); }
+    .nav-dock-link .nav-emoji { font-size:.95rem; }
 
-    .spotlight-badge,
-    .tutorial-badge,
-    .premium-list-badge {
-        background: rgba(79,70,229,0.10);
-        border: 1px solid rgba(79,70,229,0.14);
-        color: #4338CA;
-    }
-
-    .spotlight-title,
-    .tutorial-title,
-    .premium-list-title,
-    .feature-signal-title,
-    .spotlight-side-title,
-    .movement-title,
-    .movement-side-value,
-    .spotlight-metric-value,
-    .launch-grid-title,
-    .sidebar-brand-title,
-    .sidebar-user-name {
-        color: #0F172A !important;
-    }
-
-    .sidebar-brand-title { font-size: 1.1rem; font-weight: 900; line-height: 1.1; }
-    .sidebar-user-card { border-radius: 20px; }
-
-    .empty-card {
-        border-radius: 24px;
-        padding: 1.15rem;
-        text-align: center;
-        color: rgba(255,255,255,0.92);
-    }
-
-    .top-nav-premium {
-        position: sticky;
-        top: 0.55rem;
-        z-index: 40;
-        padding: 0.95rem 1rem;
-        margin-bottom: 1rem;
-    }
-
-    .top-nav-premium-title {
-        font-size: 0.76rem;
-        text-transform: uppercase;
-        letter-spacing: 0.12em;
-        color: #6366F1;
-        font-weight: 900;
-        margin-bottom: 0.75rem;
-    }
-
-    .quick-tile {
-        border-radius: 22px;
-        padding: 1rem;
-        min-height: 120px;
-        background: linear-gradient(180deg, rgba(255,255,255,1), rgba(248,250,252,1));
-        border: 1px solid rgba(15,23,42,0.06);
-        box-shadow: var(--shadow-soft);
-        margin-bottom: 0.55rem;
-    }
-
-    .quick-tile-icon {
-        width: 42px; height: 42px; border-radius: 14px; display:flex; align-items:center; justify-content:center;
-        font-size: 1.15rem; font-weight: 800; margin-bottom: 0.8rem;
-        background: linear-gradient(135deg, rgba(79,70,229,0.14), rgba(37,99,235,0.10));
-        color: #4F46E5;
-    }
-
-    .quick-tile-title { color:#0F172A; font-weight:900; font-size:1rem; margin-bottom:0.18rem; }
-    .quick-tile-copy { color:#64748B; font-size:0.84rem; line-height:1.55; }
-
-    .activity-feed-item {
-        display:flex; justify-content:space-between; gap:0.8rem; align-items:flex-start;
-        padding:0.82rem 0; border-bottom:1px solid rgba(15,23,42,0.06);
-    }
-    .activity-feed-item:last-child { border-bottom:none; }
-    .activity-feed-left { display:flex; gap:0.75rem; align-items:flex-start; }
-    .activity-feed-bullet {
-        width:38px; height:38px; border-radius:999px; display:flex; align-items:center; justify-content:center;
-        font-weight:800; font-size:0.95rem; color:#fff;
-        background: linear-gradient(135deg, #4F46E5, #2563EB);
-        flex: 0 0 38px;
-    }
-    .activity-feed-title { font-weight:800; color:#0F172A; line-height:1.3; }
-    .activity-feed-sub { color:#64748B; font-size:0.82rem; margin-top:0.12rem; }
-    .activity-feed-amount { font-weight:900; white-space:nowrap; }
-    .amount-income { color:#16A34A; }
-    .amount-expense { color:#DC2626; }
-    .amount-debt { color:#2563EB; }
-    .amount-pay { color:#B45309; }
-
-    .premium-floating-guide {
-        position: fixed;
-        right: 1rem;
-        bottom: 1rem;
-        z-index: 9998;
-        width: min(360px, calc(100vw - 2rem));
-        border-radius: 24px;
-        padding: 1rem;
-    }
-
-    .assistant-mini, .premium-floating-guide .tiny-muted { color: rgba(255,255,255,0.82) !important; }
-
-    .legal-footer a, a { color: #4F46E5; }
-
-    .metric-income { color: #16A34A !important; }
-    .metric-expense { color: #DC2626 !important; }
-    .metric-debt { color: #2563EB !important; }
-    .metric-pay { color: #B45309 !important; }
-
-    div[data-testid="stProgressBar"] > div > div {
-        background: linear-gradient(90deg, #4F46E5, #06B6D4);
-    }
+    .premium-floating-guide { position: fixed; right: 1rem; bottom: 1rem; z-index: 9998; width: min(320px, calc(100vw - 1.4rem)); padding:0; background:transparent; border:0; box-shadow:none; }
+    .z-assist-shell { background: linear-gradient(180deg, rgba(20,32,74,0.96), rgba(30,41,92,0.98)); border: 1px solid rgba(125,211,252,0.14); border-radius: 28px; box-shadow: 0 28px 50px rgba(15,23,42,0.24); padding: .9rem; }
+    .z-assist-header { display:flex; gap:.75rem; align-items:center; margin-bottom:.85rem; }
+    .z-assist-avatar { width:58px; height:58px; border-radius:20px; overflow:hidden; flex:0 0 58px; box-shadow:0 10px 22px rgba(6,182,212,0.18); border:1px solid rgba(255,255,255,0.14); background: rgba(255,255,255,0.08); display:flex; align-items:center; justify-content:center; }
+    .z-assist-title { color:#FFFFFF; font-size:1rem; font-weight:900; }
+    .z-assist-copy { color:rgba(255,255,255,0.82); font-size:.84rem; line-height:1.5; margin-top:.1rem; }
+    .z-assist-actions { display:flex; flex-direction:column; gap:.55rem; }
+    .z-assist-item { display:flex; align-items:center; justify-content:space-between; gap:.8rem; padding:.72rem .78rem; border-radius:18px; text-decoration:none; background: rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.08); color:#FFFFFF; font-weight:700; font-size:.92rem; }
+    .z-assist-item:hover { background: rgba(255,255,255,0.10); }
+    .z-assist-pill { width:38px; height:38px; border-radius:14px; display:flex; align-items:center; justify-content:center; font-size:1rem; font-weight:900; color:#0F172A; }
+    .z-assist-pill.chat { background: linear-gradient(135deg, #93C5FD, #FFFFFF); }
+    .z-assist-pill.analysis { background: linear-gradient(135deg, #67E8F9, #E0F2FE); }
+    .z-assist-pill.register { background: linear-gradient(135deg, #A78BFA, #EDE9FE); }
+    .z-assist-pill.profile { background: linear-gradient(135deg, #FDE68A, #FEF3C7); }
+    .z-assist-close { display:flex; align-items:center; justify-content:center; width:68px; height:68px; border-radius:999px; margin-top:.75rem; margin-left:auto; text-decoration:none; font-size:2rem; color:#0F172A; background: linear-gradient(135deg, #67E8F9, #38BDF8); box-shadow:0 18px 28px rgba(6,182,212,0.20); }
 
     @media (max-width: 900px) {
-        .block-container { padding-left: 0.85rem; padding-right: 0.85rem; padding-bottom: 7rem; }
-        .hero-title { font-size: 1.78rem; }
-        .premium-floating-guide { width: calc(100vw - 1.5rem); right: 0.75rem; bottom: 0.75rem; }
+        .block-container { padding-left:.8rem; padding-right:.8rem; padding-bottom:7rem; }
+        .hero-title { font-size:1.72rem; }
+        .nav-dock-links { justify-content:center; }
+        .nav-dock-link { font-size:.78rem; padding:.54rem .72rem; }
+        .premium-floating-guide { right:.7rem; bottom:.8rem; width:min(300px, calc(100vw - 1.1rem)); }
     }
 
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     </style>
     """, unsafe_allow_html=True)
-
 
 def money(value):
     return f"${float(value):,.0f}"
@@ -705,88 +292,71 @@ def aplicar_estilo_plotly(fig, height=360):
     fig.update_layout(
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
-        font_color="#0F172A",
+        font_color="#E5E7EB",
         title_font_size=18,
         title_x=0.03,
         margin=dict(l=20, r=20, t=60, b=20),
         height=height,
         legend_title_text=""
     )
-    fig.update_xaxes(showgrid=True, gridcolor="rgba(148,163,184,0.16)", zeroline=False)
-    fig.update_yaxes(showgrid=True, gridcolor="rgba(148,163,184,0.16)", zeroline=False)
     return fig
 
 
-
-
-
-
-def ir_a_pagina(destino):
-    st.session_state.pagina = destino
-    st.session_state["zentix_show_transition"] = True
-    st.rerun()
-
-
-def render_transition_overlay():
-    if not st.session_state.get("zentix_show_transition"):
+def aplicar_acciones_ui_flotantes(paginas_disponibles):
+    try:
+        params = st.query_params
+    except Exception:
         return
-    logo_html = ""
-    if icono_path.exists():
+
+    def _get(name):
         try:
-            logo_b64 = base64.b64encode(Path(icono_path).read_bytes()).decode()
-            logo_html = f"<img src='data:image/png;base64,{logo_b64}' style='width:88px;height:88px;object-fit:contain;margin-bottom:16px;'/>"
+            value = params.get(name)
         except Exception:
-            logo_html = ""
-    splash = f"""
-    <script>
-    const doc = window.parent.document;
-    const prev = doc.getElementById('zentix-transition-overlay');
-    if (prev) prev.remove();
-    const layer = doc.createElement('div');
-    layer.id = 'zentix-transition-overlay';
-    layer.innerHTML = `
-      <style>
-        #zentix-transition-overlay {{ position: fixed; inset:0; z-index:999999; display:flex; align-items:center; justify-content:center; background: linear-gradient(180deg, rgba(245,247,251,0.98), rgba(238,243,250,0.98)); backdrop-filter: blur(14px); opacity:1; transition: opacity .35s ease; }}
-        #zentix-transition-overlay.hide {{ opacity:0; }}
-        #zentix-transition-card {{ display:flex; flex-direction:column; align-items:center; justify-content:center; padding:28px 34px; border-radius:28px; background:rgba(255,255,255,0.96); border:1px solid rgba(79,70,229,0.10); box-shadow:0 24px 50px rgba(15,23,42,0.10); color:#0F172A; font-family:Inter,system-ui,sans-serif; }}
-        #zentix-spinner {{ width:36px;height:36px;border-radius:999px;border:4px solid rgba(79,70,229,0.12);border-top-color:#4F46E5;animation:zentixSpin .8s linear infinite;margin-top:8px; }}
-        @keyframes zentixSpin {{ from {{ transform:rotate(0deg); }} to {{ transform:rotate(360deg); }} }}
-      </style>
-      <div id='zentix-transition-card'>
-        {logo_html}
-        <div style='font-size:1.12rem;font-weight:900;margin-bottom:0.2rem;'>Zentix</div>
-        <div style='font-size:0.92rem;color:#64748B;margin-bottom:10px;'>Preparando tu siguiente vista…</div>
-        <div id='zentix-spinner'></div>
-      </div>`;
-    doc.body.appendChild(layer);
-    setTimeout(() => layer.classList.add('hide'), 420);
-    setTimeout(() => {{ try {{ layer.remove(); }} catch(e) {{}} }}, 820);
-    </script>
-    """
-    components.html(splash, height=0)
-    st.session_state["zentix_show_transition"] = False
+            value = None
+        if isinstance(value, list):
+            value = value[0] if value else None
+        return str(value) if value not in (None, "") else None
+
+    changed = False
+    destino = _get("zpage")
+    accion = _get("za")
+    if destino:
+        destino = urllib.parse.unquote(destino)
+        if destino in paginas_disponibles and st.session_state.get("pagina") != destino:
+            st.session_state.pagina = destino
+            st.session_state["zentix_show_transition"] = True
+        changed = True
+    if accion:
+        mapping = {"analysis": "Análisis", "register": "Registrar", "profile": "Perfil", "home": "Inicio"}
+        if accion == "toggle_help":
+            st.session_state["zentix_guide_hidden"] = not bool(st.session_state.get("zentix_guide_hidden", False))
+            changed = True
+        elif accion == "chat":
+            st.session_state["zentix_avatar_force_open"] = True
+            changed = True
+        elif mapping.get(accion) in paginas_disponibles:
+            destino_accion = mapping[accion]
+            if st.session_state.get("pagina") != destino_accion:
+                st.session_state.pagina = destino_accion
+                st.session_state["zentix_show_transition"] = True
+            changed = True
+    if changed:
+        try:
+            if "zpage" in params: del params["zpage"]
+            if "za" in params: del params["za"]
+        except Exception:
+            pass
+        st.rerun()
 
 
 def zentix_brand_header():
-    st.markdown("<div class='zentix-brand-shell fade-up'>", unsafe_allow_html=True)
-    col_logo, col_title, col_side = st.columns([0.9, 6.2, 2.4])
+    col_logo, col_title = st.columns([1.15, 8])
     with col_logo:
         if icono_path.exists():
-            st.image(str(icono_path), width=66)
+            st.image(str(icono_path), width=116)
     with col_title:
-        st.markdown('<div class="zentix-brand-title">Zentix</div>', unsafe_allow_html=True)
-        st.markdown('<div class="zentix-brand-sub">Centro financiero premium, claro y más cómodo de usar en móvil, tablet y PC.</div>', unsafe_allow_html=True)
-    with col_side:
-        st.markdown(
-            f"""
-            <div style='text-align:right;padding-top:0.2rem;'>
-                <div class='tiny-muted'>Experiencia activa</div>
-                <div style='font-weight:900;color:#312E81;'>Orden + claridad</div>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-    st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown('<div class="zentix-brand-title">ZENTIX</div>', unsafe_allow_html=True)
+        st.markdown('<div class="zentix-brand-sub">Finanzas inteligentes con estilo fintech premium</div>', unsafe_allow_html=True)
 
 
 def zentix_hero(nombre, saldo_disponible, total_ingresos, total_gastos):
@@ -794,11 +364,11 @@ def zentix_hero(nombre, saldo_disponible, total_ingresos, total_gastos):
 
     st.markdown(
         f"""
-        <div class="hero-card fade-up">
-            <div class="hero-badge">Zentix · panel principal</div>
-            <div class="hero-title">Hola, {nombre} 👋</div>
+        <div class="hero-card">
+            <div class="hero-badge">Zentix · tu espacio financiero personal</div>
+            <div class="hero-title">Hola, {nombre}</div>
             <div class="hero-subtitle">
-                Dejamos el fondo limpio y el color solo donde realmente guía la vista: resumen arriba, acciones rápidas al centro y profundidad solo cuando quieres entrar.
+                Controla tus ingresos, ordena tus gastos y avanza hacia tus metas con una experiencia clara, rápida y elegante.
             </div>
             <div class="hero-pills">
                 <span class="hero-pill">Disponible: {money(saldo_disponible)}</span>
@@ -3432,25 +3002,16 @@ def generar_imagen_reporte_premium(nombre_usuario, plan_nombre, periodicidad, in
 
 
 def render_nav_rapida_premium():
-    st.markdown("<div class='top-nav-premium fade-up'><div class='top-nav-premium-title'>Centro rápido</div>", unsafe_allow_html=True)
-    nav_items = [
-        ("🏠", "Inicio"),
-        ("➕", "Registrar"),
-        ("📈", "Análisis"),
-        ("🎯", "Ahorro"),
-        ("⚙️", "Perfil"),
-    ]
-    cols = st.columns(len(nav_items))
-    for col, (icono, pagina_destino) in zip(cols, nav_items):
-        with col:
-            activo = st.session_state.pagina == pagina_destino
-            if st.button(f"{icono} {pagina_destino}", key=f"nav_top_{pagina_destino}", use_container_width=True, type="primary" if activo else "secondary"):
-                ir_a_pagina(pagina_destino)
-    st.markdown("<div class='sidebar-nav-note'>La navegación principal quedó más parecida a una app: clara, directa y sin capas innecesarias sobre el dashboard.</div></div>", unsafe_allow_html=True)
-
+    items = [("Inicio", "🏠"), ("Registrar", "➕"), ("Análisis", "📊"), ("Ahorro", "🎯"), ("Perfil", "⚙️")]
+    pagina_actual = st.session_state.get("pagina", "Inicio")
+    links = []
+    for label, emoji in items:
+        active = "is-active" if pagina_actual == label else ""
+        href = f"?zpage={urllib.parse.quote(label)}"
+        links.append(f"<a class='nav-dock-link {active}' href='{href}' target='_self'><span class='nav-emoji'>{emoji}</span><span>{label}</span></a>")
+    st.markdown(f"<div class='top-nav-premium fade-up'><div class='nav-dock-links'>{''.join(links)}</div></div>", unsafe_allow_html=True)
 
 def render_reporte_descargable(nombre_usuario, plan_actual, df_base, user_id=None):
-
     section_header("Reporte premium imprimible", "Descarga un PDF semanal o mensual listo para imprimir con portada, resumen ejecutivo y firma de marca.")
     with st.expander("🖨️ Generar reporte PDF", expanded=False):
         periodicidad = st.radio("Periodo del reporte", ["Semanal", "Mensual"], horizontal=True, key="reporte_periodicidad")
@@ -3901,9 +3462,15 @@ def money_delta(value):
 def render_list_card(title, items, foot=""):
     items = items or ["Sin hallazgos todavía."]
     bullets = "".join([f"<li style='margin-bottom:0.38rem;'>{item}</li>" for item in items])
-    st.markdown(
-        f"""
-        <div class="premium-list-card">
+    t = str(title or "").lower()
+    theme = "theme-blue"
+    if any(k in t for k in ["alerta", "gasto", "riesgo"]): theme = "theme-rose"
+    elif any(k in t for k in ["meta", "ahorro", "objetivo"]): theme = "theme-purple"
+    elif any(k in t for k in ["ingreso", "cobro", "caja", "flujo"]): theme = "theme-green"
+    elif any(k in t for k in ["deuda", "pendiente"]): theme = "theme-amber"
+    elif any(k in t for k in ["perfil", "insight", "patrón", "patrones", "categor"]): theme = "theme-cyan"
+    st.markdown(f"""
+        <div class="premium-list-card {theme}">
             <div class="premium-list-head">
                 <div class="premium-list-title">{title}</div>
                 <div class="premium-list-badge">{len(items)} señal{'es' if len(items) != 1 else ''}</div>
@@ -3911,12 +3478,7 @@ def render_list_card(title, items, foot=""):
             <div class="premium-list-copy">{foot}</div>
             <ul class="spotlight-list">{bullets}</ul>
         </div>
-        """,
-        unsafe_allow_html=True
-    )
-
-
-
+        """, unsafe_allow_html=True)
 
 def movimiento_chip(label, kind="default"):
     return f"<span class='movement-chip movement-chip-{kind}'>{html.escape(str(label))}</span>"
@@ -4178,59 +3740,23 @@ def guardar_estado_tutorial_usuario(user_id, paso=None, activo=None, completado=
 
 
 def render_contexto_descubrimiento(pagina):
-    mapa = {
-        "Inicio": {
-            "titulo": "Más inteligencia vive más abajo",
-            "sub": "Sigue descendiendo y verás foco dinámico, gráficas mensuales, comparativas, patrones y el chat con IA sin salir de esta misma experiencia.",
-            "chips": ["Spotlight inteligente", "Chat IA", "Comparativas", "Gráficas del mes", "Patrones"]
-        },
-        "Registrar": {
-            "titulo": "Registro premium, no recargado",
-            "sub": "El formulario se adapta a lo que elijas. Más abajo tienes vista previa, deuda, recurrentes y apoyo del avatar en el mismo flujo.",
-            "chips": ["Ingreso", "Gasto", "Deuda", "Recurrentes", "Vista previa + IA"]
-        },
-        "Análisis": {
-            "titulo": "Aquí hay lectura profunda",
-            "sub": "Más abajo tienes tabla del mes, patrones, comparativas y visuales para detectar rápidamente qué está pasando con tu dinero.",
-            "chips": ["Tabla viva", "Patrones", "Comparativas", "Timeline", "IA explicativa"]
-        },
-        "Ahorro": {
-            "titulo": "Tu meta tiene más contexto",
-            "sub": "Sigue bajando y verás proyección, progreso real, plan sugerido y lectura del avatar para convertir tu meta en algo accionable.",
-            "chips": ["Meta con nombre", "Proyección", "Progreso", "Plan sugerido", "IA"]
-        },
-        "Perfil": {
-            "titulo": "Tu experiencia se afina aquí",
-            "sub": "Más abajo puedes ajustar recordatorios, ver diferencias entre Free y Pro y dejar lista una experiencia más premium sin invadir al usuario.",
-            "chips": ["Plan", "IA diaria", "Recordatorios", "Preferencias", "Ruta Pro"]
-        }
-    }
-    data = mapa.get(pagina, mapa["Inicio"])
-    chips = "".join([f"<span class='feature-chip'>{chip}</span>" for chip in data["chips"]])
-    st.markdown(
-        f"""
-        <div class="feature-signal">
-            <div class="feature-signal-title">{data['titulo']}</div>
-            <div class="feature-signal-sub">{data['sub']}</div>
-            <div class="feature-signal-chips">{chips}</div>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-
+    return
 
 def render_spotlight_metric(label, value, foot=""):
-    st.markdown(
-        f"""
-        <div class="spotlight-metric">
+    l = str(label or "").lower()
+    theme = "theme-blue"
+    if any(k in l for k in ["ingreso", "cobro"]): theme = "theme-green"
+    elif any(k in l for k in ["gasto", "alerta"]): theme = "theme-rose"
+    elif any(k in l for k in ["meta", "ahorro"]): theme = "theme-purple"
+    elif any(k in l for k in ["deuda", "pendiente", "pago"]): theme = "theme-amber"
+    elif any(k in l for k in ["perfil", "modo", "plan"]): theme = "theme-cyan"
+    st.markdown(f"""
+        <div class="spotlight-metric {theme}">
             <div class="spotlight-metric-label">{label}</div>
             <div class="spotlight-metric-value">{value}</div>
             <div class="spotlight-metric-foot">{foot}</div>
         </div>
-        """,
-        unsafe_allow_html=True
-    )
-
+        """, unsafe_allow_html=True)
 
 def construir_flujo_semanal(df_base):
     if df_base is None or df_base.empty or "fecha" not in df_base.columns:
@@ -4832,208 +4358,63 @@ def render_avatar(pagina, nombre, total_ingresos, total_gastos, ahorro_actual, u
     consultas_limite = globals().get("consultas_limite_hoy", 10)
     alertas_actuales = globals().get("alertas_proactivas", [])
     recomendacion_actual = globals().get("recomendacion_accionable", "Sigue registrando para obtener una recomendación más precisa.")
-    entradas_deuda = float(globals().get("total_entradas_deuda_mes", 0.0) or 0.0)
-    pagos_deuda = float(globals().get("total_pagos_deuda_mes", 0.0) or 0.0)
-    saldo_pendiente_deudas = float(globals().get("saldo_pendiente_deudas_global", 0.0) or 0.0)
-
-    tono_base = perfil_actual.get("titulo", "Perfil en construcción")
-
-    if pagina == "Inicio":
-        mensaje = f"{nombre}, ya entendí mejor tu panorama. Hoy te leo como: {tono_base.lower()}."
-    elif pagina == "Registrar":
-        mensaje = f"{nombre}, cada nuevo movimiento me ayuda a entender mejor tu comportamiento financiero, incluidas tus deudas y recurrencias."
-    elif pagina == "Análisis":
-        mensaje = f"{nombre}, aquí puedo explicarte patrones, comparar periodos y leer con claridad tus ingresos reales versus tus flujos por deuda."
-    elif pagina == "Perfil":
-        mensaje = f"{nombre}, desde aquí afinamos tu experiencia: plan, IA, recordatorios y preferencias sin recargar la interfaz."
-    else:
-        mensaje = f"{nombre}, tu meta no es solo un número. También puedo decirte qué ajuste te acercaría más rápido a ella."
-
-    estado = {
-        "Ingreso": "🟢 Último movimiento: ingreso",
-        "Gasto": "🔴 Último movimiento: gasto",
-        "Ingreso (Deuda)": "🔵 Último movimiento: ingreso por deuda",
-        "Pago de deuda": "🟠 Último movimiento: pago de deuda",
-        "Cuenta por cobrar": "🟣 Último movimiento: cuenta por cobrar creada",
-        "Cobro cuenta por cobrar": "🟢 Último movimiento: cobro recibido"
-    }.get(ultimo_tipo, "⚪ Aún no hay movimientos")
-
-    contexto_ia = construir_contexto_zentix(
-        pagina=pagina,
-        nombre=nombre,
-        total_ingresos=total_ingresos,
-        total_gastos=total_gastos,
-        ahorro_actual=ahorro_actual,
-        ultimo_tipo=ultimo_tipo
-    )
-
+    mensajes_iniciales = {"Inicio": f"Hola, {nombre}. Soy Zentix. Puedo resumirte tu panel o explicar qué deberías priorizar hoy.", "Registrar": f"Hola, {nombre}. Estoy listo para ayudarte a registrar mejor y sin desorden.", "Análisis": f"Hola, {nombre}. Puedo interpretar patrones, alertas y comparativas con contexto.", "Ahorro": f"Hola, {nombre}. Puedo ayudarte a leer tu progreso de meta y tu ritmo ideal.", "Perfil": f"Hola, {nombre}. También puedo orientarte con recordatorios, IA y configuración."}
+    resumen_pagina = {"Inicio": "Pulso general y prioridades del momento.", "Registrar": "Registro rápido, claro y con contexto.", "Análisis": "Lectura profunda de patrones y alertas.", "Ahorro": "Meta, proyección y foco de avance.", "Perfil": "Cuenta, hábitos y experiencia."}.get(pagina, "Tu panel inteligente.")
     chat_key = f"zentix_chat_{pagina}"
     input_key = f"zentix_input_{pagina}"
     clear_key = f"zentix_clear_{pagina}"
-
-    mensajes_iniciales = {
-        "Inicio": f"Hola, {nombre}. Soy Zentix. Ya distingo tus ingresos reales de tus movimientos por deuda y puedo resumirte tu panorama.",
-        "Registrar": f"Hola, {nombre}. Registra ingresos, gastos, deudas y recurrencias sin contaminar tus KPIs reales.",
-        "Análisis": f"Hola, {nombre}. Pregúntame por patrones, alertas, comparativas, deuda pendiente o categorías dominantes.",
-        "Ahorro": f"Hola, {nombre}. Puedo ayudarte a leer tu progreso, cuánto te falta y cuál sería un ritmo semanal razonable.",
-        "Perfil": f"Hola, {nombre}. Aquí también puedo ayudarte a decidir qué recordatorios activar y cómo aprovechar mejor tu plan."
-    }
-
     if chat_key not in st.session_state:
-        st.session_state[chat_key] = [
-            {"role": "assistant", "content": mensajes_iniciales.get(pagina, "Hola. Soy tu avatar financiero de Zentix.")}
-        ]
-
+        st.session_state[chat_key] = [{"role": "assistant", "content": mensajes_iniciales.get(pagina, "Hola. Soy Zentix IA.")}]
     if clear_key not in st.session_state:
         st.session_state[clear_key] = False
-
     if st.session_state.get(clear_key):
         st.session_state[input_key] = ""
         st.session_state[clear_key] = False
-
+    contexto_ia = construir_contexto_zentix(pagina=pagina, nombre=nombre, total_ingresos=total_ingresos, total_gastos=total_gastos, ahorro_actual=ahorro_actual, ultimo_tipo=ultimo_tipo)
     st.markdown('<div class="assistant-card">', unsafe_allow_html=True)
-
-    col1, col2 = st.columns([1.15, 4])
-
+    col1, col2 = st.columns([1, 3.5])
     with col1:
-        if avatar_path.exists():
-            st.image(str(avatar_path), width=124)
-
+        if avatar_path.exists(): st.image(str(avatar_path), width=84)
     with col2:
-        st.markdown('<div class="assistant-title">Avatar Zentix IA</div>', unsafe_allow_html=True)
-        st.markdown(f'<div class="assistant-text">{mensaje}</div>', unsafe_allow_html=True)
-        st.markdown(f'<div class="assistant-mini">{estado}</div>', unsafe_allow_html=True)
-        st.markdown(
-            f'<div class="assistant-mini">{texto_plan_avatar(plan_actual, consultas_usadas, consultas_limite)}</div>',
-            unsafe_allow_html=True
-        )
-        st.markdown(
-            f'<div class="assistant-mini">Perfil: {perfil_actual.get("titulo", "Sin perfil")} · Disponible: {money(ahorro_actual)}</div>',
-            unsafe_allow_html=True
-        )
-        st.markdown(
-            f'<div class="assistant-mini">Deuda recibida: {money(entradas_deuda)} · Pagos deuda: {money(pagos_deuda)} · Pendiente: {money(saldo_pendiente_deudas)}</div>',
-            unsafe_allow_html=True
-        )
-
-    if alertas_actuales:
-        st.markdown(
-            f'<div class="assistant-mini">Alerta actual: {alertas_actuales[0]}</div>',
-            unsafe_allow_html=True
-        )
-
-    st.markdown('<div class="quick-action-note">Acciones rápidas</div>', unsafe_allow_html=True)
-
-    preguntas_rapidas = {
-        "Inicio": [
-            "Resúmeme mi semana premium",
-            "¿Cuál es mi perfil financiero?",
-            "¿Qué alerta debería vigilar hoy?",
-            "Dame una acción concreta para mejorar"
-        ],
-        "Registrar": [
-            "¿Cómo registrar bien una deuda?",
-            "¿Qué impacto tienen mis pagos de deuda?",
-            "Dame una recomendación para registrar mejor",
-            "¿Cómo usar recurrentes sin desorden?"
-        ],
-        "Análisis": [
-            "Interpreta mis patrones de gasto",
-            "Compárame esta semana con la pasada",
-            "¿Cómo van mis deudas?",
-            "Dame 3 insights personalizados"
-        ],
-        "Ahorro": [
-            "Explícame mi progreso de ahorro",
-            "¿Cuánto me falta realmente?",
-            "¿Qué ajuste me acerca más rápido?",
-            "Convierte mi meta en un plan corto"
-        ],
-        "Perfil": [
-            "¿Cómo aprovechar mejor mi plan actual?",
-            "Resume mis recordatorios activos",
-            "¿Qué diferencia elegante hay entre Free y Pro?",
-            "¿Qué debería configurar primero?"
-        ]
-    }
-
+        st.markdown('<div class="assistant-title">Zentix IA</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="assistant-text">{resumen_pagina}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="assistant-mini">{texto_plan_avatar(plan_actual, consultas_usadas, consultas_limite)} · Perfil: {perfil_actual.get("titulo", "Sin perfil")}</div>', unsafe_allow_html=True)
+        if alertas_actuales: st.markdown(f'<div class="assistant-mini">Alerta principal: {alertas_actuales[0]}</div>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
     pregunta_final = None
-    qa = preguntas_rapidas.get(pagina, preguntas_rapidas["Inicio"])
-
-    q1, q2 = st.columns(2)
-    with q1:
-        if st.button(qa[0], key=f"qa1_{pagina}", use_container_width=True):
-            pregunta_final = qa[0]
-        if st.button(qa[2], key=f"qa3_{pagina}", use_container_width=True):
-            pregunta_final = qa[2]
-    with q2:
-        if st.button(qa[1], key=f"qa2_{pagina}", use_container_width=True):
-            pregunta_final = qa[1]
-        if st.button(qa[3], key=f"qa4_{pagina}", use_container_width=True):
-            pregunta_final = qa[3]
-
-    st.markdown('<div class="chat-wrap">', unsafe_allow_html=True)
-    st.markdown('<div class="chat-label">Conversación</div>', unsafe_allow_html=True)
-
-    historial = st.session_state[chat_key][-6:]
-    for item in historial:
-        contenido = html.escape(item["content"]).replace("\n", "<br>")
-        if item["role"] == "assistant":
-            st.markdown(f'<div class="chat-bubble-ai"><strong>Zentix:</strong><br>{contenido}</div>', unsafe_allow_html=True)
-        else:
-            st.markdown(f'<div class="chat-bubble-user"><strong>Tú:</strong><br>{contenido}</div>', unsafe_allow_html=True)
-
-    st.markdown('<div class="chat-input-label">Pregúntale a Zentix</div>', unsafe_allow_html=True)
-    pregunta_manual = st.text_input(
-        "Pregúntale a Zentix",
-        key=input_key,
-        label_visibility="collapsed",
-        placeholder="Ej: ¿Cómo voy este mes? ¿Qué patrón estás viendo? ¿Qué debería activar primero?"
-    )
-
-    c1, c2 = st.columns([3, 1])
-
+    c1, c2 = st.columns(2)
     with c1:
-        if st.button("Enviar pregunta", key=f"enviar_{pagina}", use_container_width=True):
-            if pregunta_manual.strip():
-                pregunta_final = pregunta_manual.strip()
-
+        if st.button("Resúmeme esto", key=f"qa_resume_{pagina}", use_container_width=True, type="primary"): pregunta_final = f"Resúmeme mi situación actual en la vista {pagina}."
     with c2:
-        if st.button("Limpiar", key=f"limpiar_chat_{pagina}", use_container_width=True):
-            st.session_state[chat_key] = [
-                {"role": "assistant", "content": mensajes_iniciales.get(pagina, "Hola. Soy tu avatar financiero de Zentix.")}
-            ]
-            st.session_state[clear_key] = True
-            st.rerun()
-
+        if st.button("Dame una acción", key=f"qa_action_{pagina}", use_container_width=True, type="secondary"): pregunta_final = "Dame una acción concreta para mejorar mis finanzas hoy."
+    force_open = bool(st.session_state.get("zentix_avatar_force_open"))
+    with st.expander("Abrir conversación con Zentix IA", expanded=force_open):
+        historial = st.session_state[chat_key][-5:]
+        for item in historial:
+            contenido = html.escape(item["content"]).replace("\n", "<br>")
+            if item["role"] == "assistant": st.markdown(f'<div class="chat-bubble-ai"><strong>Zentix:</strong><br>{contenido}</div>', unsafe_allow_html=True)
+            else: st.markdown(f'<div class="chat-bubble-user"><strong>Tú:</strong><br>{contenido}</div>', unsafe_allow_html=True)
+        pregunta_manual = st.text_input("Pregúntale a Zentix", key=input_key, label_visibility="collapsed", placeholder="Ej: ¿Qué me conviene priorizar este mes?")
+        s1, s2 = st.columns([3,1])
+        with s1:
+            if st.button("Enviar", key=f"enviar_{pagina}", use_container_width=True, type="primary") and pregunta_manual.strip(): pregunta_final = pregunta_manual.strip()
+        with s2:
+            if st.button("Limpiar", key=f"limpiar_chat_{pagina}", use_container_width=True, type="secondary"):
+                st.session_state[chat_key] = [{"role": "assistant", "content": mensajes_iniciales.get(pagina, "Hola. Soy Zentix IA.")}]
+                st.session_state[clear_key] = True
+                st.rerun()
+    st.session_state["zentix_avatar_force_open"] = False
     if pregunta_final:
         st.session_state[chat_key].append({"role": "user", "content": pregunta_final})
-
-        permitido, usadas, limite, _, plan = puede_usar_ia(st.session_state.user.id)
-
-        if not permitido:
-            respuesta = (
-                f"Has alcanzado tu límite diario de IA ({limite} consultas) en el plan "
-                f"{plan.get('plan', 'free')}. Pásate a Pro para tener más acceso y análisis más profundos."
-            )
+        permitido, _, limite, _, plan = puede_usar_ia(st.session_state.user.id)
+        if not permitido: respuesta = f"Has alcanzado tu límite diario de IA ({limite} consultas) en el plan {plan.get('plan', 'free')}."
         else:
-            with st.spinner("Zentix está analizando tu información..."):
-                respuesta = consultar_ia_zentix(pregunta_final, contexto_ia)
+            with st.spinner("Zentix está analizando tu información..."): respuesta = consultar_ia_zentix(pregunta_final, contexto_ia)
             registrar_uso_ia(st.session_state.user.id)
-
         st.session_state[chat_key].append({"role": "assistant", "content": respuesta})
         st.session_state[clear_key] = True
         st.rerun()
-
-    if recomendacion_actual:
-        st.markdown(
-            f'<div class="assistant-mini" style="margin-top:0.65rem;">Siguiente mejor paso: {recomendacion_actual}</div>',
-            unsafe_allow_html=True
-        )
-
-    st.markdown('</div>', unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
-
+    if recomendacion_actual: st.markdown(f'<div class="tiny-muted" style="margin-top:0.55rem;">Siguiente mejor paso: {recomendacion_actual}</div>', unsafe_allow_html=True)
 
 def obtener_insight_financiero(total_ingresos, total_gastos, saldo_disponible, df_mes):
     if df_mes.empty:
@@ -5066,209 +4447,6 @@ def obtener_categoria_top(df_mes):
     if resumen.empty:
         return None, 0.0
     return resumen.index[0], float(resumen.iloc[0])
-
-
-
-
-def render_home_action_tiles():
-    section_header("Acciones rápidas", "Como en una app mobile bien pensada: lo más usado vive arriba y el resto se abre solo cuando toca.")
-    acciones = [
-        ("➕", "Registrar", "Agrega ingresos, gastos, deuda o cobros sin salirte del flujo principal.", "primary"),
-        ("📈", "Análisis", "Abre patrones, reportes y comparativas cuando quieras profundidad.", "secondary"),
-        ("🎯", "Ahorro", "Mira tu meta y conviértela en un plan realista.", "secondary"),
-        ("⚙️", "Perfil", "Ajusta recordatorios, límites y tu experiencia.", "secondary"),
-    ]
-    cols = st.columns(4)
-    for col, (icono, page, copy, tone) in zip(cols, acciones):
-        with col:
-            st.markdown(
-                f"""
-                <div class='quick-tile'>
-                    <div class='quick-tile-icon'>{icono}</div>
-                    <div class='quick-tile-title'>{page}</div>
-                    <div class='quick-tile-copy'>{copy}</div>
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
-            if st.button(f"Abrir {page}", key=f"quick_open_{page}", use_container_width=True, type="primary" if page == "Registrar" else "secondary"):
-                ir_a_pagina(page)
-
-
-def render_recent_activity_feed(df_movs, limit=6):
-    st.markdown("<div class='soft-card'>", unsafe_allow_html=True)
-    st.markdown("<div class='section-title'>Actividad reciente</div>", unsafe_allow_html=True)
-    st.markdown("<div class='section-caption'>Tu último movimiento, como feed simple y limpio.</div>", unsafe_allow_html=True)
-    if df_movs is None or df_movs.empty:
-        st.markdown("<div class='tiny-muted'>Aún no hay movimientos registrados.</div>", unsafe_allow_html=True)
-        st.markdown("</div>", unsafe_allow_html=True)
-        return
-
-    vista = df_movs.copy().sort_values("fecha", ascending=False).head(limit)
-    vista["fecha"] = pd.to_datetime(vista["fecha"], errors="coerce")
-    vista["monto"] = pd.to_numeric(vista["monto"], errors="coerce").fillna(0)
-
-    for _, row in vista.iterrows():
-        tipo = str(row.get("tipo") or "Sin tipo")
-        descripcion = str(row.get("descripcion") or row.get("categoria") or "Movimiento").strip()
-        fecha_txt = row["fecha"].strftime("%d %b · %H:%M") if pd.notna(row["fecha"]) else "Sin fecha"
-        amount_class = "amount-income" if tipo in {"Ingreso", "Cobro cuenta por cobrar"} else "amount-expense" if tipo == "Gasto" else "amount-debt" if tipo == "Ingreso (Deuda)" else "amount-pay" if tipo == "Pago de deuda" else "amount-debt"
-        icono = "↑" if tipo in {"Ingreso", "Cobro cuenta por cobrar"} else "↓" if tipo == "Gasto" else "↔"
-        st.markdown(
-            f"""
-            <div class='activity-feed-item'>
-                <div class='activity-feed-left'>
-                    <div class='activity-feed-bullet'>{icono}</div>
-                    <div>
-                        <div class='activity-feed-title'>{html.escape(descripcion)}</div>
-                        <div class='activity-feed-sub'>{html.escape(tipo)} · {fecha_txt}</div>
-                    </div>
-                </div>
-                <div class='activity-feed-amount {amount_class}'>{money(row.get('monto', 0))}</div>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-    st.markdown("</div>", unsafe_allow_html=True)
-
-
-def render_resumen_general_chart(df_mes_actual):
-    st.markdown("<div class='soft-card'>", unsafe_allow_html=True)
-    st.markdown("<div class='section-title'>Evolución del mes</div>", unsafe_allow_html=True)
-    st.markdown("<div class='section-caption'>Una sola gráfica limpia para no saturarte al entrar.</div>", unsafe_allow_html=True)
-    if df_mes_actual is None or df_mes_actual.empty:
-        st.markdown("<div class='tiny-muted'>Registra movimientos y aquí aparecerá la evolución diaria.</div>", unsafe_allow_html=True)
-        st.markdown("</div>", unsafe_allow_html=True)
-        return
-
-    chart_df = df_mes_actual.copy()
-    chart_df["fecha"] = pd.to_datetime(chart_df["fecha"], errors="coerce")
-    chart_df = chart_df.dropna(subset=["fecha"]).copy()
-    chart_df = chart_df[chart_df["tipo"].isin(["Ingreso", "Gasto", "Cobro cuenta por cobrar", "Pago de deuda"])]
-    if chart_df.empty:
-        st.markdown("<div class='tiny-muted'>No hay tipos suficientes para mostrar la evolución.</div>", unsafe_allow_html=True)
-        st.markdown("</div>", unsafe_allow_html=True)
-        return
-
-    chart_df["tipo_visual"] = chart_df["tipo"].replace({"Cobro cuenta por cobrar": "Ingreso", "Pago de deuda": "Gasto"})
-    daily = chart_df.groupby([chart_df["fecha"].dt.date, "tipo_visual"], dropna=False)["monto"].sum().reset_index()
-    daily.columns = ["fecha", "tipo", "monto"]
-    fig = px.line(
-        daily,
-        x="fecha",
-        y="monto",
-        color="tipo",
-        markers=True,
-        title="",
-        color_discrete_map={"Ingreso": "#22C55E", "Gasto": "#EF4444"}
-    )
-    aplicar_estilo_plotly(fig, height=340)
-    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
-    st.markdown("</div>", unsafe_allow_html=True)
-
-
-def render_home_hub(nombre_usuario, user_id, df, df_mes, df_deudas, df_cxc, total_ingresos, total_gastos,
-                    total_entradas_deuda_mes, total_pagos_deuda_mes, saldo_pendiente_deudas_global,
-                    saldo_pendiente_cxc_global, deudas_activas_global, meta_guardada_global, nombre_meta_guardado,
-                    ahorro_actual, saldo_disponible, perfil_financiero, insight_personalizado,
-                    resumen_semanal_premium, alertas_proactivas, patrones_comportamiento,
-                    sugerencias_categoria, recomendacion_accionable, proyeccion_meta_global,
-                    plan_usuario_actual, consultas_usadas_hoy, consultas_limite_hoy,
-                    preferencias_usuario_actual, ultimo_tipo):
-    zentix_hero(nombre_usuario, saldo_disponible, total_ingresos, total_gastos)
-    render_contexto_descubrimiento("Inicio")
-    render_tutorial_zentix("Inicio", nombre_usuario, user_id, df, meta_guardada_global, preferencias_usuario_actual)
-    render_home_action_tiles()
-
-    tabs = st.tabs(["Resumen", "Actividad", "Planificación", "Profundo"])
-
-    with tabs[0]:
-        k1, k2, k3, k4 = st.columns(4)
-        with k1:
-            kpi_card("Ingresos reales", money(total_ingresos), "Flujo propio del mes", "income")
-        with k2:
-            kpi_card("Gastos", money(total_gastos), "Salidas operativas", "expense")
-        with k3:
-            kpi_card("Disponible", money(saldo_disponible), "Caja actual", "balance")
-        with k4:
-            kpi_card("Meta", money(meta_guardada_global), nombre_meta_guardado if nombre_meta_guardado else "Objetivo activo", "saving")
-
-        d1, d2, d3, d4 = st.columns(4)
-        with d1:
-            kpi_card("Deuda recibida", money(total_entradas_deuda_mes), "No cuenta como ingreso real", "debt")
-        with d2:
-            kpi_card("Pagos deuda", money(total_pagos_deuda_mes), "Seguimiento de devolución", "pay")
-        with d3:
-            kpi_card("Por cobrar", money(saldo_pendiente_cxc_global), "Pendiente de cobrar", "receivable")
-        with d4:
-            kpi_card("Pendiente", money(saldo_pendiente_deudas_global), f"{deudas_activas_global} deuda(s) activas", "debt")
-
-        c1, c2 = st.columns([1.2, 0.8])
-        with c1:
-            render_resumen_general_chart(df_mes if df_mes is not None else pd.DataFrame())
-        with c2:
-            render_recent_activity_feed(df if df is not None else pd.DataFrame(), limit=6)
-
-        s1, s2, s3 = st.columns(3)
-        with s1:
-            render_list_card("Lo bueno del periodo", resumen_semanal_premium.get("positivas", []), "Zentix te resalta avances sin llenarte la pantalla de widgets.")
-        with s2:
-            render_list_card("Alertas suaves", alertas_proactivas, "Alertas accionables, no ruido.")
-        with s3:
-            render_list_card("Siguiente paso", [recomendacion_accionable, proyeccion_meta_global.get("mensaje", "")], "La mejor acción puntual para hoy.")
-
-    with tabs[1]:
-        c1, c2 = st.columns([1.2, 0.8])
-        with c1:
-            render_movimientos_action_hub(user_id, df if df is not None else pd.DataFrame(), df_deudas if df_deudas is not None else pd.DataFrame())
-        with c2:
-            render_movimiento_focus_panel(df if df is not None else pd.DataFrame())
-        render_recent_activity_feed(df if df is not None else pd.DataFrame(), limit=10)
-
-    with tabs[2]:
-        c1, c2 = st.columns([1.15, 0.85])
-        with c1:
-            render_inicio_spotlight(
-                df_base=df if df is not None else pd.DataFrame(),
-                df_mes_actual=df_mes if df_mes is not None else pd.DataFrame(),
-                df_deudas_local=df_deudas if df_deudas is not None else pd.DataFrame(),
-                total_ingresos_local=total_ingresos,
-                total_gastos_local=total_gastos,
-                entradas_deuda_local=total_entradas_deuda_mes,
-                pagos_deuda_local=total_pagos_deuda_mes,
-                saldo_pendiente_local=saldo_pendiente_deudas_global,
-                meta_objetivo=meta_guardada_global,
-                ahorro_disponible=ahorro_actual,
-                comparativa=globals().get("comparativa_periodos", {}),
-                resumen_semanal=resumen_semanal_premium,
-                alertas=alertas_proactivas,
-                sugerencias=sugerencias_categoria,
-                proyeccion=proyeccion_meta_global,
-                plan_actual=plan_usuario_actual,
-                consultas_usadas=consultas_usadas_hoy,
-                consultas_limite=consultas_limite_hoy
-            )
-        with c2:
-            render_list_card("Perfil e insights", [perfil_financiero.get("titulo", "Perfil en construcción"), insight_personalizado], "Una lectura editorial del momento financiero.")
-            render_list_card("Categorías inteligentes", sugerencias_categoria if sugerencias_categoria else ["Sigue registrando para refinar sugerencias."], "Organización que reduce saturación visual y mental.")
-            render_list_card("Patrones detectados", patrones_comportamiento + [f"Plan: {plan_usuario_actual.get('plan', 'free').upper()} · IA {consultas_usadas_hoy}/{consultas_limite_hoy}"], "Lo importante resumido, no repartido en diez cajas.")
-
-    with tabs[3]:
-        st.markdown("<div class='soft-card'><div class='section-title'>Panel ejecutivo profundo</div><div class='section-caption'>Toda la potencia sigue viva, pero ahora en una capa aparte para que Inicio se sienta premium y respirable.</div></div>", unsafe_allow_html=True)
-        render_dashboard_pro(
-            nombre=nombre_usuario,
-            df_base=df if df is not None else pd.DataFrame(),
-            df_mes_actual=df_mes if df_mes is not None else pd.DataFrame(),
-            df_cxc_local=df_cxc if df_cxc is not None else pd.DataFrame(),
-            total_ingresos_local=total_ingresos,
-            total_gastos_local=total_gastos,
-            entradas_deuda_local=total_entradas_deuda_mes,
-            pagos_deuda_local=total_pagos_deuda_mes,
-            saldo_deuda_pendiente=saldo_pendiente_deudas_global,
-            meta_objetivo=meta_guardada_global,
-            ahorro_actual=ahorro_actual,
-        )
-        render_avatar("Inicio", nombre_usuario, total_ingresos, total_gastos, saldo_disponible, ultimo_tipo)
 
 
 aplicar_estilo_zentix()
@@ -5683,47 +4861,36 @@ def obtener_mensajes_bienvenida(nombre):
 def render_bienvenida_flotante(nombre, pagina_actual):
     if st.session_state.get("zentix_guide_hidden"):
         return
-
-    tips = {
-        "Inicio": "Tu resumen está arriba. La profundidad quedó por pestañas para que la vista principal respire.",
-        "Registrar": "Aquí manda la acción. El formulario quedó como foco y el contexto vive en tarjetas secundarias.",
-        "Análisis": "Todo el detalle está aquí, sin contaminar la vista principal del dashboard.",
-        "Ahorro": "Tu meta ahora se siente como módulo propio, no como otro bloque perdido en medio del panel.",
-        "Perfil": "Configuración, recordatorios y plan viven en una capa aparte, como en una app bancaria seria."
-    }
-    mensaje = tips.get(pagina_actual, "Estoy aquí para ayudarte a moverte rápido por Zentix.")
-    avatar_html = ""
+    avatar_html = "🤖"
     if avatar_path.exists():
         try:
             avatar_b64 = base64.b64encode(Path(avatar_path).read_bytes()).decode()
-            avatar_html = f"<img src='data:image/png;base64,{avatar_b64}' style='width:58px;height:58px;border-radius:18px;object-fit:cover;'/>"
+            avatar_html = f"<img src='data:image/png;base64,{avatar_b64}' style='width:58px;height:58px;object-fit:cover;'/>"
         except Exception:
-            avatar_html = ""
-
+            avatar_html = "🤖"
+    hint = {"Inicio": "Resumen, acciones rápidas y acceso directo a tu IA.", "Registrar": "Registra movimientos y abre a Zentix IA cuando lo necesites.", "Análisis": "Profundiza patrones, alertas y comparativas.", "Ahorro": "Sigue tu meta y pide una recomendación rápida.", "Perfil": "Configura tu cuenta, recordatorios y hábitos."}.get(pagina_actual, "Estoy aquí para ayudarte.")
     st.markdown(f"""
-    <div class='premium-floating-guide'>
-        <div style='display:flex;gap:0.8rem;align-items:flex-start;'>
-            <div>{avatar_html}</div>
-            <div style='flex:1;'>
-                <div class='premium-floating-guide-title'>Zentix Assist</div>
-                <div class='premium-floating-guide-copy'>{mensaje}</div>
-                <div class='tiny-muted' style='margin-top:0.45rem;'>Vista actual: {pagina_actual}</div>
+        <div class='premium-floating-guide'>
+            <div class='z-assist-shell'>
+                <div class='z-assist-header'>
+                    <div class='z-assist-avatar'>{avatar_html}</div>
+                    <div style='flex:1;'>
+                        <div class='z-assist-title'>Zentix IA</div>
+                        <div class='z-assist-copy'>{hint}</div>
+                    </div>
+                </div>
+                <div class='z-assist-actions'>
+                    <a class='z-assist-item' href='?za=chat' target='_self'><span style='display:flex;align-items:center;gap:.68rem;'><span class='z-assist-pill chat'>💬</span><span>Chat con IA</span></span><span>›</span></a>
+                    <a class='z-assist-item' href='?za=analysis' target='_self'><span style='display:flex;align-items:center;gap:.68rem;'><span class='z-assist-pill analysis'>📊</span><span>Análisis</span></span><span>›</span></a>
+                    <a class='z-assist-item' href='?za=register' target='_self'><span style='display:flex;align-items:center;gap:.68rem;'><span class='z-assist-pill register'>✚</span><span>Registrar</span></span><span>›</span></a>
+                    <a class='z-assist-item' href='?za=profile' target='_self'><span style='display:flex;align-items:center;gap:.68rem;'><span class='z-assist-pill profile'>⚙️</span><span>Perfil</span></span><span>›</span></a>
+                </div>
+                <a class='z-assist-close' href='?za=toggle_help' target='_self'>×</a>
             </div>
         </div>
-    </div>
-    """, unsafe_allow_html=True)
-    c1, c2 = st.columns(2)
-    with c1:
-        if st.button("Abrir análisis", key=f"guide_open_analysis_{pagina_actual}", use_container_width=True, type="primary"):
-            ir_a_pagina("Análisis")
-    with c2:
-        if st.button("Ocultar guía", key=f"guide_hide_{pagina_actual}", use_container_width=True, type="secondary"):
-            st.session_state["zentix_guide_hidden"] = True
-            st.rerun()
-
+        """, unsafe_allow_html=True)
 
 def render_reporte_preview_modal(pdf_bytes, filename, titulo="Reporte premium Zentix"):
-
     if not pdf_bytes:
         return
     b64 = base64.b64encode(pdf_bytes).decode("utf-8")
@@ -5889,17 +5056,26 @@ if st.session_state.user is None:
             login_email = st.text_input("Correo", key="login_email")
             login_password = st.text_input("Contraseña", type="password", key="login_password")
             if st.button("Entrar a Zentix", key="btn_login_premium", use_container_width=True, type="primary"):
-                try:
-                    res = supabase.auth.sign_in_with_password({"email": login_email.strip(), "password": login_password})
-                    st.session_state.user = res.user
-                    st.session_state["zentix_guide_hidden"] = False
-                    st.session_state["zentix_guide_step"] = 0
-                    registrar_evento_producto("login_success", user_id=getattr(res.user, "id", None), pagina="Acceso", detalle=login_email.strip())
-                    st.success("Bienvenido a Zentix.")
-                    st.rerun()
-                except Exception as e:
-                    registrar_evento_producto("login_error", pagina="Acceso", detalle=str(e))
-                    st.error(f"Error al iniciar sesión: {e}")
+                correo = str(login_email or "").strip()
+                clave = str(login_password or "")
+                if not correo:
+                    st.error("Escribe tu correo para iniciar sesión.")
+                elif "@" not in correo:
+                    st.error("Debes iniciar sesión con el correo con el que te registraste.")
+                elif not clave:
+                    st.error("Escribe tu contraseña.")
+                else:
+                    try:
+                        res = supabase.auth.sign_in_with_password({"email": correo, "password": clave})
+                        st.session_state.user = res.user
+                        st.session_state["zentix_guide_hidden"] = False
+                        st.session_state["zentix_guide_step"] = 0
+                        registrar_evento_producto("login_success", user_id=getattr(res.user, "id", None), pagina="Acceso", detalle=correo)
+                        st.success("Bienvenido a Zentix.")
+                        st.rerun()
+                    except Exception as e:
+                        registrar_evento_producto("login_error", pagina="Acceso", detalle=str(e))
+                        st.error("No pude iniciar sesión. Verifica que el correo y la contraseña sean los mismos con los que te registraste.")
 
         with tab_reset:
             st.markdown("<div class='auth-step-card'><div class='auth-step-title'>¿Olvidaste tu contraseña?</div><div class='auth-step-copy'>Escribe tu correo y Zentix te enviará el enlace para cambiarla.</div></div>", unsafe_allow_html=True)
@@ -5931,52 +5107,53 @@ paginas_disponibles = ["Inicio", "Registrar", "Análisis", "Ahorro", "Perfil"]
 if "pagina" not in st.session_state or st.session_state.pagina not in paginas_disponibles:
     st.session_state.pagina = "Inicio"
 
+aplicar_acciones_ui_flotantes(paginas_disponibles)
+
 with st.sidebar:
     col_sb_icon, col_sb_text = st.columns([1, 3])
     with col_sb_icon:
         if icono_path.exists():
-            st.image(str(icono_path), width=54)
+            st.image(str(icono_path), width=58)
     with col_sb_text:
-        st.markdown('<div class="sidebar-brand-title">Zentix</div>', unsafe_allow_html=True)
-        st.markdown('<div class="sidebar-brand-sub">Centro secundario</div>', unsafe_allow_html=True)
+        st.markdown('<div class="sidebar-brand-title">ZENTIX</div>', unsafe_allow_html=True)
+        st.markdown('<div class="sidebar-brand-sub">Panel principal</div>', unsafe_allow_html=True)
 
     st.markdown(
         f"""
         <div class="sidebar-user-card">
             <div class="sidebar-user-label">Sesión activa</div>
             <div class="sidebar-user-name">{nombre_usuario}</div>
-            <div class="tiny-muted" style="margin-top:0.35rem;">Plan {plan_usuario_actual.get('plan', 'free').upper()} · IA {consultas_usadas_hoy}/{consultas_limite_hoy}</div>
         </div>
         """,
         unsafe_allow_html=True
     )
 
-    st.caption("Atajos de navegación")
-    sb1, sb2 = st.columns(2)
-    with sb1:
-        if st.button("🏠 Inicio", key="sidebar_inicio", use_container_width=True, type="primary" if st.session_state.pagina == "Inicio" else "secondary"):
-            ir_a_pagina("Inicio")
-    with sb2:
-        if st.button("➕ Registrar", key="sidebar_registrar", use_container_width=True, type="primary" if st.session_state.pagina == "Registrar" else "secondary"):
-            ir_a_pagina("Registrar")
-    sb3, sb4 = st.columns(2)
-    with sb3:
-        if st.button("📈 Análisis", key="sidebar_analisis", use_container_width=True, type="primary" if st.session_state.pagina == "Análisis" else "secondary"):
-            ir_a_pagina("Análisis")
-    with sb4:
-        if st.button("🎯 Ahorro", key="sidebar_ahorro", use_container_width=True, type="primary" if st.session_state.pagina == "Ahorro" else "secondary"):
-            ir_a_pagina("Ahorro")
-    if st.button("⚙️ Perfil", key="sidebar_perfil", use_container_width=True, type="primary" if st.session_state.pagina == "Perfil" else "secondary"):
-        ir_a_pagina("Perfil")
+    st.markdown(
+        f"""
+        <div class="sidebar-user-card">
+            <div class="sidebar-user-label">Plan actual</div>
+            <div class="sidebar-user-name">{plan_usuario_actual.get('plan', 'free').upper()}</div>
+            <div class="tiny-muted" style="margin-top:0.35rem;">IA hoy: {consultas_usadas_hoy}/{consultas_limite_hoy}</div>
+            <div class="tiny-muted">Restantes: {consultas_restantes_hoy}</div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
-    st.markdown("<div class='sidebar-nav-note'>La barra lateral quedó como apoyo, no como protagonista. El dashboard ahora manda.</div>", unsafe_allow_html=True)
+    st.markdown("### Menú")
+    pagina_sidebar = st.radio(
+        "Ir a",
+        paginas_disponibles,
+        index=paginas_disponibles.index(st.session_state.pagina),
+        label_visibility="collapsed"
+    )
+    st.session_state.pagina = pagina_sidebar
 
     if st.button("Cerrar sesión", use_container_width=True):
         st.session_state.user = None
         st.rerun()
 
 render_nav_rapida_premium()
-render_transition_overlay()
 
 pagina = st.session_state.pagina
 track_page_view_once(user_id, pagina)
@@ -6147,38 +5324,179 @@ estado_recordatorios_automaticos_global = disparar_recordatorio_automatico_si_ap
 _, consultas_usadas_hoy, consultas_limite_hoy, consultas_restantes_hoy, plan_usuario_actual = puede_usar_ia(user_id)
 
 if pagina == "Inicio":
-    render_home_hub(
-        nombre_usuario=nombre_usuario,
-        user_id=user_id,
-        df=df if not df.empty else pd.DataFrame(),
-        df_mes=df_mes if not df_mes.empty else pd.DataFrame(),
-        df_deudas=df_deudas if not df_deudas.empty else pd.DataFrame(),
-        df_cxc=df_cxc if not df_cxc.empty else pd.DataFrame(),
-        total_ingresos=total_ingresos,
-        total_gastos=total_gastos,
-        total_entradas_deuda_mes=total_entradas_deuda_mes,
-        total_pagos_deuda_mes=total_pagos_deuda_mes,
-        saldo_pendiente_deudas_global=saldo_pendiente_deudas_global,
-        saldo_pendiente_cxc_global=saldo_pendiente_cxc_global,
-        deudas_activas_global=deudas_activas_global,
-        meta_guardada_global=meta_guardada_global,
-        nombre_meta_guardado=nombre_meta_guardado,
-        ahorro_actual=ahorro_actual,
-        saldo_disponible=saldo_disponible,
-        perfil_financiero=perfil_financiero,
-        insight_personalizado=insight_personalizado,
-        resumen_semanal_premium=resumen_semanal_premium,
-        alertas_proactivas=alertas_proactivas,
-        patrones_comportamiento=patrones_comportamiento,
-        sugerencias_categoria=sugerencias_categoria,
-        recomendacion_accionable=recomendacion_accionable,
-        proyeccion_meta_global=proyeccion_meta_global,
-        plan_usuario_actual=plan_usuario_actual,
-        consultas_usadas_hoy=consultas_usadas_hoy,
-        consultas_limite_hoy=consultas_limite_hoy,
-        preferencias_usuario_actual=preferencias_usuario_actual,
-        ultimo_tipo=ultimo_tipo,
+    zentix_hero(nombre_usuario, saldo_disponible, total_ingresos, total_gastos)
+    render_contexto_descubrimiento("Inicio")
+    render_tutorial_zentix("Inicio", nombre_usuario, user_id, df, meta_guardada_global, preferencias_usuario_actual)
+
+    render_dashboard_pro(
+        nombre=nombre_usuario,
+        df_base=df if not df.empty else pd.DataFrame(),
+        df_mes_actual=df_mes if not df_mes.empty else pd.DataFrame(),
+        df_cxc_local=df_cxc if not df_cxc.empty else pd.DataFrame(),
+        total_ingresos_local=total_ingresos,
+        total_gastos_local=total_gastos,
+        entradas_deuda_local=total_entradas_deuda_mes,
+        pagos_deuda_local=total_pagos_deuda_mes,
+        saldo_deuda_pendiente=saldo_pendiente_deudas_global,
+        meta_objetivo=meta_guardada_global,
+        ahorro_actual=ahorro_actual
     )
+
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        kpi_card("Ingresos reales", money(total_ingresos), "Sin préstamos ni deuda", "income")
+    with col2:
+        kpi_card("Gastos del mes", money(total_gastos), "Salidas operativas", "expense")
+    with col3:
+        kpi_card("Disponible", money(saldo_disponible), "Caja real incluyendo deuda", "balance")
+    with col4:
+        kpi_card("Meta de ahorro", money(meta_guardada_global), nombre_meta_guardado if nombre_meta_guardado else "Objetivo configurado", "saving")
+
+    d1, d2, d3 = st.columns(3)
+    with d1:
+        kpi_card("Entradas por deuda", money(total_entradas_deuda_mes), "No cuentan como ingreso real", "balance")
+    with d2:
+        kpi_card("Pagos de deuda", money(total_pagos_deuda_mes), "Seguimiento de devolución", "expense")
+    with d3:
+        kpi_card("Saldo pendiente", money(saldo_pendiente_deudas_global), f"Deudas activas: {deudas_activas_global}", "saving")
+
+    render_inicio_spotlight(
+        df_base=df if not df.empty else pd.DataFrame(),
+        df_mes_actual=df_mes if not df_mes.empty else pd.DataFrame(),
+        df_deudas_local=df_deudas if not df_deudas.empty else pd.DataFrame(),
+        total_ingresos_local=total_ingresos,
+        total_gastos_local=total_gastos,
+        entradas_deuda_local=total_entradas_deuda_mes,
+        pagos_deuda_local=total_pagos_deuda_mes,
+        saldo_pendiente_local=saldo_pendiente_deudas_global,
+        meta_objetivo=meta_guardada_global,
+        ahorro_disponible=ahorro_actual,
+        comparativa=comparativa_periodos,
+        resumen_semanal=resumen_semanal_premium,
+        alertas=alertas_proactivas,
+        sugerencias=sugerencias_categoria,
+        proyeccion=proyeccion_meta_global,
+        plan_actual=plan_usuario_actual,
+        consultas_usadas=consultas_usadas_hoy,
+        consultas_limite=consultas_limite_hoy
+    )
+
+    col_info, col_avatar = st.columns([1.15, 0.85])
+    with col_info:
+        section_header("Lectura inteligente del mes", "Zentix interpreta tu comportamiento, no solo tus cifras.")
+        st.markdown(
+            f"""
+            <div class="soft-card">
+                <div class="section-title">{perfil_financiero.get('titulo', 'Perfil en construcción')}</div>
+                <div class="section-caption">{insight_personalizado}</div>
+                <div class="tiny-muted">Microlectura: {perfil_financiero.get('microcopy', 'Sigue registrando para personalizar más.')}</div>
+                <div class="tiny-muted" style="margin-top:0.55rem;">Deuda pendiente actual: {money(saldo_pendiente_deudas_global)} · Por cobrar: {money(saldo_pendiente_cxc_global)} · Proyección meta: {proyeccion_meta_global.get("mensaje", "Sin proyección")}</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+    with col_avatar:
+        render_avatar(pagina, nombre_usuario, total_ingresos, total_gastos, saldo_disponible, ultimo_tipo)
+
+    section_header("Resumen premium de tu comportamiento", "Lo bueno, lo que debes vigilar y tu mejor siguiente paso.")
+    s1, s2, s3 = st.columns(3)
+    with s1:
+        render_list_card("Lo que hiciste bien", resumen_semanal_premium.get("positivas", []), "Zentix detecta avances para reforzar hábitos sanos.")
+    with s2:
+        render_list_card("Alertas proactivas", alertas_proactivas, "Alertas simples para actuar antes de que el mes se complique.")
+    with s3:
+        render_list_card("Patrones + acción", patrones_comportamiento + [f"Saldo pendiente de deudas: {money(saldo_pendiente_deudas_global)}"], recomendacion_accionable)
+
+    section_header("Experiencia personalizada", "Comparativas inteligentes y sugerencias de organización.")
+    c1, c2, c3, c4 = st.columns(4)
+    with c1:
+        render_list_card("Semana vs pasada", [f"Gasto: {money_delta(comparativa_periodos.get('gasto_semana_pct', 0.0))}", f"Ingreso: {money_delta(comparativa_periodos.get('ingreso_semana_pct', 0.0))}"], "Comparativa semanal.")
+    with c2:
+        render_list_card("Mes vs anterior", [f"Gasto: {money_delta(comparativa_periodos.get('gasto_mes_pct', 0.0))}", f"Ingreso: {money_delta(comparativa_periodos.get('ingreso_mes_pct', 0.0))}"], "Comparativa mensual.")
+    with c3:
+        render_list_card("Categorías inteligentes", sugerencias_categoria if sugerencias_categoria else ["Sigue registrando para refinar tus categorías."], "Ideas para que tus categorías te den más claridad.")
+    with c4:
+        render_list_card(
+            "Plan, IA y recordatorios",
+            [
+                f"Plan actual: {plan_usuario_actual.get('plan', 'free').upper()}",
+                f"IA hoy: {consultas_usadas_hoy}/{consultas_limite_hoy}",
+                f"Recordatorios: {'email activo' if preferencias_usuario_actual.get('recordatorio_email') else 'email apagado'}"
+            ],
+            "El plan Pro tendrá más IA, alertas y profundidad."
+        )
+
+    if not df_mes.empty:
+        section_header("Visualización mensual", "Distribuciones del mes actual para ver ingresos reales, deuda y pagos con claridad.")
+        col_a, col_b = st.columns(2)
+
+        with col_a:
+            resumen_tipos = pd.DataFrame({
+                "Tipo": [
+                    "Ingreso",
+                    "Gasto",
+                    "Ingreso (Deuda)",
+                    "Pago de deuda",
+                    "Cuenta por cobrar",
+                    "Cobro cuenta por cobrar",
+                ],
+                "Monto": [
+                    float(total_ingresos or 0),
+                    float(total_gastos or 0),
+                    float(total_entradas_deuda_mes or 0),
+                    float(total_pagos_deuda_mes or 0),
+                    float(total_cuentas_cobrar_mes or 0),
+                    float(total_cobros_cxc_mes or 0),
+                ]
+            })
+            resumen_tipos = resumen_tipos[resumen_tipos["Monto"] > 0]
+            if resumen_tipos.empty:
+                resumen_tipos = pd.DataFrame({"Tipo": ["Sin datos"], "Monto": [1]})
+            fig_tipos = px.pie(
+                resumen_tipos,
+                values="Monto",
+                names="Tipo",
+                title="Flujo mensual por naturaleza",
+                hole=0.58,
+                color="Tipo",
+                color_discrete_map={
+                    "Ingreso": "#22C55E",
+                    "Gasto": "#EF4444",
+                    "Ingreso (Deuda)": "#3B82F6",
+                    "Pago de deuda": "#F59E0B",
+                    "Cuenta por cobrar": "#8B5CF6",
+                    "Cobro cuenta por cobrar": "#14B8A6",
+                    "Sin datos": "#334155"
+                }
+            )
+            fig_tipos.update_traces(textinfo="percent+label")
+            aplicar_estilo_plotly(fig_tipos, height=380)
+            st.plotly_chart(fig_tipos, use_container_width=True, config={"displayModeBar": False})
+
+        with col_b:
+            resumen_categoria = (
+                df_mes.groupby("categoria", dropna=False)["monto"]
+                .sum()
+                .reset_index()
+                .sort_values("monto", ascending=False)
+            )
+            resumen_categoria["categoria"] = resumen_categoria["categoria"].fillna("Sin categoría")
+            fig_cat = px.pie(
+                resumen_categoria,
+                values="monto",
+                names="categoria",
+                title="Categorías del mes",
+                color_discrete_sequence=CHART_COLORS
+            )
+            fig_cat.update_traces(textinfo="percent+label")
+            aplicar_estilo_plotly(fig_cat, height=380)
+            st.plotly_chart(fig_cat, use_container_width=True, config={"displayModeBar": False})
+    else:
+        empty_state(
+            "Aún no hay movimientos este mes",
+            "Empieza en Registrar para construir tu dashboard. Apenas ingreses datos, aquí aparecerán tus indicadores, perfil y análisis personalizados."
+        )
 
 if pagina == "Registrar":
     zentix_hero(nombre_usuario, saldo_disponible, total_ingresos, total_gastos)
