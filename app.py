@@ -1,5 +1,4 @@
 import os
-import time
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -37,7 +36,7 @@ st.set_page_config(
     page_title="Zentix",
     page_icon="icono_zentix_v2.png",
     layout="wide",
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="expanded"
 )
 
 DEFAULT_GASTOS = [
@@ -49,7 +48,7 @@ DEFAULT_INGRESOS = [
     "Salario", "Freelance", "Ventas", "Inversiones", "Regalos", "Otros"
 ]
 
-CHART_COLORS = ["#2563EB", "#14B8A6", "#A855F7", "#F97316", "#22C55E", "#EC4899"]
+CHART_COLORS = ["#22C55E", "#EF4444", "#3B82F6", "#8B5CF6", "#06B6D4", "#F59E0B"]
 
 icono_path = Path("icono_zentix_v2.png")
 if not icono_path.exists():
@@ -68,20 +67,28 @@ def aplicar_estilo_zentix():
     st.markdown("""
     <style>
     :root {
-        --bg: #06111f;
-        --bg2: #0a1628;
-        --panel: rgba(12, 20, 36, 0.88);
-        --panel-2: rgba(14, 24, 42, 0.94);
-        --line: rgba(148, 163, 184, 0.15);
-        --line-strong: rgba(96, 165, 250, 0.20);
-        --text: #F8FAFC;
-        --muted: #94A3B8;
-        --blue: #3B82F6;
+        --app-bg: #F5F7FB;
+        --app-bg-2: #EEF3FA;
+        --surface: #FFFFFF;
+        --surface-soft: #F8FAFC;
+        --surface-alt: #F1F5F9;
+        --line: rgba(15, 23, 42, 0.08);
+        --line-strong: rgba(37, 99, 235, 0.18);
+        --text: #0F172A;
+        --muted: #64748B;
+        --blue: #4F46E5;
+        --blue-2: #2563EB;
         --cyan: #06B6D4;
-        --purple: #8B5CF6;
+        --purple: #7C3AED;
         --green: #22C55E;
         --red: #EF4444;
         --amber: #F59E0B;
+        --pink: #EC4899;
+        --shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+        --shadow-soft: 0 10px 24px rgba(15, 23, 42, 0.05);
+        --radius-xl: 26px;
+        --radius-lg: 22px;
+        --radius-md: 18px;
     }
 
     html, body, [class*="css"]  {
@@ -90,9 +97,9 @@ def aplicar_estilo_zentix():
 
     .stApp {
         background:
-            radial-gradient(circle at top left, rgba(59,130,246,0.16), transparent 28%),
-            radial-gradient(circle at top right, rgba(139,92,246,0.10), transparent 24%),
-            linear-gradient(180deg, #040b15 0%, #08111f 50%, #0b1627 100%);
+            radial-gradient(circle at top left, rgba(79,70,229,0.08), transparent 24%),
+            radial-gradient(circle at top right, rgba(6,182,212,0.08), transparent 20%),
+            linear-gradient(180deg, var(--app-bg) 0%, var(--app-bg-2) 100%);
     }
 
     [data-testid="stAppViewContainer"] {
@@ -100,211 +107,199 @@ def aplicar_estilo_zentix():
     }
 
     .block-container {
-        max-width: 100%;
-        padding-top: 4rem;
-        padding-right: 2rem;
-        padding-left: 2rem;
-        padding-bottom: 2rem;
+        max-width: 1400px;
+        padding-top: 1.15rem;
+        padding-right: 1.15rem;
+        padding-left: 1.15rem;
+        padding-bottom: 6rem;
     }
 
     header[data-testid="stHeader"] {
-        background: rgba(4, 11, 21, 0.85);
-        backdrop-filter: blur(8px);
+        background: rgba(255, 255, 255, 0.80);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border-bottom: 1px solid rgba(15,23,42,0.04);
     }
 
-    [data-testid="stToolbar"] {
-        display: none;
-    }
-
-    [data-testid="stDecoration"] {
-        display: none;
-    }
-
+    [data-testid="stToolbar"],
+    [data-testid="stDecoration"],
     [data-testid="collapsedControl"] {
-        position: fixed;
-        top: 0.85rem;
-        left: 0.85rem;
-        z-index: 999999 !important;
-        background: rgba(15,23,42,0.96);
-        border: 1px solid rgba(96,165,250,0.28);
-        border-radius: 14px;
-        padding: 0.2rem 0.3rem;
-        box-shadow: 0 10px 24px rgba(0,0,0,0.28);
-    }
-
-    [data-testid="collapsedControl"]:hover {
-        border-color: rgba(125,211,252,0.40);
-        box-shadow: 0 12px 28px rgba(37,99,235,0.22);
-    }
-
-    [data-testid="collapsedControl"] svg {
-        fill: #F8FAFC !important;
-        color: #F8FAFC !important;
-    }
-
-    [data-testid="stSidebarContent"] {
-        padding-top: 0.5rem;
+        display: none !important;
     }
 
     [data-testid="stSidebar"] {
-        background: linear-gradient(180deg, rgba(7,12,22,0.98), rgba(10,18,32,0.98));
-        border-right: 1px solid var(--line);
+        background: linear-gradient(180deg, rgba(255,255,255,0.95), rgba(248,250,252,0.96));
+        border-right: 1px solid rgba(15,23,42,0.06);
+        box-shadow: inset -1px 0 0 rgba(255,255,255,0.8);
     }
 
     [data-testid="stSidebar"] * {
         color: var(--text);
     }
 
+    [data-testid="stSidebarContent"] {
+        padding-top: 1rem;
+        padding-left: 0.6rem;
+        padding-right: 0.6rem;
+    }
+
     h1, h2, h3 {
         color: var(--text) !important;
-        letter-spacing: -0.02em;
+        letter-spacing: -0.03em;
     }
 
     p, label, .stMarkdown, .stCaption, span, div {
         color: inherit;
     }
 
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 0.55rem;
+        background: transparent;
+        margin-bottom: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .stTabs [data-baseweb="tab"] {
+        height: auto;
+        padding: 0.72rem 1rem;
+        border-radius: 999px;
+        background: rgba(255,255,255,0.84);
+        border: 1px solid rgba(15,23,42,0.06);
+        color: #334155;
+        font-weight: 700;
+    }
+
+    .stTabs [aria-selected="true"] {
+        background: linear-gradient(135deg, rgba(79,70,229,0.12), rgba(37,99,235,0.10));
+        border-color: rgba(79,70,229,0.22);
+        color: #312E81;
+        box-shadow: 0 10px 24px rgba(79,70,229,0.08);
+    }
+
     .stButton > button {
         width: 100%;
-        min-height: 58px;
-        border-radius: 22px;
-        border: 1px solid rgba(148, 163, 184, 0.18);
-        background:
-            radial-gradient(circle at top left, rgba(125, 211, 252, 0.10), transparent 34%),
-            radial-gradient(circle at bottom right, rgba(139, 92, 246, 0.08), transparent 28%),
-            linear-gradient(135deg, rgba(10,18,32,0.98), rgba(15,23,42,0.98));
-        color: #F8FAFC;
+        min-height: 54px;
+        border-radius: 18px;
+        border: 1px solid rgba(15, 23, 42, 0.08);
+        background: linear-gradient(180deg, rgba(255,255,255,1), rgba(248,250,252,1));
+        color: #0F172A;
         font-weight: 800;
-        font-size: 1rem;
+        font-size: 0.98rem;
         letter-spacing: 0.01em;
-        padding: 0.95rem 1.15rem;
-        box-shadow:
-            inset 0 1px 0 rgba(255,255,255,0.04),
-            0 10px 24px rgba(0,0,0,0.26);
-        backdrop-filter: blur(10px);
-        transition:
-            transform 0.18s ease,
-            box-shadow 0.18s ease,
-            border-color 0.18s ease,
-            background 0.18s ease,
-            filter 0.18s ease;
+        padding: 0.82rem 1rem;
+        box-shadow: 0 10px 20px rgba(15,23,42,0.05);
+        transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, filter 0.18s ease;
     }
 
     .stButton > button:hover {
         transform: translateY(-2px);
-        border-color: rgba(125, 211, 252, 0.32);
-        box-shadow:
-            inset 0 1px 0 rgba(255,255,255,0.05),
-            0 14px 30px rgba(16,24,40,0.34);
-        filter: brightness(1.03);
-    }
-
-    .stButton > button:active {
-        transform: translateY(0) scale(0.985);
-    }
-
-    .stButton > button:focus:not(:active) {
-        border-color: rgba(125, 211, 252, 0.48);
-        box-shadow:
-            0 0 0 1px rgba(125, 211, 252, 0.20),
-            0 14px 30px rgba(37,99,235,0.14);
+        border-color: rgba(79, 70, 229, 0.20);
+        box-shadow: 0 16px 28px rgba(15,23,42,0.08);
     }
 
     .stButton > button[kind="primary"] {
         background:
-            radial-gradient(circle at top left, rgba(125, 211, 252, 0.26), transparent 34%),
-            radial-gradient(circle at bottom right, rgba(167, 139, 250, 0.22), transparent 30%),
-            linear-gradient(135deg, rgba(18,35,72,0.98), rgba(27,46,95,0.98));
-        border: 1px solid rgba(96, 165, 250, 0.34);
+            radial-gradient(circle at top left, rgba(255,255,255,0.22), transparent 30%),
+            linear-gradient(135deg, #5B5CF8 0%, #4F46E5 42%, #7C3AED 100%);
+        border: none;
         color: #FFFFFF;
-        box-shadow:
-            inset 0 1px 0 rgba(255,255,255,0.07),
-            0 16px 34px rgba(29,78,216,0.20),
-            0 0 0 1px rgba(125,211,252,0.08);
+        box-shadow: 0 18px 32px rgba(79,70,229,0.22);
     }
 
     .stButton > button[kind="primary"]:hover {
-        transform: translateY(-2px);
-        border-color: rgba(125, 211, 252, 0.52);
-        background:
-            radial-gradient(circle at top left, rgba(125, 211, 252, 0.32), transparent 34%),
-            radial-gradient(circle at bottom right, rgba(192, 132, 252, 0.24), transparent 30%),
-            linear-gradient(135deg, rgba(22,41,84,1), rgba(34,56,110,1));
-        box-shadow:
-            inset 0 1px 0 rgba(255,255,255,0.08),
-            0 20px 40px rgba(37,99,235,0.24);
+        box-shadow: 0 22px 38px rgba(79,70,229,0.28);
+        filter: brightness(1.02);
     }
 
     .stButton > button[kind="secondary"] {
-        background:
-            radial-gradient(circle at top left, rgba(59,130,246,0.08), transparent 30%),
-            linear-gradient(135deg, rgba(13,20,36,0.98), rgba(15,23,42,0.98));
-        border: 1px solid rgba(148, 163, 184, 0.16);
-        box-shadow:
-            inset 0 1px 0 rgba(255,255,255,0.04),
-            0 10px 22px rgba(0,0,0,0.24);
+        background: linear-gradient(180deg, rgba(255,255,255,1), rgba(248,250,252,1));
+        color: #334155;
+        border: 1px solid rgba(148,163,184,0.22);
     }
 
     .stTextInput > div > div > input,
     .stNumberInput input,
     .stDateInput input,
+    textarea,
     .stSelectbox div[data-baseweb="select"] > div,
     .stMultiSelect div[data-baseweb="select"] > div {
-        background: rgba(15,23,42,0.88) !important;
+        background: rgba(255,255,255,0.96) !important;
         color: var(--text) !important;
-        border: 1px solid rgba(148,163,184,0.15) !important;
-        border-radius: 15px !important;
+        border: 1px solid rgba(148,163,184,0.20) !important;
+        border-radius: 16px !important;
+        min-height: 52px !important;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.9), 0 6px 12px rgba(15,23,42,0.03);
+    }
+
+    .stTextInput > label, .stNumberInput > label, .stDateInput > label,
+    .stSelectbox > label, .stRadio > label, .stMultiSelect > label {
+        color: #334155 !important;
+        font-weight: 700 !important;
     }
 
     .stRadio [role="radiogroup"] {
         gap: 0.6rem;
+        flex-wrap: wrap;
     }
 
     .stRadio label {
-        background: rgba(15,23,42,0.72);
-        padding: 0.35rem 0.8rem;
+        background: rgba(255,255,255,0.96);
+        padding: 0.42rem 0.85rem;
         border-radius: 999px;
-        border: 1px solid rgba(148,163,184,0.14);
+        border: 1px solid rgba(148,163,184,0.20);
+        color: #334155 !important;
     }
 
     .stAlert {
-        border-radius: 16px;
+        border-radius: 18px;
+        border: 1px solid rgba(148,163,184,0.18);
+    }
+
+    .zentix-brand-shell {
+        background: rgba(255,255,255,0.90);
+        border: 1px solid rgba(15,23,42,0.06);
+        border-radius: 24px;
+        box-shadow: var(--shadow-soft);
+        padding: 0.95rem 1.05rem;
+        margin-bottom: 1rem;
     }
 
     .zentix-brand-title {
-        font-size: 2rem;
+        font-size: 1.6rem;
         font-weight: 900;
         line-height: 1;
         margin: 0;
-        letter-spacing: 0.02em;
+        letter-spacing: -0.04em;
+        color: #0F172A;
     }
 
     .zentix-brand-sub {
         color: var(--muted);
-        margin-top: 4px;
-        font-size: 0.95rem;
+        margin-top: 5px;
+        font-size: 0.94rem;
     }
 
     .hero-card {
         background:
-            radial-gradient(circle at top left, rgba(59,130,246,0.16), transparent 30%),
-            linear-gradient(135deg, rgba(15,23,42,0.96), rgba(8,15,28,0.98));
-        border: 1px solid rgba(96,165,250,0.16);
-        border-radius: 28px;
-        padding: 1.35rem;
-        box-shadow: 0 18px 40px rgba(0,0,0,0.32);
-        backdrop-filter: blur(10px);
+            radial-gradient(circle at top left, rgba(255,255,255,0.22), transparent 32%),
+            radial-gradient(circle at bottom right, rgba(255,255,255,0.08), transparent 24%),
+            linear-gradient(135deg, #5B5CF8 0%, #4F46E5 42%, #7C3AED 100%);
+        border: none;
+        border-radius: 30px;
+        padding: 1.3rem;
+        box-shadow: 0 28px 50px rgba(79,70,229,0.22);
         margin-bottom: 1rem;
+        color: #fff;
     }
 
     .hero-badge {
         display: inline-block;
-        padding: 0.35rem 0.78rem;
+        padding: 0.36rem 0.78rem;
         border-radius: 999px;
-        background: rgba(59,130,246,0.12);
-        border: 1px solid rgba(59,130,246,0.22);
-        color: #BFDBFE;
-        font-size: 0.78rem;
+        background: rgba(255,255,255,0.16);
+        border: 1px solid rgba(255,255,255,0.18);
+        color: #F8FAFC;
+        font-size: 0.76rem;
         font-weight: 700;
         margin-bottom: 0.85rem;
     }
@@ -312,14 +307,14 @@ def aplicar_estilo_zentix():
     .hero-title {
         font-size: 2rem;
         font-weight: 900;
-        line-height: 1.05;
+        line-height: 1.02;
         margin: 0 0 0.35rem 0;
-        color: var(--text);
-        letter-spacing: -0.03em;
+        color: #FFFFFF;
+        letter-spacing: -0.04em;
     }
 
     .hero-subtitle {
-        color: var(--muted);
+        color: rgba(255,255,255,0.90);
         font-size: 1rem;
         line-height: 1.55;
         margin: 0;
@@ -328,7 +323,7 @@ def aplicar_estilo_zentix():
     .hero-pills {
         display: flex;
         flex-wrap: wrap;
-        gap: 0.5rem;
+        gap: 0.55rem;
         margin-top: 1rem;
     }
 
@@ -336,305 +331,99 @@ def aplicar_estilo_zentix():
         display: inline-block;
         padding: 0.42rem 0.8rem;
         border-radius: 999px;
-        background: rgba(15,23,42,0.74);
-        border: 1px solid rgba(148,163,184,0.16);
-        color: #E2E8F0;
+        background: rgba(255,255,255,0.14);
+        border: 1px solid rgba(255,255,255,0.18);
+        color: #FFFFFF;
         font-size: 0.82rem;
         font-weight: 600;
     }
 
     .section-title {
-        font-size: 1.06rem;
-        font-weight: 800;
+        font-size: 1.18rem;
+        font-weight: 900;
         color: var(--text);
         margin-top: 0.35rem;
-        margin-bottom: 0.12rem;
+        margin-bottom: 0.18rem;
+        letter-spacing: -0.03em;
     }
 
-    .section-caption {
-        font-size: 0.9rem;
-        color: var(--muted);
-        margin-bottom: 0.85rem;
+    .section-caption,
+    .tiny-muted,
+    .kpi-foot,
+    .chat-label,
+    .chat-input-label,
+    .quick-action-note,
+    .sidebar-brand-sub,
+    .sidebar-user-label,
+    .movement-date,
+    .movement-side-label,
+    .spotlight-metric-label,
+    .premium-list-copy,
+    .assistant-mini,
+    .feature-signal-sub,
+    .spotlight-side-sub,
+    .movement-meta,
+    .report-image-note,
+    .auth-step-copy,
+    .launch-grid-copy,
+    .sidebar-nav-note {
+        color: var(--muted) !important;
     }
 
-    .kpi-card {
-        background: linear-gradient(180deg, rgba(12,20,36,0.94), rgba(9,16,29,0.98));
-        border: 1px solid var(--line);
-        border-radius: 22px;
-        padding: 1rem;
-        min-height: 124px;
-        box-shadow: 0 12px 28px rgba(0,0,0,0.22);
-    }
-
-    .kpi-income {
-        border-color: rgba(34,197,94,0.24);
-        box-shadow: 0 12px 28px rgba(34,197,94,0.07);
-    }
-
-    .kpi-expense {
-        border-color: rgba(239,68,68,0.22);
-        box-shadow: 0 12px 28px rgba(239,68,68,0.07);
-    }
-
-    .kpi-balance {
-        border-color: rgba(59,130,246,0.24);
-        box-shadow: 0 12px 28px rgba(59,130,246,0.08);
-    }
-
-    .kpi-saving {
-        border-color: rgba(139,92,246,0.22);
-        box-shadow: 0 12px 28px rgba(139,92,246,0.08);
-    }
-
-    .kpi-label {
-        font-size: 0.82rem;
-        color: var(--muted);
-        margin-bottom: 0.55rem;
-    }
-
-    .kpi-value {
-        font-size: 1.6rem;
-        font-weight: 900;
-        color: var(--text);
-        line-height: 1.1;
-        margin-bottom: 0.25rem;
-    }
-
-    .kpi-foot {
-        font-size: 0.82rem;
-        color: var(--muted);
-    }
-
-    .soft-card {
-        background: linear-gradient(180deg, rgba(12,20,36,0.80), rgba(10,18,32,0.94));
-        border: 1px solid var(--line);
-        border-radius: 22px;
-        padding: 1rem 1.05rem;
-        box-shadow: 0 12px 30px rgba(0,0,0,0.22);
-        margin-bottom: 1rem;
-    }
-
-    .assistant-card {
-        background:
-            radial-gradient(circle at top left, rgba(59,130,246,0.14), transparent 32%),
-            linear-gradient(135deg, rgba(15,23,42,0.96), rgba(10,18,32,0.98));
-        border: 1px solid rgba(96,165,250,0.16);
-        border-radius: 24px;
-        padding: 1rem;
-        box-shadow: 0 16px 32px rgba(0,0,0,0.26);
-    }
-
-    .assistant-title {
-        font-size: 1.05rem;
-        font-weight: 800;
-        color: #C4B5FD;
-        margin-bottom: 0.2rem;
-    }
-
-    .assistant-text {
-        color: #E2E8F0;
-        font-size: 0.95rem;
-        line-height: 1.55;
-    }
-
-    .assistant-mini {
-        color: var(--muted);
-        font-size: 0.82rem;
-        margin-top: 0.4rem;
-    }
-
-    .pill-ingreso {
-        display: inline-block;
-        padding: 0.45rem 0.88rem;
-        border-radius: 999px;
-        background: rgba(34,197,94,0.14);
-        border: 1px solid rgba(34,197,94,0.28);
-        color: #4ADE80;
-        font-weight: 800;
-        margin-bottom: 0.8rem;
-    }
-
-    .pill-gasto {
-        display: inline-block;
-        padding: 0.45rem 0.88rem;
-        border-radius: 999px;
-        background: rgba(239,68,68,0.14);
-        border: 1px solid rgba(239,68,68,0.28);
-        color: #F87171;
-        font-weight: 800;
-        margin-bottom: 0.8rem;
-    }
-
-    .empty-card {
-        background: linear-gradient(180deg, rgba(12,20,36,0.82), rgba(10,18,32,0.94));
-        border: 1px dashed rgba(148,163,184,0.18);
-        border-radius: 22px;
-        padding: 1.2rem;
-        text-align: center;
-        color: var(--muted);
-    }
-
-    .login-box {
-        background: linear-gradient(180deg, rgba(10,14,24,0.92), rgba(10,18,32,0.98));
-        border: 1px solid var(--line);
-        border-radius: 24px;
-        padding: 1.25rem;
-        box-shadow: 0 18px 36px rgba(0,0,0,0.28);
-    }
-
-    .sidebar-brand-title {
-        font-size: 1.05rem;
-        font-weight: 900;
-        color: var(--text);
-        margin: 0;
-        line-height: 1.1;
-    }
-
-    .sidebar-brand-sub {
-        color: var(--muted);
-        font-size: 0.78rem;
-        margin-top: 2px;
-    }
-
-    .sidebar-user-card {
-        background: rgba(15,23,42,0.72);
-        border: 1px solid rgba(148,163,184,0.14);
-        border-radius: 18px;
-        padding: 0.85rem 0.9rem;
-        margin: 0.6rem 0 0.9rem 0;
-    }
-
-    .sidebar-user-label {
-        color: var(--muted);
-        font-size: 0.76rem;
-    }
-
-    .sidebar-user-name {
-        font-size: 0.96rem;
-        font-weight: 800;
-        color: var(--text);
-        margin-top: 0.12rem;
-    }
-
-    .form-preview-value {
-        font-size: 1.45rem;
-        font-weight: 900;
-        margin-top: 0.2rem;
-        color: var(--text);
-    }
-
-    .tiny-muted {
-        color: var(--muted);
-        font-size: 0.82rem;
-    }
-
-    .stDataFrame {
-        border: 1px solid var(--line);
-        border-radius: 18px;
-        overflow: hidden;
-    }
-
-    div[data-testid="stProgressBar"] > div > div {
-        background: linear-gradient(90deg, #2563EB, #8B5CF6);
-    }
-
-    .chat-wrap {
-        margin-top: 0.9rem;
-    }
-
-    .chat-bubble-ai {
-        background: rgba(59,130,246,0.10);
-        border: 1px solid rgba(96,165,250,0.18);
-        border-radius: 16px;
-        padding: 0.8rem 0.9rem;
-        margin-bottom: 0.55rem;
-        color: #E2E8F0;
-        line-height: 1.5;
-        font-size: 0.92rem;
-    }
-
-    .chat-bubble-user {
-        background: rgba(139,92,246,0.10);
-        border: 1px solid rgba(139,92,246,0.18);
-        border-radius: 16px;
-        padding: 0.8rem 0.9rem;
-        margin-bottom: 0.55rem;
-        color: #F8FAFC;
-        line-height: 1.5;
-        font-size: 0.92rem;
-    }
-
-    .chat-label {
-        font-size: 0.78rem;
-        color: var(--muted);
-        margin: 0.55rem 0 0.45rem 0;
-        font-weight: 700;
-    }
-
-    .chat-input-label {
-        font-size: 0.8rem;
-        color: var(--muted);
-        margin-top: 0.8rem;
-        margin-bottom: 0.35rem;
-    }
-
-    .quick-action-note {
-        font-size: 0.78rem;
-        color: var(--muted);
-        margin-top: 0.55rem;
-        margin-bottom: 0.45rem;
-    }
-
-
-    .pill-debt {
-        display: inline-block;
-        padding: 0.45rem 0.88rem;
-        border-radius: 999px;
-        background: rgba(59,130,246,0.14);
-        border: 1px solid rgba(59,130,246,0.28);
-        color: #93C5FD;
-        font-weight: 800;
-        margin-bottom: 0.8rem;
-    }
-
-    .pill-pay {
-        display: inline-block;
-        padding: 0.45rem 0.88rem;
-        border-radius: 999px;
-        background: rgba(245,158,11,0.14);
-        border: 1px solid rgba(245,158,11,0.28);
-        color: #FCD34D;
-        font-weight: 800;
-        margin-bottom: 0.8rem;
-    }
-
-    .mini-soft-card {
-        background: linear-gradient(180deg, rgba(12,20,36,0.74), rgba(10,18,32,0.90));
-        border: 1px solid rgba(148,163,184,0.12);
-        border-radius: 18px;
-        padding: 0.9rem 1rem;
-        margin-bottom: 0.8rem;
-    }
-
-
-    .zentix-brand-title {
-        font-size: 2.25rem;
-    }
-    .sidebar-brand-title {
-        font-size: 1.18rem;
-    }
-    .hero-card,
     .soft-card,
-    .assistant-card,
     .mini-soft-card,
     .premium-list-card,
     .feature-signal,
     .tutorial-card,
     .spotlight-shell,
     .spotlight-side-card,
-    .kpi-card {
-        transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease, filter 0.22s ease;
+    .movement-card,
+    .launch-grid-card,
+    .report-preview-shell,
+    .report-image-shell,
+    .movement-side-shell,
+    .sticky-top-shell,
+    .top-nav-premium,
+    .legal-footer,
+    .limit-card-premium,
+    .auth-step-card,
+    .sidebar-user-card,
+    .movement-side-kpi,
+    .spotlight-metric,
+    .feature-chip,
+    .tutorial-step-chip,
+    .premium-list-badge,
+    .hero-pill,
+    .movement-chip {
+        background: linear-gradient(180deg, rgba(255,255,255,1), rgba(248,250,252,1));
+        border: 1px solid rgba(15,23,42,0.06);
+        box-shadow: var(--shadow-soft);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
     }
+
+    .soft-card,
+    .mini-soft-card,
+    .premium-list-card,
+    .feature-signal,
+    .tutorial-card,
+    .spotlight-shell,
+    .spotlight-side-card,
+    .movement-card,
+    .launch-grid-card,
+    .report-preview-shell,
+    .report-image-shell,
+    .movement-side-shell,
+    .sticky-top-shell,
+    .top-nav-premium,
+    .legal-footer,
+    .limit-card-premium,
+    .login-box,
+    .auth-shell {
+        border-radius: 24px;
+        padding: 1rem 1.05rem;
+    }
+
     .hero-card:hover,
     .soft-card:hover,
     .assistant-card:hover,
@@ -644,566 +433,222 @@ def aplicar_estilo_zentix():
     .tutorial-card:hover,
     .spotlight-shell:hover,
     .spotlight-side-card:hover,
-    .kpi-card:hover {
+    .kpi-card:hover,
+    .movement-card:hover,
+    .launch-grid-card:hover,
+    .report-preview-shell:hover,
+    .report-image-shell:hover,
+    .auth-shell:hover,
+    .movement-side-shell:hover {
         transform: translateY(-2px);
-        box-shadow: 0 20px 40px rgba(0,0,0,0.26);
-        border-color: rgba(125,211,252,0.18);
-        filter: brightness(1.01);
-    }
-    .assistant-card {
-        background:
-            radial-gradient(circle at top left, rgba(59,130,246,0.16), transparent 32%),
-            radial-gradient(circle at bottom right, rgba(139,92,246,0.10), transparent 28%),
-            linear-gradient(135deg, rgba(15,23,42,0.98), rgba(10,18,32,0.98));
-        border: 1px solid rgba(96,165,250,0.18);
-        border-radius: 26px;
-        padding: 1.08rem;
-    }
-    .assistant-title {
-        font-size: 1.16rem;
-        letter-spacing: -0.02em;
-    }
-    .assistant-text {
-        font-size: 1rem;
-    }
-    .assistant-mini {
-        font-size: 0.84rem;
-    }
-    .feature-signal {
-        background:
-            radial-gradient(circle at top left, rgba(59,130,246,0.12), transparent 28%),
-            linear-gradient(135deg, rgba(10,18,32,0.96), rgba(11,23,41,0.98));
-        border: 1px solid rgba(96,165,250,0.16);
-        border-radius: 22px;
-        padding: 1rem 1.05rem;
-        margin-bottom: 1rem;
-        box-shadow: 0 12px 28px rgba(0,0,0,0.22);
-    }
-    .feature-signal-title {
-        font-size: 0.98rem;
-        font-weight: 800;
-        color: #F8FAFC;
-        margin-bottom: 0.2rem;
-    }
-    .feature-signal-sub {
-        font-size: 0.87rem;
-        color: var(--muted);
-        line-height: 1.58;
-    }
-    .feature-signal-chips {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.45rem;
-        margin-top: 0.85rem;
-    }
-    .feature-chip {
-        display: inline-block;
-        padding: 0.38rem 0.78rem;
-        border-radius: 999px;
-        background: rgba(15,23,42,0.78);
-        border: 1px solid rgba(148,163,184,0.14);
-        color: #E2E8F0;
-        font-size: 0.79rem;
-        font-weight: 700;
-    }
-    .tutorial-card {
-        background:
-            radial-gradient(circle at top left, rgba(125,211,252,0.14), transparent 26%),
-            radial-gradient(circle at bottom right, rgba(139,92,246,0.12), transparent 24%),
-            linear-gradient(135deg, rgba(14,24,42,0.98), rgba(9,17,30,0.98));
-        border: 1px solid rgba(125,211,252,0.16);
-        border-radius: 26px;
-        padding: 1.1rem;
-        box-shadow: 0 18px 34px rgba(0,0,0,0.24);
-        margin-bottom: 1rem;
-    }
-    .tutorial-badge {
-        display: inline-block;
-        padding: 0.32rem 0.72rem;
-        border-radius: 999px;
-        background: rgba(59,130,246,0.14);
-        border: 1px solid rgba(96,165,250,0.18);
-        color: #BFDBFE;
-        font-size: 0.77rem;
-        font-weight: 800;
-        margin-bottom: 0.7rem;
-    }
-    .tutorial-title {
-        font-size: 1.14rem;
-        font-weight: 900;
-        color: #F8FAFC;
-        margin-bottom: 0.25rem;
-    }
-    .tutorial-copy {
-        color: #CBD5E1;
-        font-size: 0.93rem;
-        line-height: 1.62;
-    }
-    .tutorial-step-row {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.45rem;
-        margin-top: 0.95rem;
-    }
-    .tutorial-step-chip {
-        display: inline-block;
-        padding: 0.34rem 0.72rem;
-        border-radius: 999px;
-        font-size: 0.76rem;
-        font-weight: 800;
-        border: 1px solid rgba(148,163,184,0.14);
-        background: rgba(15,23,42,0.72);
-        color: #CBD5E1;
-    }
-    .tutorial-step-chip.is-active {
-        background: rgba(59,130,246,0.18);
-        border-color: rgba(96,165,250,0.28);
-        color: #DBEAFE;
-    }
-    .tutorial-step-chip.is-done {
-        background: rgba(34,197,94,0.16);
-        border-color: rgba(34,197,94,0.22);
-        color: #BBF7D0;
-    }
-    .spotlight-shell {
-        background:
-            radial-gradient(circle at top left, rgba(59,130,246,0.14), transparent 32%),
-            radial-gradient(circle at bottom right, rgba(139,92,246,0.10), transparent 26%),
-            linear-gradient(135deg, rgba(14,24,42,0.98), rgba(8,15,28,0.98));
-        border: 1px solid rgba(96,165,250,0.16);
-        border-radius: 26px;
-        padding: 1.1rem;
-        box-shadow: 0 18px 34px rgba(0,0,0,0.24);
-        margin-bottom: 1rem;
-    }
-    .spotlight-badge {
-        display: inline-block;
-        padding: 0.3rem 0.72rem;
-        border-radius: 999px;
-        background: rgba(59,130,246,0.12);
-        border: 1px solid rgba(96,165,250,0.18);
-        color: #BFDBFE;
-        font-size: 0.76rem;
-        font-weight: 800;
-        margin-bottom: 0.72rem;
-    }
-    .spotlight-title {
-        font-size: 1.2rem;
-        font-weight: 900;
-        color: #F8FAFC;
-        margin-bottom: 0.25rem;
-    }
-    .spotlight-copy {
-        color: #CBD5E1;
-        font-size: 0.93rem;
-        line-height: 1.6;
-        margin-bottom: 0.95rem;
-    }
-    .spotlight-metric {
-        background: rgba(15,23,42,0.72);
-        border: 1px solid rgba(148,163,184,0.14);
-        border-radius: 18px;
-        padding: 0.82rem 0.9rem;
-        min-height: 104px;
-    }
-    .spotlight-metric-label {
-        color: #94A3B8;
-        font-size: 0.78rem;
-        margin-bottom: 0.38rem;
-    }
-    .spotlight-metric-value {
-        color: #F8FAFC;
-        font-size: 1.18rem;
-        font-weight: 900;
-        line-height: 1.1;
-        margin-bottom: 0.22rem;
-    }
-    .spotlight-metric-foot {
-        color: #CBD5E1;
-        font-size: 0.8rem;
-        line-height: 1.45;
-    }
-    .spotlight-side-card {
-        background: linear-gradient(180deg, rgba(12,20,36,0.82), rgba(10,18,32,0.96));
-        border: 1px solid rgba(148,163,184,0.14);
-        border-radius: 22px;
-        padding: 1rem 1.05rem;
-        box-shadow: 0 14px 30px rgba(0,0,0,0.22);
-        margin-bottom: 1rem;
-    }
-    .spotlight-side-title {
-        font-size: 0.98rem;
-        font-weight: 800;
-        color: #F8FAFC;
-        margin-bottom: 0.25rem;
-    }
-    .spotlight-side-sub {
-        color: #94A3B8;
-        font-size: 0.84rem;
-        line-height: 1.55;
-        margin-bottom: 0.65rem;
-    }
-    .spotlight-list {
-        padding-left: 1rem;
-        margin: 0;
-        color: #E2E8F0;
-        line-height: 1.55;
-    }
-    .premium-list-card {
-        background:
-            radial-gradient(circle at top left, rgba(59,130,246,0.10), transparent 30%),
-            linear-gradient(180deg, rgba(12,20,36,0.84), rgba(10,18,32,0.96));
-        border: 1px solid rgba(148,163,184,0.14);
-        border-radius: 22px;
-        padding: 1rem 1.05rem;
-        box-shadow: 0 14px 30px rgba(0,0,0,0.22);
-        margin-bottom: 1rem;
-        min-height: 100%;
-    }
-    .premium-list-head {
-        display: flex;
-        justify-content: space-between;
-        gap: 0.8rem;
-        align-items: flex-start;
-        margin-bottom: 0.6rem;
-    }
-    .premium-list-title {
-        font-size: 1rem;
-        font-weight: 800;
-        color: #F8FAFC;
-    }
-    .premium-list-badge {
-        padding: 0.3rem 0.62rem;
-        border-radius: 999px;
-        background: rgba(15,23,42,0.76);
-        border: 1px solid rgba(148,163,184,0.14);
-        color: #CBD5E1;
-        font-size: 0.74rem;
-        font-weight: 800;
-        white-space: nowrap;
-    }
-    .premium-list-copy {
-        color: #94A3B8;
-        font-size: 0.84rem;
-        line-height: 1.55;
-        margin-bottom: 0.55rem;
+        box-shadow: var(--shadow);
+        border-color: rgba(79,70,229,0.14);
     }
 
-    .sticky-top-shell {
+    .assistant-card,
+    .auth-shell,
+    .login-box,
+    .empty-card,
+    .premium-floating-guide {
+        background:
+            radial-gradient(circle at top left, rgba(255,255,255,0.18), transparent 30%),
+            linear-gradient(135deg, #172554 0%, #1D4ED8 52%, #4F46E5 100%);
+        border: none;
+        color: #FFFFFF;
+        box-shadow: 0 24px 46px rgba(37,99,235,0.18);
+    }
+
+    .assistant-title,
+    .premium-floating-guide-title,
+    .auth-step-title {
+        color: #FFFFFF !important;
+    }
+
+    .assistant-text,
+    .premium-floating-guide-copy,
+    .chat-bubble-user {
+        color: rgba(255,255,255,0.94) !important;
+    }
+
+    .chat-bubble-ai {
+        background: rgba(255,255,255,0.16);
+        border: 1px solid rgba(255,255,255,0.18);
+        color: #FFFFFF;
+        border-radius: 16px;
+        padding: 0.8rem 0.9rem;
+        margin-bottom: 0.55rem;
+        line-height: 1.5;
+        font-size: 0.92rem;
+    }
+
+    .chat-bubble-user {
+        background: rgba(15,23,42,0.14);
+        border: 1px solid rgba(255,255,255,0.16);
+        border-radius: 16px;
+        padding: 0.8rem 0.9rem;
+        margin-bottom: 0.55rem;
+        line-height: 1.5;
+        font-size: 0.92rem;
+    }
+
+    .kpi-card {
+        border-radius: 22px;
+        padding: 1rem;
+        min-height: 124px;
+        border: 1px solid rgba(15,23,42,0.06);
+        box-shadow: var(--shadow-soft);
+    }
+
+    .kpi-income { background: linear-gradient(180deg, #ECFDF5, #F0FDF4); border-color: rgba(34,197,94,0.18); }
+    .kpi-expense { background: linear-gradient(180deg, #FEF2F2, #FFF1F2); border-color: rgba(239,68,68,0.18); }
+    .kpi-balance { background: linear-gradient(180deg, #EFF6FF, #EEF2FF); border-color: rgba(37,99,235,0.18); }
+    .kpi-saving { background: linear-gradient(180deg, #F5F3FF, #FAF5FF); border-color: rgba(124,58,237,0.18); }
+    .kpi-debt { background: linear-gradient(180deg, #EEF2FF, #EFF6FF); border-color: rgba(59,130,246,0.18); }
+    .kpi-pay { background: linear-gradient(180deg, #FFFBEB, #FEF3C7); border-color: rgba(245,158,11,0.18); }
+    .kpi-receivable { background: linear-gradient(180deg, #F5F3FF, #F3E8FF); border-color: rgba(168,85,247,0.18); }
+    .kpi-collected { background: linear-gradient(180deg, #ECFEFF, #CFFAFE); border-color: rgba(6,182,212,0.18); }
+
+    .kpi-label { font-size: 0.82rem; color: #475569; margin-bottom: 0.55rem; font-weight: 700; }
+    .kpi-value { font-size: 1.72rem; font-weight: 900; color: #0F172A; line-height: 1.05; margin-bottom: 0.25rem; letter-spacing: -0.04em; }
+    .kpi-foot { font-size: 0.82rem; }
+
+    .pill-ingreso, .pill-gasto, .pill-debt, .pill-pay {
+        display: inline-block;
+        padding: 0.42rem 0.82rem;
+        border-radius: 999px;
+        font-weight: 800;
+        margin-bottom: 0.8rem;
+    }
+    .pill-ingreso { background: #DCFCE7; border: 1px solid #86EFAC; color: #166534; }
+    .pill-gasto { background: #FEE2E2; border: 1px solid #FCA5A5; color: #B91C1C; }
+    .pill-debt { background: #DBEAFE; border: 1px solid #93C5FD; color: #1D4ED8; }
+    .pill-pay { background: #FEF3C7; border: 1px solid #FCD34D; color: #B45309; }
+
+    .movement-chip { color: #334155; }
+    .movement-chip-income { background: #DCFCE7; border-color: #86EFAC; color: #166534; }
+    .movement-chip-expense { background: #FEE2E2; border-color: #FCA5A5; color: #B91C1C; }
+    .movement-chip-debt { background: #DBEAFE; border-color: #93C5FD; color: #1D4ED8; }
+    .movement-chip-pay { background: #FEF3C7; border-color: #FCD34D; color: #B45309; }
+    .movement-chip-info { background: #E0F2FE; border-color: #7DD3FC; color: #0C4A6E; }
+    .movement-chip-recurrent { background: #F5F3FF; border-color: #C4B5FD; color: #6D28D9; }
+    .movement-chip-alert { background: #FFF1F2; border-color: #FDA4AF; color: #BE123C; }
+
+    .spotlight-badge,
+    .tutorial-badge,
+    .premium-list-badge {
+        background: rgba(79,70,229,0.10);
+        border: 1px solid rgba(79,70,229,0.14);
+        color: #4338CA;
+    }
+
+    .spotlight-title,
+    .tutorial-title,
+    .premium-list-title,
+    .feature-signal-title,
+    .spotlight-side-title,
+    .movement-title,
+    .movement-side-value,
+    .spotlight-metric-value,
+    .launch-grid-title,
+    .sidebar-brand-title,
+    .sidebar-user-name {
+        color: #0F172A !important;
+    }
+
+    .sidebar-brand-title { font-size: 1.1rem; font-weight: 900; line-height: 1.1; }
+    .sidebar-user-card { border-radius: 20px; }
+
+    .empty-card {
+        border-radius: 24px;
+        padding: 1.15rem;
+        text-align: center;
+        color: rgba(255,255,255,0.92);
+    }
+
+    .top-nav-premium {
         position: sticky;
         top: 0.55rem;
         z-index: 40;
-        background: linear-gradient(180deg, rgba(7,12,22,0.92), rgba(7,12,22,0.82));
-        border: 1px solid rgba(96,165,250,0.14);
-        border-radius: 24px;
-        padding: 0.95rem 1rem 0.85rem 1rem;
-        margin-bottom: 1rem;
-        backdrop-filter: blur(12px);
-        box-shadow: 0 18px 34px rgba(0,0,0,0.22);
-    }
-    .sticky-top-shell .section-caption {
-        margin-bottom: 0.65rem;
-    }
-    .fade-up {
-        animation: zentixFadeUp 0.42s ease both;
-    }
-    @keyframes zentixFadeUp {
-        from { opacity: 0; transform: translateY(8px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-    .movement-card {
-        background:
-            radial-gradient(circle at top left, rgba(59,130,246,0.12), transparent 28%),
-            linear-gradient(180deg, rgba(12,20,36,0.90), rgba(10,18,32,0.98));
-        border: 1px solid rgba(148,163,184,0.14);
-        border-radius: 22px;
         padding: 0.95rem 1rem;
-        min-height: 168px;
-        box-shadow: 0 14px 28px rgba(0,0,0,0.22);
-        margin-bottom: 0.8rem;
-    }
-    .movement-date {
-        font-size: 0.76rem;
-        color: #94A3B8;
-        margin-bottom: 0.3rem;
-        font-weight: 700;
-    }
-    .movement-title {
-        font-size: 0.98rem;
-        font-weight: 800;
-        color: #F8FAFC;
-        line-height: 1.35;
-        margin-bottom: 0.35rem;
-    }
-    .movement-amount {
-        font-size: 1.16rem;
-        font-weight: 900;
-        color: #F8FAFC;
-        line-height: 1.1;
-        margin-bottom: 0.45rem;
-    }
-    .movement-meta {
-        font-size: 0.82rem;
-        color: #CBD5E1;
-        line-height: 1.55;
-        margin-bottom: 0.7rem;
-    }
-    .movement-chip-row {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.4rem;
-        margin-top: 0.35rem;
-        margin-bottom: 0.35rem;
-    }
-    .movement-chip {
-        display: inline-block;
-        padding: 0.28rem 0.66rem;
-        border-radius: 999px;
-        font-size: 0.72rem;
-        font-weight: 800;
-        border: 1px solid rgba(148,163,184,0.16);
-        background: rgba(15,23,42,0.76);
-        color: #E2E8F0;
-    }
-    .movement-chip-income {
-        background: rgba(34,197,94,0.16);
-        border-color: rgba(34,197,94,0.22);
-        color: #BBF7D0;
-    }
-    .movement-chip-expense {
-        background: rgba(239,68,68,0.16);
-        border-color: rgba(239,68,68,0.22);
-        color: #FECACA;
-    }
-    .movement-chip-debt {
-        background: rgba(59,130,246,0.18);
-        border-color: rgba(96,165,250,0.24);
-        color: #DBEAFE;
-    }
-    .movement-chip-pay {
-        background: rgba(245,158,11,0.18);
-        border-color: rgba(245,158,11,0.24);
-        color: #FDE68A;
-    }
-    .movement-chip-recurrent {
-        background: rgba(139,92,246,0.18);
-        border-color: rgba(139,92,246,0.24);
-        color: #E9D5FF;
-    }
-    .movement-chip-alert {
-        background: rgba(244,63,94,0.16);
-        border-color: rgba(244,63,94,0.24);
-        color: #FFE4E6;
-    }
-    .movement-chip-info {
-        background: rgba(6,182,212,0.16);
-        border-color: rgba(6,182,212,0.22);
-        color: #CFFAFE;
-    }
-    .movement-side-shell {
-        background:
-            radial-gradient(circle at top left, rgba(59,130,246,0.14), transparent 28%),
-            linear-gradient(180deg, rgba(12,20,36,0.88), rgba(10,18,32,0.98));
-        border: 1px solid rgba(96,165,250,0.16);
-        border-radius: 24px;
-        padding: 1rem 1.05rem;
-        box-shadow: 0 16px 32px rgba(0,0,0,0.24);
         margin-bottom: 1rem;
-    }
-    .movement-side-kpi {
-        background: rgba(15,23,42,0.72);
-        border: 1px solid rgba(148,163,184,0.14);
-        border-radius: 16px;
-        padding: 0.8rem 0.9rem;
-        margin-bottom: 0.7rem;
-    }
-    .movement-side-label {
-        color: #94A3B8;
-        font-size: 0.75rem;
-        margin-bottom: 0.25rem;
-    }
-    .movement-side-value {
-        color: #F8FAFC;
-        font-size: 1rem;
-        font-weight: 800;
-        line-height: 1.45;
-    }
-    .empty-card strong {
-        color: #F8FAFC;
     }
 
-    .launch-chip-row {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.45rem;
-        margin-top: 0.65rem;
+    .top-nav-premium-title {
+        font-size: 0.76rem;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        color: #6366F1;
+        font-weight: 900;
+        margin-bottom: 0.75rem;
     }
-    .launch-chip-ok, .launch-chip-warn, .launch-chip-soft {
-        display: inline-block;
-        padding: 0.34rem 0.72rem;
-        border-radius: 999px;
-        font-size: 0.74rem;
-        font-weight: 800;
-        border: 1px solid rgba(148,163,184,0.14);
-    }
-    .launch-chip-ok {
-        background: rgba(34,197,94,0.16);
-        border-color: rgba(34,197,94,0.22);
-        color: #BBF7D0;
-    }
-    .launch-chip-warn {
-        background: rgba(245,158,11,0.16);
-        border-color: rgba(245,158,11,0.22);
-        color: #FDE68A;
-    }
-    .launch-chip-soft {
-        background: rgba(59,130,246,0.14);
-        border-color: rgba(96,165,250,0.18);
-        color: #DBEAFE;
-    }
-    .launch-grid-card {
-        background: linear-gradient(180deg, rgba(12,20,36,0.84), rgba(10,18,32,0.96));
-        border: 1px solid rgba(148,163,184,0.14);
+
+    .quick-tile {
         border-radius: 22px;
-        padding: 1rem 1.05rem;
-        box-shadow: 0 14px 30px rgba(0,0,0,0.22);
-        margin-bottom: 0.9rem;
-        min-height: 100%;
-    }
-    .launch-grid-title {
-        font-size: 0.98rem;
-        font-weight: 800;
-        color: #F8FAFC;
-        margin-bottom: 0.2rem;
-    }
-    .launch-grid-copy {
-        color: #94A3B8;
-        font-size: 0.84rem;
-        line-height: 1.55;
+        padding: 1rem;
+        min-height: 120px;
+        background: linear-gradient(180deg, rgba(255,255,255,1), rgba(248,250,252,1));
+        border: 1px solid rgba(15,23,42,0.06);
+        box-shadow: var(--shadow-soft);
         margin-bottom: 0.55rem;
     }
-    .legal-footer {
-        margin-top: 1.25rem;
-        padding: 0.95rem 1rem;
-        border-radius: 18px;
-        background: linear-gradient(180deg, rgba(12,20,36,0.78), rgba(10,18,32,0.94));
-        border: 1px solid rgba(148,163,184,0.12);
-        color: #CBD5E1;
-        font-size: 0.84rem;
-        line-height: 1.65;
-    }
-    .legal-footer a {
-        color: #93C5FD;
-        text-decoration: none;
-        font-weight: 700;
-    }
-    .legal-footer a:hover {
-        text-decoration: underline;
+
+    .quick-tile-icon {
+        width: 42px; height: 42px; border-radius: 14px; display:flex; align-items:center; justify-content:center;
+        font-size: 1.15rem; font-weight: 800; margin-bottom: 0.8rem;
+        background: linear-gradient(135deg, rgba(79,70,229,0.14), rgba(37,99,235,0.10));
+        color: #4F46E5;
     }
 
-    .stApp, .stMarkdown, p, li, label, .stCaption, .stTextInput label, .stNumberInput label, .stSelectbox label, .stRadio label {
-        font-size: 1.02rem;
+    .quick-tile-title { color:#0F172A; font-weight:900; font-size:1rem; margin-bottom:0.18rem; }
+    .quick-tile-copy { color:#64748B; font-size:0.84rem; line-height:1.55; }
+
+    .activity-feed-item {
+        display:flex; justify-content:space-between; gap:0.8rem; align-items:flex-start;
+        padding:0.82rem 0; border-bottom:1px solid rgba(15,23,42,0.06);
     }
-    .section-title { font-size: 1.22rem; }
-    .section-caption, .tiny-muted, .hero-pill, .kpi-foot, .kpi-label { font-size: 0.95rem; }
-    .kpi-value, .form-preview-value { font-size: 1.8rem; }
-    .stTextInput > label, .stNumberInput > label, .stDateInput > label, .stSelectbox > label, .stRadio > label, .stMultiSelect > label {
-        color: #E2E8F0 !important;
-        font-weight: 700 !important;
-        font-size: 0.98rem !important;
+    .activity-feed-item:last-child { border-bottom:none; }
+    .activity-feed-left { display:flex; gap:0.75rem; align-items:flex-start; }
+    .activity-feed-bullet {
+        width:38px; height:38px; border-radius:999px; display:flex; align-items:center; justify-content:center;
+        font-weight:800; font-size:0.95rem; color:#fff;
+        background: linear-gradient(135deg, #4F46E5, #2563EB);
+        flex: 0 0 38px;
     }
-    .stTextInput > div > div > input,
-    .stNumberInput input,
-    .stDateInput input,
-    textarea,
-    .stSelectbox div[data-baseweb="select"] > div,
-    .stMultiSelect div[data-baseweb="select"] > div {
-        min-height: 54px !important;
-        font-size: 1rem !important;
-    }
-    .auth-shell {
-        background: radial-gradient(circle at top left, rgba(59,130,246,0.16), transparent 32%), linear-gradient(180deg, rgba(10,14,24,0.98), rgba(10,18,32,0.98));
-        border: 1px solid rgba(96,165,250,0.18);
-        border-radius: 28px;
-        padding: 1.3rem;
-        box-shadow: 0 20px 40px rgba(0,0,0,0.28);
-    }
-    .auth-step-card {
-        background: rgba(15,23,42,0.76);
-        border: 1px solid rgba(148,163,184,0.14);
-        border-radius: 20px;
-        padding: 0.95rem 1rem;
-        margin-bottom: 0.8rem;
-    }
-    .auth-step-title { font-size: 1rem; font-weight: 900; color: #F8FAFC; }
-    .auth-step-copy { color: #CBD5E1; font-size: 0.92rem; line-height: 1.6; }
+    .activity-feed-title { font-weight:800; color:#0F172A; line-height:1.3; }
+    .activity-feed-sub { color:#64748B; font-size:0.82rem; margin-top:0.12rem; }
+    .activity-feed-amount { font-weight:900; white-space:nowrap; }
+    .amount-income { color:#16A34A; }
+    .amount-expense { color:#DC2626; }
+    .amount-debt { color:#2563EB; }
+    .amount-pay { color:#B45309; }
+
     .premium-floating-guide {
         position: fixed;
         right: 1rem;
         bottom: 1rem;
         z-index: 9998;
-        width: min(420px, calc(100vw - 2rem));
-        background: linear-gradient(135deg, rgba(8,15,28,0.98), rgba(15,23,42,0.98));
-        border: 1px solid rgba(96,165,250,0.22);
-        border-radius: 24px;
-        box-shadow: 0 22px 48px rgba(0,0,0,0.36);
-        padding: 1rem;
-    }
-    .premium-floating-guide-title { font-size: 1.02rem; font-weight: 900; color: #F8FAFC; }
-    .premium-floating-guide-copy { color: #CBD5E1; font-size: 0.93rem; line-height: 1.6; margin-top: 0.25rem; }
-    .limit-card-premium {
-        background: linear-gradient(180deg, rgba(12,20,36,0.84), rgba(10,18,32,0.96));
-        border: 1px solid rgba(245,158,11,0.22);
-        border-radius: 22px;
-        padding: 1rem 1.05rem;
-        margin-bottom: 1rem;
-        box-shadow: 0 14px 30px rgba(0,0,0,0.22);
-    }
-    .metric-income { color: #4ADE80 !important; }
-    .metric-expense { color: #F87171 !important; }
-    .metric-debt { color: #93C5FD !important; }
-    .metric-pay { color: #FCD34D !important; }
-    .report-preview-shell {
-        background: linear-gradient(180deg, rgba(12,20,36,0.88), rgba(10,18,32,0.98));
-        border: 1px solid rgba(96,165,250,0.16);
+        width: min(360px, calc(100vw - 2rem));
         border-radius: 24px;
         padding: 1rem;
-        margin-top: 0.9rem;
     }
-    .sidebar-nav-note { color: #94A3B8; font-size: 0.84rem; line-height: 1.5; margin-top: 0.35rem; }
-    [data-testid="collapsedControl"] { display: none !important; }
-    .top-nav-premium {
-        position: sticky;
-        top: 0.55rem;
-        z-index: 40;
-        background: linear-gradient(180deg, rgba(7,12,22,0.92), rgba(7,12,22,0.82));
-        border: 1px solid rgba(96,165,250,0.14);
-        border-radius: 24px;
-        padding: 0.9rem 1rem;
-        margin-bottom: 1rem;
-        backdrop-filter: blur(12px);
-        box-shadow: 0 18px 34px rgba(0,0,0,0.22);
+
+    .assistant-mini, .premium-floating-guide .tiny-muted { color: rgba(255,255,255,0.82) !important; }
+
+    .legal-footer a, a { color: #4F46E5; }
+
+    .metric-income { color: #16A34A !important; }
+    .metric-expense { color: #DC2626 !important; }
+    .metric-debt { color: #2563EB !important; }
+    .metric-pay { color: #B45309 !important; }
+
+    div[data-testid="stProgressBar"] > div > div {
+        background: linear-gradient(90deg, #4F46E5, #06B6D4);
     }
-    .top-nav-premium-title {
-        font-size: 0.82rem;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-        color: #93C5FD;
-        font-weight: 800;
-        margin-bottom: 0.65rem;
-    }
-    .report-image-shell {
-        background: linear-gradient(180deg, rgba(12,20,36,0.88), rgba(10,18,32,0.98));
-        border: 1px solid rgba(96,165,250,0.16);
-        border-radius: 24px;
-        padding: 1rem;
-        margin-top: 0.9rem;
-    }
-    .report-image-note {
-        color: #CBD5E1;
-        font-size: 0.9rem;
-        line-height: 1.6;
-        margin-bottom: 0.7rem;
+
+    @media (max-width: 900px) {
+        .block-container { padding-left: 0.85rem; padding-right: 0.85rem; padding-bottom: 7rem; }
+        .hero-title { font-size: 1.78rem; }
+        .premium-floating-guide { width: calc(100vw - 1.5rem); right: 0.75rem; bottom: 0.75rem; }
     }
 
     #MainMenu {visibility: hidden;}
@@ -1260,24 +705,88 @@ def aplicar_estilo_plotly(fig, height=360):
     fig.update_layout(
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
-        font_color="#E5E7EB",
+        font_color="#0F172A",
         title_font_size=18,
         title_x=0.03,
         margin=dict(l=20, r=20, t=60, b=20),
         height=height,
         legend_title_text=""
     )
+    fig.update_xaxes(showgrid=True, gridcolor="rgba(148,163,184,0.16)", zeroline=False)
+    fig.update_yaxes(showgrid=True, gridcolor="rgba(148,163,184,0.16)", zeroline=False)
     return fig
 
 
+
+
+
+
+def ir_a_pagina(destino):
+    st.session_state.pagina = destino
+    st.session_state["zentix_show_transition"] = True
+    st.rerun()
+
+
+def render_transition_overlay():
+    if not st.session_state.get("zentix_show_transition"):
+        return
+    logo_html = ""
+    if icono_path.exists():
+        try:
+            logo_b64 = base64.b64encode(Path(icono_path).read_bytes()).decode()
+            logo_html = f"<img src='data:image/png;base64,{logo_b64}' style='width:88px;height:88px;object-fit:contain;margin-bottom:16px;'/>"
+        except Exception:
+            logo_html = ""
+    splash = f"""
+    <script>
+    const doc = window.parent.document;
+    const prev = doc.getElementById('zentix-transition-overlay');
+    if (prev) prev.remove();
+    const layer = doc.createElement('div');
+    layer.id = 'zentix-transition-overlay';
+    layer.innerHTML = `
+      <style>
+        #zentix-transition-overlay {{ position: fixed; inset:0; z-index:999999; display:flex; align-items:center; justify-content:center; background: linear-gradient(180deg, rgba(245,247,251,0.98), rgba(238,243,250,0.98)); backdrop-filter: blur(14px); opacity:1; transition: opacity .35s ease; }}
+        #zentix-transition-overlay.hide {{ opacity:0; }}
+        #zentix-transition-card {{ display:flex; flex-direction:column; align-items:center; justify-content:center; padding:28px 34px; border-radius:28px; background:rgba(255,255,255,0.96); border:1px solid rgba(79,70,229,0.10); box-shadow:0 24px 50px rgba(15,23,42,0.10); color:#0F172A; font-family:Inter,system-ui,sans-serif; }}
+        #zentix-spinner {{ width:36px;height:36px;border-radius:999px;border:4px solid rgba(79,70,229,0.12);border-top-color:#4F46E5;animation:zentixSpin .8s linear infinite;margin-top:8px; }}
+        @keyframes zentixSpin {{ from {{ transform:rotate(0deg); }} to {{ transform:rotate(360deg); }} }}
+      </style>
+      <div id='zentix-transition-card'>
+        {logo_html}
+        <div style='font-size:1.12rem;font-weight:900;margin-bottom:0.2rem;'>Zentix</div>
+        <div style='font-size:0.92rem;color:#64748B;margin-bottom:10px;'>Preparando tu siguiente vista…</div>
+        <div id='zentix-spinner'></div>
+      </div>`;
+    doc.body.appendChild(layer);
+    setTimeout(() => layer.classList.add('hide'), 420);
+    setTimeout(() => {{ try {{ layer.remove(); }} catch(e) {{}} }}, 820);
+    </script>
+    """
+    components.html(splash, height=0)
+    st.session_state["zentix_show_transition"] = False
+
+
 def zentix_brand_header():
-    col_logo, col_title = st.columns([1.15, 8])
+    st.markdown("<div class='zentix-brand-shell fade-up'>", unsafe_allow_html=True)
+    col_logo, col_title, col_side = st.columns([0.9, 6.2, 2.4])
     with col_logo:
         if icono_path.exists():
-            st.image(str(icono_path), width=116)
+            st.image(str(icono_path), width=66)
     with col_title:
-        st.markdown('<div class="zentix-brand-title">ZENTIX</div>', unsafe_allow_html=True)
-        st.markdown('<div class="zentix-brand-sub">Finanzas inteligentes con estilo fintech premium</div>', unsafe_allow_html=True)
+        st.markdown('<div class="zentix-brand-title">Zentix</div>', unsafe_allow_html=True)
+        st.markdown('<div class="zentix-brand-sub">Centro financiero premium, claro y más cómodo de usar en móvil, tablet y PC.</div>', unsafe_allow_html=True)
+    with col_side:
+        st.markdown(
+            f"""
+            <div style='text-align:right;padding-top:0.2rem;'>
+                <div class='tiny-muted'>Experiencia activa</div>
+                <div style='font-weight:900;color:#312E81;'>Orden + claridad</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+    st.markdown("</div>", unsafe_allow_html=True)
 
 
 def zentix_hero(nombre, saldo_disponible, total_ingresos, total_gastos):
@@ -1286,10 +795,10 @@ def zentix_hero(nombre, saldo_disponible, total_ingresos, total_gastos):
     st.markdown(
         f"""
         <div class="hero-card fade-up">
-            <div class="hero-badge">Zentix · experiencia ordenada</div>
-            <div class="hero-title">Hola, {nombre}</div>
+            <div class="hero-badge">Zentix · panel principal</div>
+            <div class="hero-title">Hola, {nombre} 👋</div>
             <div class="hero-subtitle">
-                Todo lo importante quedó arriba. El detalle profundo sigue disponible, pero ahora por capas para que la experiencia sea más limpia en móvil y en PC.
+                Dejamos el fondo limpio y el color solo donde realmente guía la vista: resumen arriba, acciones rápidas al centro y profundidad solo cuando quieres entrar.
             </div>
             <div class="hero-pills">
                 <span class="hero-pill">Disponible: {money(saldo_disponible)}</span>
@@ -1315,10 +824,6 @@ def kpi_card(label, value, foot="", variant="balance"):
         "expense": "kpi-card kpi-expense",
         "balance": "kpi-card kpi-balance",
         "saving": "kpi-card kpi-saving",
-        "debt": "kpi-card kpi-debt",
-        "pay": "kpi-card kpi-pay",
-        "receivable": "kpi-card kpi-receivable",
-        "collected": "kpi-card kpi-collected",
     }
     st.markdown(
         f"""
@@ -3927,24 +3432,25 @@ def generar_imagen_reporte_premium(nombre_usuario, plan_nombre, periodicidad, in
 
 
 def render_nav_rapida_premium():
-    st.markdown("<div class='top-nav-premium fade-up'><div class='top-nav-premium-title'>Navegación principal</div>", unsafe_allow_html=True)
+    st.markdown("<div class='top-nav-premium fade-up'><div class='top-nav-premium-title'>Centro rápido</div>", unsafe_allow_html=True)
     nav_items = [
-        ("🏠 Inicio", "Inicio"),
-        ("➕ Registrar", "Registrar"),
-        ("📈 Análisis", "Análisis"),
-        ("🎯 Ahorro", "Ahorro"),
-        ("⚙️ Perfil", "Perfil"),
+        ("🏠", "Inicio"),
+        ("➕", "Registrar"),
+        ("📈", "Análisis"),
+        ("🎯", "Ahorro"),
+        ("⚙️", "Perfil"),
     ]
     cols = st.columns(len(nav_items))
-    for col, (label, destino) in zip(cols, nav_items):
-        tipo = "primary" if st.session_state.pagina == destino else "secondary"
+    for col, (icono, pagina_destino) in zip(cols, nav_items):
         with col:
-            if st.button(label, key=f"nav_shell_{destino}", use_container_width=True, type=tipo):
-                ir_a_pagina(destino)
-    st.markdown("</div>", unsafe_allow_html=True)
+            activo = st.session_state.pagina == pagina_destino
+            if st.button(f"{icono} {pagina_destino}", key=f"nav_top_{pagina_destino}", use_container_width=True, type="primary" if activo else "secondary"):
+                ir_a_pagina(pagina_destino)
+    st.markdown("<div class='sidebar-nav-note'>La navegación principal quedó más parecida a una app: clara, directa y sin capas innecesarias sobre el dashboard.</div></div>", unsafe_allow_html=True)
 
 
 def render_reporte_descargable(nombre_usuario, plan_actual, df_base, user_id=None):
+
     section_header("Reporte premium imprimible", "Descarga un PDF semanal o mensual listo para imprimir con portada, resumen ejecutivo y firma de marca.")
     with st.expander("🖨️ Generar reporte PDF", expanded=False):
         periodicidad = st.radio("Periodo del reporte", ["Semanal", "Mensual"], horizontal=True, key="reporte_periodicidad")
@@ -5562,6 +5068,209 @@ def obtener_categoria_top(df_mes):
     return resumen.index[0], float(resumen.iloc[0])
 
 
+
+
+def render_home_action_tiles():
+    section_header("Acciones rápidas", "Como en una app mobile bien pensada: lo más usado vive arriba y el resto se abre solo cuando toca.")
+    acciones = [
+        ("➕", "Registrar", "Agrega ingresos, gastos, deuda o cobros sin salirte del flujo principal.", "primary"),
+        ("📈", "Análisis", "Abre patrones, reportes y comparativas cuando quieras profundidad.", "secondary"),
+        ("🎯", "Ahorro", "Mira tu meta y conviértela en un plan realista.", "secondary"),
+        ("⚙️", "Perfil", "Ajusta recordatorios, límites y tu experiencia.", "secondary"),
+    ]
+    cols = st.columns(4)
+    for col, (icono, page, copy, tone) in zip(cols, acciones):
+        with col:
+            st.markdown(
+                f"""
+                <div class='quick-tile'>
+                    <div class='quick-tile-icon'>{icono}</div>
+                    <div class='quick-tile-title'>{page}</div>
+                    <div class='quick-tile-copy'>{copy}</div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+            if st.button(f"Abrir {page}", key=f"quick_open_{page}", use_container_width=True, type="primary" if page == "Registrar" else "secondary"):
+                ir_a_pagina(page)
+
+
+def render_recent_activity_feed(df_movs, limit=6):
+    st.markdown("<div class='soft-card'>", unsafe_allow_html=True)
+    st.markdown("<div class='section-title'>Actividad reciente</div>", unsafe_allow_html=True)
+    st.markdown("<div class='section-caption'>Tu último movimiento, como feed simple y limpio.</div>", unsafe_allow_html=True)
+    if df_movs is None or df_movs.empty:
+        st.markdown("<div class='tiny-muted'>Aún no hay movimientos registrados.</div>", unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True)
+        return
+
+    vista = df_movs.copy().sort_values("fecha", ascending=False).head(limit)
+    vista["fecha"] = pd.to_datetime(vista["fecha"], errors="coerce")
+    vista["monto"] = pd.to_numeric(vista["monto"], errors="coerce").fillna(0)
+
+    for _, row in vista.iterrows():
+        tipo = str(row.get("tipo") or "Sin tipo")
+        descripcion = str(row.get("descripcion") or row.get("categoria") or "Movimiento").strip()
+        fecha_txt = row["fecha"].strftime("%d %b · %H:%M") if pd.notna(row["fecha"]) else "Sin fecha"
+        amount_class = "amount-income" if tipo in {"Ingreso", "Cobro cuenta por cobrar"} else "amount-expense" if tipo == "Gasto" else "amount-debt" if tipo == "Ingreso (Deuda)" else "amount-pay" if tipo == "Pago de deuda" else "amount-debt"
+        icono = "↑" if tipo in {"Ingreso", "Cobro cuenta por cobrar"} else "↓" if tipo == "Gasto" else "↔"
+        st.markdown(
+            f"""
+            <div class='activity-feed-item'>
+                <div class='activity-feed-left'>
+                    <div class='activity-feed-bullet'>{icono}</div>
+                    <div>
+                        <div class='activity-feed-title'>{html.escape(descripcion)}</div>
+                        <div class='activity-feed-sub'>{html.escape(tipo)} · {fecha_txt}</div>
+                    </div>
+                </div>
+                <div class='activity-feed-amount {amount_class}'>{money(row.get('monto', 0))}</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+    st.markdown("</div>", unsafe_allow_html=True)
+
+
+def render_resumen_general_chart(df_mes_actual):
+    st.markdown("<div class='soft-card'>", unsafe_allow_html=True)
+    st.markdown("<div class='section-title'>Evolución del mes</div>", unsafe_allow_html=True)
+    st.markdown("<div class='section-caption'>Una sola gráfica limpia para no saturarte al entrar.</div>", unsafe_allow_html=True)
+    if df_mes_actual is None or df_mes_actual.empty:
+        st.markdown("<div class='tiny-muted'>Registra movimientos y aquí aparecerá la evolución diaria.</div>", unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True)
+        return
+
+    chart_df = df_mes_actual.copy()
+    chart_df["fecha"] = pd.to_datetime(chart_df["fecha"], errors="coerce")
+    chart_df = chart_df.dropna(subset=["fecha"]).copy()
+    chart_df = chart_df[chart_df["tipo"].isin(["Ingreso", "Gasto", "Cobro cuenta por cobrar", "Pago de deuda"])]
+    if chart_df.empty:
+        st.markdown("<div class='tiny-muted'>No hay tipos suficientes para mostrar la evolución.</div>", unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True)
+        return
+
+    chart_df["tipo_visual"] = chart_df["tipo"].replace({"Cobro cuenta por cobrar": "Ingreso", "Pago de deuda": "Gasto"})
+    daily = chart_df.groupby([chart_df["fecha"].dt.date, "tipo_visual"], dropna=False)["monto"].sum().reset_index()
+    daily.columns = ["fecha", "tipo", "monto"]
+    fig = px.line(
+        daily,
+        x="fecha",
+        y="monto",
+        color="tipo",
+        markers=True,
+        title="",
+        color_discrete_map={"Ingreso": "#22C55E", "Gasto": "#EF4444"}
+    )
+    aplicar_estilo_plotly(fig, height=340)
+    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+    st.markdown("</div>", unsafe_allow_html=True)
+
+
+def render_home_hub(nombre_usuario, user_id, df, df_mes, df_deudas, df_cxc, total_ingresos, total_gastos,
+                    total_entradas_deuda_mes, total_pagos_deuda_mes, saldo_pendiente_deudas_global,
+                    saldo_pendiente_cxc_global, deudas_activas_global, meta_guardada_global, nombre_meta_guardado,
+                    ahorro_actual, saldo_disponible, perfil_financiero, insight_personalizado,
+                    resumen_semanal_premium, alertas_proactivas, patrones_comportamiento,
+                    sugerencias_categoria, recomendacion_accionable, proyeccion_meta_global,
+                    plan_usuario_actual, consultas_usadas_hoy, consultas_limite_hoy,
+                    preferencias_usuario_actual, ultimo_tipo):
+    zentix_hero(nombre_usuario, saldo_disponible, total_ingresos, total_gastos)
+    render_contexto_descubrimiento("Inicio")
+    render_tutorial_zentix("Inicio", nombre_usuario, user_id, df, meta_guardada_global, preferencias_usuario_actual)
+    render_home_action_tiles()
+
+    tabs = st.tabs(["Resumen", "Actividad", "Planificación", "Profundo"])
+
+    with tabs[0]:
+        k1, k2, k3, k4 = st.columns(4)
+        with k1:
+            kpi_card("Ingresos reales", money(total_ingresos), "Flujo propio del mes", "income")
+        with k2:
+            kpi_card("Gastos", money(total_gastos), "Salidas operativas", "expense")
+        with k3:
+            kpi_card("Disponible", money(saldo_disponible), "Caja actual", "balance")
+        with k4:
+            kpi_card("Meta", money(meta_guardada_global), nombre_meta_guardado if nombre_meta_guardado else "Objetivo activo", "saving")
+
+        d1, d2, d3, d4 = st.columns(4)
+        with d1:
+            kpi_card("Deuda recibida", money(total_entradas_deuda_mes), "No cuenta como ingreso real", "debt")
+        with d2:
+            kpi_card("Pagos deuda", money(total_pagos_deuda_mes), "Seguimiento de devolución", "pay")
+        with d3:
+            kpi_card("Por cobrar", money(saldo_pendiente_cxc_global), "Pendiente de cobrar", "receivable")
+        with d4:
+            kpi_card("Pendiente", money(saldo_pendiente_deudas_global), f"{deudas_activas_global} deuda(s) activas", "debt")
+
+        c1, c2 = st.columns([1.2, 0.8])
+        with c1:
+            render_resumen_general_chart(df_mes if df_mes is not None else pd.DataFrame())
+        with c2:
+            render_recent_activity_feed(df if df is not None else pd.DataFrame(), limit=6)
+
+        s1, s2, s3 = st.columns(3)
+        with s1:
+            render_list_card("Lo bueno del periodo", resumen_semanal_premium.get("positivas", []), "Zentix te resalta avances sin llenarte la pantalla de widgets.")
+        with s2:
+            render_list_card("Alertas suaves", alertas_proactivas, "Alertas accionables, no ruido.")
+        with s3:
+            render_list_card("Siguiente paso", [recomendacion_accionable, proyeccion_meta_global.get("mensaje", "")], "La mejor acción puntual para hoy.")
+
+    with tabs[1]:
+        c1, c2 = st.columns([1.2, 0.8])
+        with c1:
+            render_movimientos_action_hub(user_id, df if df is not None else pd.DataFrame(), df_deudas if df_deudas is not None else pd.DataFrame())
+        with c2:
+            render_movimiento_focus_panel(df if df is not None else pd.DataFrame())
+        render_recent_activity_feed(df if df is not None else pd.DataFrame(), limit=10)
+
+    with tabs[2]:
+        c1, c2 = st.columns([1.15, 0.85])
+        with c1:
+            render_inicio_spotlight(
+                df_base=df if df is not None else pd.DataFrame(),
+                df_mes_actual=df_mes if df_mes is not None else pd.DataFrame(),
+                df_deudas_local=df_deudas if df_deudas is not None else pd.DataFrame(),
+                total_ingresos_local=total_ingresos,
+                total_gastos_local=total_gastos,
+                entradas_deuda_local=total_entradas_deuda_mes,
+                pagos_deuda_local=total_pagos_deuda_mes,
+                saldo_pendiente_local=saldo_pendiente_deudas_global,
+                meta_objetivo=meta_guardada_global,
+                ahorro_disponible=ahorro_actual,
+                comparativa=globals().get("comparativa_periodos", {}),
+                resumen_semanal=resumen_semanal_premium,
+                alertas=alertas_proactivas,
+                sugerencias=sugerencias_categoria,
+                proyeccion=proyeccion_meta_global,
+                plan_actual=plan_usuario_actual,
+                consultas_usadas=consultas_usadas_hoy,
+                consultas_limite=consultas_limite_hoy
+            )
+        with c2:
+            render_list_card("Perfil e insights", [perfil_financiero.get("titulo", "Perfil en construcción"), insight_personalizado], "Una lectura editorial del momento financiero.")
+            render_list_card("Categorías inteligentes", sugerencias_categoria if sugerencias_categoria else ["Sigue registrando para refinar sugerencias."], "Organización que reduce saturación visual y mental.")
+            render_list_card("Patrones detectados", patrones_comportamiento + [f"Plan: {plan_usuario_actual.get('plan', 'free').upper()} · IA {consultas_usadas_hoy}/{consultas_limite_hoy}"], "Lo importante resumido, no repartido en diez cajas.")
+
+    with tabs[3]:
+        st.markdown("<div class='soft-card'><div class='section-title'>Panel ejecutivo profundo</div><div class='section-caption'>Toda la potencia sigue viva, pero ahora en una capa aparte para que Inicio se sienta premium y respirable.</div></div>", unsafe_allow_html=True)
+        render_dashboard_pro(
+            nombre=nombre_usuario,
+            df_base=df if df is not None else pd.DataFrame(),
+            df_mes_actual=df_mes if df_mes is not None else pd.DataFrame(),
+            df_cxc_local=df_cxc if df_cxc is not None else pd.DataFrame(),
+            total_ingresos_local=total_ingresos,
+            total_gastos_local=total_gastos,
+            entradas_deuda_local=total_entradas_deuda_mes,
+            pagos_deuda_local=total_pagos_deuda_mes,
+            saldo_deuda_pendiente=saldo_pendiente_deudas_global,
+            meta_objetivo=meta_guardada_global,
+            ahorro_actual=ahorro_actual,
+        )
+        render_avatar("Inicio", nombre_usuario, total_ingresos, total_gastos, saldo_disponible, ultimo_tipo)
+
+
 aplicar_estilo_zentix()
 
 
@@ -5972,22 +5681,49 @@ def obtener_mensajes_bienvenida(nombre):
 
 
 def render_bienvenida_flotante(nombre, pagina_actual):
-    avatar_html = f"<img src='data:image/png;base64,{base64.b64encode(Path(avatar_path).read_bytes()).decode()}' style='width:52px;height:52px;border-radius:16px;object-fit:cover;'/>" if avatar_path.exists() else ""
+    if st.session_state.get("zentix_guide_hidden"):
+        return
+
+    tips = {
+        "Inicio": "Tu resumen está arriba. La profundidad quedó por pestañas para que la vista principal respire.",
+        "Registrar": "Aquí manda la acción. El formulario quedó como foco y el contexto vive en tarjetas secundarias.",
+        "Análisis": "Todo el detalle está aquí, sin contaminar la vista principal del dashboard.",
+        "Ahorro": "Tu meta ahora se siente como módulo propio, no como otro bloque perdido en medio del panel.",
+        "Perfil": "Configuración, recordatorios y plan viven en una capa aparte, como en una app bancaria seria."
+    }
+    mensaje = tips.get(pagina_actual, "Estoy aquí para ayudarte a moverte rápido por Zentix.")
+    avatar_html = ""
+    if avatar_path.exists():
+        try:
+            avatar_b64 = base64.b64encode(Path(avatar_path).read_bytes()).decode()
+            avatar_html = f"<img src='data:image/png;base64,{avatar_b64}' style='width:58px;height:58px;border-radius:18px;object-fit:cover;'/>"
+        except Exception:
+            avatar_html = ""
+
     st.markdown(f"""
     <div class='premium-floating-guide'>
-        <div style='display:flex;gap:0.75rem;align-items:center;'>
+        <div style='display:flex;gap:0.8rem;align-items:flex-start;'>
             <div>{avatar_html}</div>
             <div style='flex:1;'>
-                <div class='premium-floating-guide-title'>Zentix IA</div>
-                <div class='premium-floating-guide-copy'>Estoy contigo todo el tiempo. Usa mis accesos rápidos para registrar, analizar o ajustar tu meta sin perder contexto.</div>
-                <div class='tiny-muted' style='margin-top:0.35rem;'>Pantalla actual: {pagina_actual}</div>
+                <div class='premium-floating-guide-title'>Zentix Assist</div>
+                <div class='premium-floating-guide-copy'>{mensaje}</div>
+                <div class='tiny-muted' style='margin-top:0.45rem;'>Vista actual: {pagina_actual}</div>
             </div>
         </div>
     </div>
     """, unsafe_allow_html=True)
+    c1, c2 = st.columns(2)
+    with c1:
+        if st.button("Abrir análisis", key=f"guide_open_analysis_{pagina_actual}", use_container_width=True, type="primary"):
+            ir_a_pagina("Análisis")
+    with c2:
+        if st.button("Ocultar guía", key=f"guide_hide_{pagina_actual}", use_container_width=True, type="secondary"):
+            st.session_state["zentix_guide_hidden"] = True
+            st.rerun()
 
 
 def render_reporte_preview_modal(pdf_bytes, filename, titulo="Reporte premium Zentix"):
+
     if not pdf_bytes:
         return
     b64 = base64.b64encode(pdf_bytes).decode("utf-8")
@@ -6181,260 +5917,7 @@ if st.session_state.user is None:
 
 
 
-def ir_a_pagina(destino):
-    st.session_state.pagina = destino
-    st.session_state["zentix_show_transition"] = True
-    st.rerun()
-
-
-def render_transition_overlay():
-    if not st.session_state.get("zentix_show_transition"):
-        return
-    logo_html = ""
-    if icono_path.exists():
-        try:
-            logo_b64 = base64.b64encode(Path(icono_path).read_bytes()).decode()
-            logo_html = f"<img src='data:image/png;base64,{logo_b64}' style='width:110px;height:110px;object-fit:contain;margin-bottom:18px;'/>"
-        except Exception:
-            logo_html = ""
-    overlay = f"""
-    <script>
-    const doc = window.parent.document;
-    const prev = doc.getElementById('zentix-transition-overlay');
-    if (prev) prev.remove();
-    const splash = doc.createElement('div');
-    splash.id = 'zentix-transition-overlay';
-    splash.innerHTML = `
-      <style>
-        #zentix-transition-overlay {{ position: fixed; inset: 0; z-index: 999999; display:flex; align-items:center; justify-content:center; background: linear-gradient(180deg, rgba(248,250,252,0.96), rgba(239,243,251,0.98)); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); opacity:1; transition: opacity .35s ease; }}
-        #zentix-transition-overlay.hide {{ opacity:0; }}
-        #zentix-transition-card {{ display:flex; flex-direction:column; align-items:center; justify-content:center; padding:28px 34px; border-radius:28px; background:rgba(255,255,255,0.96); border:1px solid rgba(37,99,235,0.10); box-shadow:0 24px 50px rgba(15,23,42,0.12); color:#0F172A; font-family:Inter,system-ui,sans-serif; }}
-        #zentix-spinner {{ width:38px;height:38px;border-radius:999px;border:4px solid rgba(37,99,235,0.12);border-top-color:#2563EB;animation:zentixSpin .8s linear infinite;margin-top:6px; }}
-        @keyframes zentixSpin {{ from {{ transform:rotate(0deg); }} to {{ transform:rotate(360deg); }} }}
-      </style>
-      <div id='zentix-transition-card'>
-        {logo_html}
-        <div style='font-size:1.15rem;font-weight:900;margin-bottom:0.2rem;'>Zentix</div>
-        <div style='font-size:0.94rem;color:#64748B;margin-bottom:12px;'>Cargando tu siguiente vista premium…</div>
-        <div id='zentix-spinner'></div>
-      </div>`;
-    doc.body.appendChild(splash);
-    setTimeout(() => splash.classList.add('hide'), 520);
-    setTimeout(() => splash.remove(), 980);
-    </script>
-    """
-    components.html(overlay, height=0)
-    st.session_state["zentix_show_transition"] = False
-
-
-def render_app_shell_header(nombre_usuario, pagina_actual, plan_actual, consultas_usadas, consultas_limite, saldo_actual):
-    st.markdown(
-        f"""
-        <div class='app-shell-card fade-up'>
-            <div class='app-shell-eyebrow'>Experiencia Zentix</div>
-            <div class='app-shell-title'>{pagina_actual}</div>
-            <div class='app-shell-sub'>Hola, {nombre_usuario}. Reordené la experiencia para que lo esencial quede arriba, lo más usado esté a un toque y el detalle profundo aparezca solo cuando tú lo abras.</div>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-    c1, c2, c3, c4 = st.columns(4)
-    with c1:
-        st.markdown(f"<div class='metric-strip'><div class='metric-strip-label'>Saldo visible</div><div class='metric-strip-value'>{money(saldo_actual)}</div><div class='metric-strip-foot'>Tu lectura rápida</div></div>", unsafe_allow_html=True)
-    with c2:
-        st.markdown(f"<div class='metric-strip'><div class='metric-strip-label'>Plan activo</div><div class='metric-strip-value'>{plan_actual.get('plan', 'free').upper()}</div><div class='metric-strip-foot'>Experiencia habilitada</div></div>", unsafe_allow_html=True)
-    with c3:
-        st.markdown(f"<div class='metric-strip'><div class='metric-strip-label'>IA usada hoy</div><div class='metric-strip-value'>{consultas_usadas}/{consultas_limite}</div><div class='metric-strip-foot'>Control diario</div></div>", unsafe_allow_html=True)
-    with c4:
-        estado = 'Bajo control' if consultas_usadas < consultas_limite else 'Límite alcanzado'
-        st.markdown(f"<div class='metric-strip'><div class='metric-strip-label'>Estado del panel</div><div class='metric-strip-value'>{estado}</div><div class='metric-strip-foot'>Vista actual: {pagina_actual}</div></div>", unsafe_allow_html=True)
-
-
-def render_avatar_compacto(pagina, nombre, total_ingresos, total_gastos, ahorro_actual, ultimo_tipo):
-    with st.expander("Abrir asistente Zentix IA", expanded=False):
-        render_avatar(pagina, nombre, total_ingresos, total_gastos, ahorro_actual, ultimo_tipo)
-
-
-def render_asistente_dock(nombre, pagina_actual):
-    avatar_html = ""
-    if avatar_path.exists():
-        avatar_html = f"<img src='data:image/png;base64,{base64.b64encode(Path(avatar_path).read_bytes()).decode()}' style='width:62px;height:62px;border-radius:18px;object-fit:cover;'/>"
-    st.markdown(
-        f"""
-        <div class='assistant-dock-shell'>
-            <div class='assistant-fab-badge'>💬 Accesos del avatar</div>
-            <div style='display:flex;gap:0.8rem;align-items:center;margin-bottom:0.85rem;'>
-                <div>{avatar_html}</div>
-                <div>
-                    <div class='assistant-dock-title'>Zentix acompaña toda la app</div>
-                    <div class='assistant-dock-copy'>{nombre}, desde {pagina_actual} puedes saltar a registrar, analizar o afinar tu meta sin perder el hilo.</div>
-                </div>
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-    a1, a2 = st.columns(2)
-    with a1:
-        if st.button("Ir a Registrar", key=f"dock_registrar_{pagina_actual}", use_container_width=True, type="primary"):
-            ir_a_pagina("Registrar")
-    with a2:
-        if st.button("Ver Análisis", key=f"dock_analisis_{pagina_actual}", use_container_width=True, type="secondary"):
-            ir_a_pagina("Análisis")
-    b1, b2 = st.columns(2)
-    with b1:
-        if st.button("Ajustar meta", key=f"dock_ahorro_{pagina_actual}", use_container_width=True, type="secondary"):
-            ir_a_pagina("Ahorro")
-    with b2:
-        if st.button("Abrir Perfil", key=f"dock_perfil_{pagina_actual}", use_container_width=True, type="secondary"):
-            ir_a_pagina("Perfil")
-
-
-def render_inicio_redistribuido(nombre, user_id, df_base, df_mes_actual, df_deudas_local, df_cxc_local,
-                                total_ingresos_local, total_gastos_local, entradas_deuda_local, pagos_deuda_local,
-                                saldo_deuda_pendiente, saldo_cxc_pendiente, deudas_activas, meta_objetivo,
-                                ahorro_actual, nombre_meta, perfil_financiero, comparativa, resumen_semanal,
-                                alertas, sugerencias, patrones, recomendacion, proyeccion, plan_actual,
-                                consultas_usadas, consultas_limite, ultimo_tipo, preferencias_actuales):
-    zentix_hero(nombre, ahorro_actual, total_ingresos_local, total_gastos_local)
-    render_contexto_descubrimiento("Inicio")
-    render_tutorial_zentix("Inicio", nombre, user_id, df_base, meta_objetivo, preferencias_actuales)
-
-    section_header("Vista general", "Primero lo esencial. Lo profundo sigue disponible, pero ahora sin saturar la pantalla.")
-    k1, k2, k3, k4 = st.columns(4)
-    with k1:
-        kpi_card("Ingresos reales", money(total_ingresos_local), "Sin préstamos ni cobros pendientes", "income")
-    with k2:
-        kpi_card("Gastos del mes", money(total_gastos_local), "Salidas operativas", "expense")
-    with k3:
-        kpi_card("Disponible", money(ahorro_actual), "Lectura inmediata de caja", "balance")
-    with k4:
-        kpi_card("Meta principal", money(meta_objetivo), nombre_meta if nombre_meta else "Tu objetivo actual", "saving")
-
-    q1, q2, q3, q4 = st.columns(4)
-    flujo_real = float(total_ingresos_local or 0) - float(total_gastos_local or 0)
-    with q1:
-        kpi_card("Por cobrar", money(saldo_cxc_pendiente), "Pendiente por recuperar", "receivable")
-    with q2:
-        kpi_card("Deuda pendiente", money(saldo_deuda_pendiente), f"Activas: {deudas_activas}", "debt")
-    with q3:
-        kpi_card("Pagos de deuda", money(pagos_deuda_local), "Seguimiento separado", "pay")
-    with q4:
-        kpi_card("Flujo real", money(flujo_real), "Ingresos reales menos gastos", "income" if flujo_real >= 0 else "expense")
-
-    section_header("Acciones rápidas", "Las tareas más usadas quedaron arriba para móvil y escritorio.")
-    a1, a2, a3, a4 = st.columns(4)
-    with a1:
-        st.markdown("<div class='action-tile'><div class='action-tile-title'>Registrar movimiento</div><div class='action-tile-copy'>Entra directo al formulario y registra sin buscar de más.</div></div>", unsafe_allow_html=True)
-        if st.button("Abrir registro", key="home_action_registro", use_container_width=True, type="primary"):
-            ir_a_pagina("Registrar")
-    with a2:
-        st.markdown("<div class='action-tile'><div class='action-tile-title'>Leer análisis</div><div class='action-tile-copy'>Ve tablas, patrones y reportes solo cuando quieras abrirlos.</div></div>", unsafe_allow_html=True)
-        if st.button("Ir a análisis", key="home_action_analisis", use_container_width=True, type="secondary"):
-            ir_a_pagina("Análisis")
-    with a3:
-        st.markdown("<div class='action-tile'><div class='action-tile-title'>Ajustar meta</div><div class='action-tile-copy'>Cambia objetivo, ritmo y faltante sin perder contexto.</div></div>", unsafe_allow_html=True)
-        if st.button("Ir a ahorro", key="home_action_ahorro", use_container_width=True, type="secondary"):
-            ir_a_pagina("Ahorro")
-    with a4:
-        st.markdown("<div class='action-tile'><div class='action-tile-title'>Perfil y recordatorios</div><div class='action-tile-copy'>Plan, IA, preferencias y avisos en un solo centro.</div></div>", unsafe_allow_html=True)
-        if st.button("Ir a perfil", key="home_action_perfil", use_container_width=True, type="secondary"):
-            ir_a_pagina("Perfil")
-
-    tab_resumen, tab_alertas, tab_graficas, tab_profundo = st.tabs(["Resumen", "Alertas", "Gráficas", "Panel ejecutivo"])
-    with tab_resumen:
-        col_main, col_side = st.columns([1.25, 0.85])
-        with col_main:
-            render_inicio_spotlight(
-                df_base=df_base if not df_base.empty else pd.DataFrame(),
-                df_mes_actual=df_mes_actual if not df_mes_actual.empty else pd.DataFrame(),
-                df_deudas_local=df_deudas_local if not df_deudas_local.empty else pd.DataFrame(),
-                total_ingresos_local=total_ingresos_local,
-                total_gastos_local=total_gastos_local,
-                entradas_deuda_local=entradas_deuda_local,
-                pagos_deuda_local=pagos_deuda_local,
-                saldo_pendiente_local=saldo_deuda_pendiente,
-                meta_objetivo=meta_objetivo,
-                ahorro_disponible=ahorro_actual,
-                comparativa=comparativa,
-                resumen_semanal=resumen_semanal,
-                alertas=alertas,
-                sugerencias=sugerencias,
-                proyeccion=proyeccion,
-                plan_actual=plan_actual,
-                consultas_usadas=consultas_usadas,
-                consultas_limite=consultas_limite
-            )
-            render_list_card(
-                "Lectura del mes",
-                [
-                    perfil_financiero.get('descripcion', 'Perfil financiero en construcción.'),
-                    f"Meta: {nombre_meta if nombre_meta else 'Sin nombre'} · {money(meta_objetivo)}",
-                    f"Proyección: {proyeccion.get('mensaje', 'Sin proyección disponible')}",
-                    f"Recomendación: {recomendacion}",
-                ],
-                "Todo el detalle sigue disponible, pero ya no compite con el resumen principal."
-            )
-        with col_side:
-            render_asistente_dock(nombre, "Inicio")
-            render_list_card(
-                "Hoy en corto",
-                [
-                    f"Entradas por deuda: {money(entradas_deuda_local)}",
-                    f"Pendiente por cobrar: {money(saldo_cxc_pendiente)}",
-                    f"Último movimiento: {ultimo_tipo if ultimo_tipo else 'Sin movimientos'}",
-                    f"IA hoy: {consultas_usadas}/{consultas_limite}",
-                ],
-                "La idea es que aquí veas el pulso del panel en menos de 10 segundos."
-            )
-            render_avatar_compacto("Inicio", nombre, total_ingresos_local, total_gastos_local, ahorro_actual, ultimo_tipo)
-    with tab_alertas:
-        s1, s2, s3 = st.columns(3)
-        with s1:
-            render_list_card("Lo que hiciste bien", resumen_semanal.get("positivas", []), "Zentix refuerza lo que ya te está funcionando.")
-        with s2:
-            render_list_card("Alertas proactivas", alertas, "Alertas simples y accionables antes de que el mes se complique.")
-        with s3:
-            render_list_card("Patrones + siguiente paso", patrones + [f"Por cobrar: {money(saldo_cxc_pendiente)}"], recomendacion)
-        c1, c2 = st.columns(2)
-        with c1:
-            render_list_card("Comparativa semanal", [f"Gasto: {money_delta(comparativa.get('gasto_semana_pct', 0.0))}", f"Ingreso: {money_delta(comparativa.get('ingreso_semana_pct', 0.0))}"], "Semana actual vs anterior")
-        with c2:
-            render_list_card("Comparativa mensual", [f"Gasto: {money_delta(comparativa.get('gasto_mes_pct', 0.0))}", f"Ingreso: {money_delta(comparativa.get('ingreso_mes_pct', 0.0))}"], "Mes actual vs anterior")
-    with tab_graficas:
-        if not df_mes_actual.empty:
-            col_a, col_b = st.columns(2)
-            with col_a:
-                resumen_tipos = pd.DataFrame({
-                    "Tipo": ["Ingreso", "Gasto", "Ingreso (Deuda)", "Pago de deuda", "Cuenta por cobrar", "Cobro cuenta por cobrar"],
-                    "Monto": [
-                        float(total_ingresos_local or 0),
-                        float(total_gastos_local or 0),
-                        float(entradas_deuda_local or 0),
-                        float(pagos_deuda_local or 0),
-                        float(df_mes_actual[df_mes_actual["tipo"] == "Cuenta por cobrar"]["monto"].sum() if not df_mes_actual.empty else 0),
-                        float(df_mes_actual[df_mes_actual["tipo"] == "Cobro cuenta por cobrar"]["monto"].sum() if not df_mes_actual.empty else 0),
-                    ]
-                })
-                resumen_tipos = resumen_tipos[resumen_tipos["Monto"] > 0]
-                if resumen_tipos.empty:
-                    resumen_tipos = pd.DataFrame({"Tipo": ["Sin datos"], "Monto": [1]})
-                fig_tipos = px.pie(resumen_tipos, values="Monto", names="Tipo", title="Flujo mensual por naturaleza", hole=0.58, color="Tipo", color_discrete_map={"Ingreso": "#22C55E", "Gasto": "#FB7185", "Ingreso (Deuda)": "#2563EB", "Pago de deuda": "#F59E0B", "Cuenta por cobrar": "#A855F7", "Cobro cuenta por cobrar": "#14B8A6", "Sin datos": "#94A3B8"})
-                fig_tipos.update_traces(textinfo="percent+label")
-                aplicar_estilo_plotly(fig_tipos, height=380)
-                st.plotly_chart(fig_tipos, use_container_width=True, config={"displayModeBar": False})
-            with col_b:
-                resumen_categoria = df_mes_actual.groupby("categoria", dropna=False)["monto"].sum().reset_index().sort_values("monto", ascending=False)
-                resumen_categoria["categoria"] = resumen_categoria["categoria"].fillna("Sin categoría")
-                fig_cat = px.pie(resumen_categoria, values="monto", names="categoria", title="Categorías del mes", color_discrete_sequence=CHART_COLORS)
-                fig_cat.update_traces(textinfo="percent+label")
-                aplicar_estilo_plotly(fig_cat, height=380)
-                st.plotly_chart(fig_cat, use_container_width=True, config={"displayModeBar": False})
-        else:
-            empty_state("Aún no hay datos del mes", "Empieza registrando movimientos y las gráficas aparecerán automáticamente.")
-    with tab_profundo:
-        st.markdown("<div class='soft-section'><div class='section-title'>Panel ejecutivo</div><div class='section-caption'>Toda la profundidad sigue aquí, pero ya no se roba la atención del resumen principal.</div></div>", unsafe_allow_html=True)
-        render_dashboard_pro(nombre, df_base, df_mes_actual, df_cxc_local, total_ingresos_local, total_gastos_local, entradas_deuda_local, pagos_deuda_local, saldo_deuda_pendiente, meta_objetivo, ahorro_actual)
+zentix_brand_header()
 
 user_id = st.session_state.user.id
 perfil = obtener_perfil(user_id)
@@ -6449,10 +5932,13 @@ if "pagina" not in st.session_state or st.session_state.pagina not in paginas_di
     st.session_state.pagina = "Inicio"
 
 with st.sidebar:
-    if icono_path.exists():
-        st.image(str(icono_path), width=64)
-    st.markdown('<div class="sidebar-brand-title">ZENTIX</div>', unsafe_allow_html=True)
-    st.markdown('<div class="sidebar-brand-sub">Centro rápido y secundario</div>', unsafe_allow_html=True)
+    col_sb_icon, col_sb_text = st.columns([1, 3])
+    with col_sb_icon:
+        if icono_path.exists():
+            st.image(str(icono_path), width=54)
+    with col_sb_text:
+        st.markdown('<div class="sidebar-brand-title">Zentix</div>', unsafe_allow_html=True)
+        st.markdown('<div class="sidebar-brand-sub">Centro secundario</div>', unsafe_allow_html=True)
 
     st.markdown(
         f"""
@@ -6483,20 +5969,20 @@ with st.sidebar:
     if st.button("⚙️ Perfil", key="sidebar_perfil", use_container_width=True, type="primary" if st.session_state.pagina == "Perfil" else "secondary"):
         ir_a_pagina("Perfil")
 
-    st.markdown("---")
-    st.caption("Acciones rápidas")
-    if st.button("Nuevo movimiento", key="sidebar_new_move", use_container_width=True):
-        ir_a_pagina("Registrar")
-    if st.button("Revisar meta", key="sidebar_meta", use_container_width=True):
-        ir_a_pagina("Ahorro")
-    if st.button("Cerrar sesión", key="sidebar_logout", use_container_width=True, type="secondary"):
+    st.markdown("<div class='sidebar-nav-note'>La barra lateral quedó como apoyo, no como protagonista. El dashboard ahora manda.</div>", unsafe_allow_html=True)
+
+    if st.button("Cerrar sesión", use_container_width=True):
         st.session_state.user = None
         st.rerun()
 
-pagina = st.session_state.pagina
+render_nav_rapida_premium()
 render_transition_overlay()
+
+pagina = st.session_state.pagina
 track_page_view_once(user_id, pagina)
 render_bienvenida_flotante(nombre_usuario, pagina)
+
+
 if not perfil or not perfil.get("onboarding_completo", False):
     st.markdown(
         """
@@ -6660,40 +6146,38 @@ estado_recordatorios_automaticos_global = disparar_recordatorio_automatico_si_ap
 )
 _, consultas_usadas_hoy, consultas_limite_hoy, consultas_restantes_hoy, plan_usuario_actual = puede_usar_ia(user_id)
 
-render_app_shell_header(nombre_usuario, pagina, plan_usuario_actual, consultas_usadas_hoy, consultas_limite_hoy, saldo_disponible)
-render_nav_rapida_premium()
-
 if pagina == "Inicio":
-    render_inicio_redistribuido(
-        nombre=nombre_usuario,
+    render_home_hub(
+        nombre_usuario=nombre_usuario,
         user_id=user_id,
-        df_base=df if not df.empty else pd.DataFrame(),
-        df_mes_actual=df_mes if not df_mes.empty else pd.DataFrame(),
-        df_deudas_local=df_deudas if not df_deudas.empty else pd.DataFrame(),
-        df_cxc_local=df_cxc if not df_cxc.empty else pd.DataFrame(),
-        total_ingresos_local=total_ingresos,
-        total_gastos_local=total_gastos,
-        entradas_deuda_local=total_entradas_deuda_mes,
-        pagos_deuda_local=total_pagos_deuda_mes,
-        saldo_deuda_pendiente=saldo_pendiente_deudas_global,
-        saldo_cxc_pendiente=saldo_pendiente_cxc_global,
-        deudas_activas=deudas_activas_global,
-        meta_objetivo=meta_guardada_global,
+        df=df if not df.empty else pd.DataFrame(),
+        df_mes=df_mes if not df_mes.empty else pd.DataFrame(),
+        df_deudas=df_deudas if not df_deudas.empty else pd.DataFrame(),
+        df_cxc=df_cxc if not df_cxc.empty else pd.DataFrame(),
+        total_ingresos=total_ingresos,
+        total_gastos=total_gastos,
+        total_entradas_deuda_mes=total_entradas_deuda_mes,
+        total_pagos_deuda_mes=total_pagos_deuda_mes,
+        saldo_pendiente_deudas_global=saldo_pendiente_deudas_global,
+        saldo_pendiente_cxc_global=saldo_pendiente_cxc_global,
+        deudas_activas_global=deudas_activas_global,
+        meta_guardada_global=meta_guardada_global,
+        nombre_meta_guardado=nombre_meta_guardado,
         ahorro_actual=ahorro_actual,
-        nombre_meta=nombre_meta_guardado,
+        saldo_disponible=saldo_disponible,
         perfil_financiero=perfil_financiero,
-        comparativa=comparativa_periodos,
-        resumen_semanal=resumen_semanal_premium,
-        alertas=alertas_proactivas,
-        sugerencias=sugerencias_categoria,
-        patrones=patrones_comportamiento,
-        recomendacion=recomendacion_accionable,
-        proyeccion=proyeccion_meta_global,
-        plan_actual=plan_usuario_actual,
-        consultas_usadas=consultas_usadas_hoy,
-        consultas_limite=consultas_limite_hoy,
+        insight_personalizado=insight_personalizado,
+        resumen_semanal_premium=resumen_semanal_premium,
+        alertas_proactivas=alertas_proactivas,
+        patrones_comportamiento=patrones_comportamiento,
+        sugerencias_categoria=sugerencias_categoria,
+        recomendacion_accionable=recomendacion_accionable,
+        proyeccion_meta_global=proyeccion_meta_global,
+        plan_usuario_actual=plan_usuario_actual,
+        consultas_usadas_hoy=consultas_usadas_hoy,
+        consultas_limite_hoy=consultas_limite_hoy,
+        preferencias_usuario_actual=preferencias_usuario_actual,
         ultimo_tipo=ultimo_tipo,
-        preferencias_actuales=preferencias_usuario_actual,
     )
 
 if pagina == "Registrar":
@@ -7104,7 +6588,7 @@ if pagina == "Registrar":
                 unsafe_allow_html=True
             )
 
-        render_avatar_compacto(pagina, nombre_usuario, total_ingresos, total_gastos, saldo_disponible, ultimo_tipo)
+        render_avatar(pagina, nombre_usuario, total_ingresos, total_gastos, saldo_disponible, ultimo_tipo)
 
 if pagina == "Análisis":
     zentix_hero(nombre_usuario, saldo_disponible, total_ingresos, total_gastos)
@@ -7156,7 +6640,7 @@ if pagina == "Análisis":
             """,
             unsafe_allow_html=True
         )
-        render_avatar_compacto(pagina, nombre_usuario, total_ingresos, total_gastos, saldo_disponible, ultimo_tipo)
+        render_avatar(pagina, nombre_usuario, total_ingresos, total_gastos, saldo_disponible, ultimo_tipo)
 
     render_reportes_compactos(nombre_usuario, plan_usuario_actual, df if not df.empty else pd.DataFrame(), user_id=user_id)
 
@@ -7334,7 +6818,7 @@ if pagina == "Ahorro":
             """,
             unsafe_allow_html=True
         )
-        render_avatar_compacto(pagina, nombre_usuario, total_ingresos, total_gastos, saldo_disponible, ultimo_tipo)
+        render_avatar(pagina, nombre_usuario, total_ingresos, total_gastos, saldo_disponible, ultimo_tipo)
 
 if pagina == "Perfil":
     zentix_hero(nombre_usuario, saldo_disponible, total_ingresos, total_gastos)
@@ -7515,6 +6999,6 @@ if pagina == "Perfil":
             """,
             unsafe_allow_html=True
         )
-        render_avatar_compacto(pagina, nombre_usuario, total_ingresos, total_gastos, saldo_disponible, ultimo_tipo)
+        render_avatar(pagina, nombre_usuario, total_ingresos, total_gastos, saldo_disponible, ultimo_tipo)
 
 render_footer_producto(launch_cfg)
