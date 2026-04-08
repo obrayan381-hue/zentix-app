@@ -7,6 +7,7 @@ from pathlib import Path
 from supabase_config import supabase
 from openai import OpenAI
 import html
+import json
 import io
 import uuid
 import smtplib
@@ -966,115 +967,157 @@ def aplicar_estilo_zentix():
     }
 
 
-    /* ===== V4 · sidebar toggle definitivo + contraste real ===== */
-    .assistant-card {
-        background: linear-gradient(180deg, #FFFFFF 0%, #F6FAFF 100%) !important;
-        border: 1px solid rgba(59,130,246,0.16) !important;
-        box-shadow: 0 18px 34px rgba(37,99,235,0.08) !important;
-        border-radius: 24px !important;
-        padding: 1rem 1.05rem !important;
-        color: #0F172A !important;
-    }
+    /* ===== V4 · drawer lateral + contraste definitivo ===== */
+    [data-testid="collapsedControl"] { display: none !important; }
 
-    .assistant-title,
-    .assistant-text,
-    .assistant-mini,
-    .quick-action-note,
-    .chat-label,
-    .chat-input-label,
-    .assistant-card .tiny-muted {
-        color: #0F172A !important;
-    }
-
-    .assistant-mini {
-        opacity: 0.92;
-    }
-
-    .assistant-text {
-        line-height: 1.7;
-    }
-
-    .chat-bubble-ai {
-        background: linear-gradient(180deg, #EEF4FF 0%, #E0ECFF 100%) !important;
-        border: 1px solid rgba(96,165,250,0.20) !important;
-        color: #0F172A !important;
-        box-shadow: 0 10px 18px rgba(37,99,235,0.06);
-    }
-
-    .chat-bubble-user {
-        background: #FFFFFF !important;
-        border: 1px solid rgba(148,163,184,0.18) !important;
-        color: #0F172A !important;
-        box-shadow: 0 8px 16px rgba(15,23,42,0.04);
-    }
-
-    .assistant-card .stButton > button[kind="primary"] {
-        background: linear-gradient(135deg, #4F46E5 0%, #2563EB 55%, #06B6D4 100%) !important;
+    .hero-pill {
+        background: rgba(255,255,255,0.18) !important;
+        border: 1px solid rgba(255,255,255,0.28) !important;
         color: #FFFFFF !important;
-        border: none !important;
-        box-shadow: 0 16px 30px rgba(79,70,229,0.20) !important;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.18);
+        text-shadow: 0 1px 1px rgba(0,0,0,0.16);
+    }
+    .hero-pill * { color: #FFFFFF !important; }
+
+    .soft-card,
+    .mini-soft-card,
+    .spotlight-side-card,
+    .movement-side-shell,
+    .feature-signal,
+    .launch-grid-card,
+    .report-preview-shell,
+    .report-image-shell,
+    .sidebar-user-card,
+    .limit-card-premium,
+    .sticky-top-shell,
+    .top-nav-premium,
+    .legal-footer,
+    .home-pie-card,
+    .stExpander {
+        background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(247,250,255,0.98)) !important;
+        border: 1px solid rgba(148,163,184,0.18) !important;
+        box-shadow: 0 14px 28px rgba(15,23,42,0.05) !important;
     }
 
-    .assistant-card .stButton > button[kind="secondary"] {
-        background: linear-gradient(180deg, #FFFFFF 0%, #F8FBFF 100%) !important;
+    .soft-card *,
+    .mini-soft-card *,
+    .spotlight-side-card *,
+    .movement-side-shell *,
+    .feature-signal *,
+    .launch-grid-card *,
+    .report-preview-shell *,
+    .report-image-shell *,
+    .sidebar-user-card *,
+    .limit-card-premium *,
+    .sticky-top-shell *,
+    .top-nav-premium *,
+    .legal-footer *,
+    .home-pie-card * {
         color: #0F172A !important;
-        border: 1px solid rgba(99,102,241,0.16) !important;
     }
 
-    .assistant-card input,
-    .assistant-card textarea,
-    .assistant-card [data-baseweb="select"] > div {
+    .soft-card .section-caption,
+    .soft-card .tiny-muted,
+    .mini-soft-card .tiny-muted,
+    .spotlight-side-card .section-caption,
+    .spotlight-side-card .tiny-muted,
+    .movement-side-shell .tiny-muted,
+    .feature-signal .feature-signal-sub,
+    .launch-grid-card .launch-grid-copy,
+    .report-preview-shell .section-caption,
+    .report-image-shell .report-image-note,
+    .sidebar-user-card .sidebar-user-label,
+    .sidebar-user-card .tiny-muted,
+    .top-nav-premium .tiny-muted,
+    .legal-footer,
+    .legal-footer a,
+    .home-pie-sub {
+        color: #64748B !important;
+    }
+
+    .soft-card .form-preview-value,
+    .mini-soft-card .form-preview-value,
+    .spotlight-side-card .form-preview-value,
+    .movement-side-shell .form-preview-value,
+    .soft-card .kpi-value,
+    .mini-soft-card .kpi-value,
+    .soft-card .kpi-label,
+    .mini-soft-card .kpi-label {
         color: #0F172A !important;
-        background: #FFFFFF !important;
     }
 
-    .assistant-card p,
-    .assistant-card span,
-    .assistant-card div,
-    .assistant-card label {
-        color: inherit;
+    .soft-card .pill-ingreso { color: #166534 !important; background: #DCFCE7 !important; border-color: #86EFAC !important; }
+    .soft-card .pill-gasto { color: #B91C1C !important; background: #FEE2E2 !important; border-color: #FCA5A5 !important; }
+    .soft-card .pill-debt { color: #1D4ED8 !important; background: #DBEAFE !important; border-color: #93C5FD !important; }
+    .soft-card .pill-pay { color: #B45309 !important; background: #FEF3C7 !important; border-color: #FCD34D !important; }
+
+    .movement-chip-income { color: #166534 !important; }
+    .movement-chip-expense { color: #B91C1C !important; }
+    .movement-chip-debt { color: #1D4ED8 !important; }
+    .movement-chip-pay { color: #B45309 !important; }
+    .movement-chip-info { color: #0C4A6E !important; }
+    .movement-chip-recurrent { color: #6D28D9 !important; }
+    .movement-chip-alert { color: #BE123C !important; }
+
+    div[data-testid="stExpander"] {
+        border-radius: 18px !important;
+        overflow: hidden !important;
+        background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(247,250,255,0.98)) !important;
+        border: 1px solid rgba(148,163,184,0.18) !important;
+        box-shadow: 0 12px 24px rgba(15,23,42,0.04) !important;
     }
 
-    .zentix-sidebar-fab {
-        position: fixed;
-        top: 0.9rem;
-        left: 0.9rem;
-        z-index: 1000000;
-        width: 52px;
-        height: 52px;
-        border: none;
-        border-radius: 18px;
-        background: linear-gradient(135deg, #4F46E5 0%, #2563EB 55%, #06B6D4 100%);
-        color: #FFFFFF;
-        box-shadow: 0 18px 34px rgba(79,70,229,0.26);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;
+    div[data-testid="stExpander"] summary,
+    div[data-testid="stExpander"] summary *,
+    div[data-testid="stExpander"] label,
+    div[data-testid="stExpander"] p,
+    div[data-testid="stExpander"] span,
+    div[data-testid="stExpander"] div {
+        color: #0F172A !important;
     }
 
-    .zentix-sidebar-fab:hover {
-        transform: translateY(-1px) scale(1.02);
-        box-shadow: 0 22px 38px rgba(79,70,229,0.30);
-        filter: brightness(1.02);
+    div[data-testid="stExpander"] .tiny-muted,
+    div[data-testid="stExpander"] .section-caption,
+    div[data-testid="stExpander"] .launch-grid-copy,
+    div[data-testid="stExpander"] .sidebar-user-label {
+        color: #64748B !important;
     }
 
-    .zentix-sidebar-fab svg {
-        width: 22px;
-        height: 22px;
-        stroke: currentColor;
+    .premium-floating-guide {
+        background:
+            radial-gradient(circle at top left, rgba(255,255,255,0.14), transparent 28%),
+            linear-gradient(135deg, #111827 0%, #1E293B 58%, #312E81 100%) !important;
+        border: 1px solid rgba(129,140,248,0.24) !important;
+        box-shadow: 0 24px 48px rgba(15,23,42,0.22) !important;
     }
 
-    .zentix-sidebar-fab.is-open {
-        left: 18.8rem;
+    .premium-floating-guide *,
+    .premium-floating-guide-title,
+    .premium-floating-guide-copy,
+    .premium-floating-guide .tiny-muted,
+    .premium-floating-guide .assistant-mini {
+        color: #F8FAFC !important;
+    }
+
+    .premium-floating-guide .tiny-muted {
+        opacity: 0.82;
+    }
+
+    .sidebar-brand-title,
+    .sidebar-user-name,
+    .top-nav-premium-title {
+        color: #0F172A !important;
+    }
+
+    [data-testid="stSidebar"] {
+        box-shadow: inset -1px 0 0 rgba(255,255,255,0.8), 10px 0 28px rgba(15,23,42,0.04) !important;
     }
 
     @media (max-width: 900px) {
-        .zentix-sidebar-fab.is-open {
-            left: 0.9rem;
+        .premium-floating-guide {
+            width: min(360px, calc(100vw - 1rem)) !important;
+            right: 0.5rem !important;
+            bottom: 0.5rem !important;
         }
     }
 
@@ -1175,6 +1218,33 @@ def aplicar_nav_desde_query(paginas_validas):
                 pass
 
 
+
+def maybe_handle_special_nav_actions():
+    try:
+        nav = st.query_params.get("nav")
+    except Exception:
+        nav = None
+
+    if isinstance(nav, list):
+        nav = nav[0] if nav else None
+
+    if nav == "__logout__":
+        try:
+            supabase.auth.sign_out()
+        except Exception:
+            pass
+        st.session_state.user = None
+        st.session_state["zentix_access_token"] = None
+        st.session_state["zentix_refresh_token"] = None
+        try:
+            del st.query_params["nav"]
+        except Exception:
+            try:
+                st.query_params.clear()
+            except Exception:
+                pass
+        st.rerun()
+
 def render_transition_overlay():
     if not st.session_state.get("zentix_show_transition"):
         return
@@ -1216,86 +1286,173 @@ def render_transition_overlay():
 
 
 
+def inyectar_sidebar_drawer(nombre_usuario, plan_actual, consultas_usadas, consultas_limite, pagina_actual):
+    payload = {
+        "nombre": str(nombre_usuario or "Usuario"),
+        "plan": str((plan_actual or {}).get("plan", "free")).upper(),
+        "consultas": int(consultas_usadas or 0),
+        "limite": int(consultas_limite or 0),
+        "pagina": str(pagina_actual or "Inicio"),
+        "items": [
+            {"page": "Inicio", "label": "Inicio", "icon": "🏠"},
+            {"page": "Registrar", "label": "Registrar", "icon": "➕"},
+            {"page": "Análisis", "label": "Análisis", "icon": "📈"},
+            {"page": "Ahorro", "label": "Ahorro", "icon": "🎯"},
+            {"page": "Perfil", "label": "Perfil", "icon": "⚙️"},
+        ]
+    }
 
-def render_sidebar_toggle_fab():
-    components.html(
-        """
-        <script>
-        (function() {
-          const doc = window.parent.document;
-          const existing = doc.getElementById('zentix-sidebar-fab');
-          if (existing) {
-            updateState(existing);
-            return;
-          }
+    drawer_html = f"""
+    <script>
+    (function() {{
+      const data = {json.dumps(payload, ensure_ascii=False)};
+      const doc = window.parent.document;
+      const rootId = "zentix-drawer-root";
+      const prev = doc.getElementById(rootId);
+      if (prev) prev.remove();
 
-          const fab = doc.createElement('button');
-          fab.id = 'zentix-sidebar-fab';
-          fab.className = 'zentix-sidebar-fab';
-          fab.setAttribute('aria-label', 'Mostrar u ocultar menú lateral');
-          fab.innerHTML = `
-            <svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round">
-              <path d="M4 7h16"></path>
-              <path d="M4 12h16"></path>
-              <path d="M4 17h16"></path>
-            </svg>`;
+      const root = doc.createElement("div");
+      root.id = rootId;
+      root.innerHTML = `
+        <style>
+          #zentix-drawer-root * {{ box-sizing: border-box; font-family: Inter, system-ui, -apple-system, sans-serif; }}
+          #zentix-drawer-fab {{
+            position: fixed; top: 14px; left: 14px; z-index: 1000000;
+            width: 52px; height: 52px; border: none; border-radius: 18px; cursor: pointer;
+            background: linear-gradient(135deg, #4F46E5 0%, #2563EB 60%, #06B6D4 100%);
+            color: white; box-shadow: 0 18px 32px rgba(79,70,229,0.22);
+            display:flex; align-items:center; justify-content:center; font-size: 22px; font-weight: 900;
+          }}
+          #zentix-drawer-overlay {{
+            position: fixed; inset: 0; z-index: 999999; pointer-events: none;
+          }}
+          #zentix-drawer-overlay.is-open {{ pointer-events: auto; }}
+          #zentix-drawer-backdrop {{
+            position: absolute; inset: 0; background: rgba(15,23,42,0.18); backdrop-filter: blur(4px);
+            opacity: 0; transition: opacity .22s ease;
+          }}
+          #zentix-drawer-overlay.is-open #zentix-drawer-backdrop {{ opacity: 1; }}
+          #zentix-drawer-panel {{
+            position: absolute; top: 0; left: 0; height: 100%; width: min(320px, 88vw);
+            background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(247,250,255,0.99));
+            border-right: 1px solid rgba(148,163,184,0.18);
+            box-shadow: 18px 0 40px rgba(15,23,42,0.10);
+            transform: translateX(-104%); transition: transform .22s ease;
+            padding: 18px 16px 18px 16px; overflow-y: auto;
+          }}
+          #zentix-drawer-overlay.is-open #zentix-drawer-panel {{ transform: translateX(0); }}
+          #zentix-drawer-close {{
+            position: absolute; top: 14px; right: 14px; width: 40px; height: 40px; border: none; border-radius: 14px;
+            background: #EEF2FF; color: #4338CA; cursor: pointer; font-size: 22px; font-weight: 700;
+          }}
+          #zentix-drawer-brand {{
+            padding: 8px 4px 16px 4px; border-bottom: 1px solid rgba(148,163,184,0.14); margin-bottom: 16px;
+          }}
+          #zentix-drawer-brand-title {{ font-size: 1.2rem; font-weight: 900; color: #0F172A; }}
+          #zentix-drawer-brand-sub {{ color: #64748B; font-size: 0.88rem; margin-top: 4px; }}
+          #zentix-drawer-user {{
+            background: linear-gradient(180deg, #FFFFFF 0%, #F8FBFF 100%);
+            border: 1px solid rgba(148,163,184,0.18); border-radius: 18px; padding: 12px 14px; margin-bottom: 16px;
+          }}
+          #zentix-drawer-user .label {{ color: #64748B; font-size: 0.78rem; }}
+          #zentix-drawer-user .name {{ color: #0F172A; font-size: 1rem; font-weight: 900; margin-top: 2px; }}
+          #zentix-drawer-user .meta {{ color: #475569; font-size: 0.86rem; margin-top: 6px; }}
+          #zentix-drawer-section {{
+            color: #475569; text-transform: uppercase; letter-spacing: .11em; font-size: 0.73rem; font-weight: 900;
+            margin: 14px 4px 10px 4px;
+          }}
+          .zentix-drawer-link {{
+            display:flex; align-items:center; gap: 12px; width: 100%; padding: 12px 14px; margin-bottom: 10px;
+            background: linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%); border: 1px solid rgba(148,163,184,0.18);
+            border-radius: 16px; color: #0F172A; cursor: pointer; text-align: left; font-size: 0.97rem; font-weight: 800;
+            box-shadow: 0 10px 20px rgba(15,23,42,0.04);
+          }}
+          .zentix-drawer-link.active {{
+            background: linear-gradient(135deg, #4F46E5 0%, #2563EB 60%, #06B6D4 100%);
+            color: white; border-color: transparent; box-shadow: 0 16px 30px rgba(79,70,229,0.20);
+          }}
+          .zentix-drawer-link .icon {{ width: 24px; text-align: center; font-size: 1rem; }}
+          #zentix-drawer-footer {{ margin-top: 18px; padding-top: 16px; border-top: 1px solid rgba(148,163,184,0.14); }}
+          #zentix-drawer-logout {{
+            width: 100%; padding: 12px 14px; border-radius: 16px; border: 1px solid rgba(239,68,68,0.18);
+            background: linear-gradient(180deg, #FFF1F2 0%, #FFFFFF 100%); color: #B91C1C; cursor: pointer; font-weight: 800;
+          }}
+          @media (max-width: 900px) {{
+            #zentix-drawer-fab {{ width: 50px; height: 50px; top: 12px; left: 12px; }}
+            #zentix-drawer-panel {{ width: min(320px, 90vw); }}
+          }}
+        </style>
+        <button id="zentix-drawer-fab" aria-label="Abrir menú lateral">☰</button>
+        <div id="zentix-drawer-overlay">
+          <div id="zentix-drawer-backdrop"></div>
+          <aside id="zentix-drawer-panel" aria-label="Menú lateral Zentix">
+            <button id="zentix-drawer-close" aria-label="Cerrar menú">×</button>
+            <div id="zentix-drawer-brand">
+              <div id="zentix-drawer-brand-title">Zentix</div>
+              <div id="zentix-drawer-brand-sub">Menú premium desplegable</div>
+            </div>
+            <div id="zentix-drawer-user">
+              <div class="label">Sesión activa</div>
+              <div class="name">${{data.nombre}}</div>
+              <div class="meta">Plan ${{data.plan}} · IA ${{data.consultas}}/${{data.limite}}</div>
+            </div>
+            <div id="zentix-drawer-section">Navegación</div>
+            <div id="zentix-drawer-links"></div>
+            <div id="zentix-drawer-footer">
+              <button id="zentix-drawer-logout">Cerrar sesión</button>
+            </div>
+          </aside>
+        </div>
+      `;
+      doc.body.appendChild(root);
 
-          function isVisible(el) {
-            if (!el) return false;
-            const style = window.getComputedStyle(el);
-            const rect = el.getBoundingClientRect();
-            return style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 0 && rect.height > 0;
-          }
+      const overlay = doc.getElementById("zentix-drawer-overlay");
+      const fab = doc.getElementById("zentix-drawer-fab");
+      const closeBtn = doc.getElementById("zentix-drawer-close");
+      const backdrop = doc.getElementById("zentix-drawer-backdrop");
+      const linksContainer = doc.getElementById("zentix-drawer-links");
+      const logoutBtn = doc.getElementById("zentix-drawer-logout");
 
-          function findToggleButton() {
-            const candidates = Array.from(doc.querySelectorAll('button'));
-            const keywords = ['sidebar', 'barra lateral', 'toggle sidebar', 'collapse sidebar', 'expand sidebar', 'show sidebar', 'hide sidebar'];
-            for (const btn of candidates) {
-              const text = [btn.getAttribute('aria-label') || '', btn.getAttribute('title') || '', btn.innerText || '']
-                .join(' ')
-                .toLowerCase();
-              if (keywords.some(k => text.includes(k)) && isVisible(btn)) return btn;
-            }
-            const collapsed = doc.querySelector('[data-testid="collapsedControl"] button');
-            if (isVisible(collapsed)) return collapsed;
-            const sidebar = doc.querySelector('section[data-testid="stSidebar"]');
-            if (sidebar) {
-              const inside = sidebar.querySelector('button[kind="header"], button[aria-label], button[title]');
-              if (isVisible(inside)) return inside;
-            }
-            return null;
-          }
+      function openDrawer() {{ overlay.classList.add("is-open"); }}
+      function closeDrawer() {{ overlay.classList.remove("is-open"); }}
 
-          function sidebarIsOpen() {
-            const sidebar = doc.querySelector('section[data-testid="stSidebar"]');
-            if (!sidebar) return false;
-            const style = window.getComputedStyle(sidebar);
-            const rect = sidebar.getBoundingClientRect();
-            return style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 180 && style.transform !== 'translateX(-100%)';
-          }
+      function go(page) {{
+        const url = new URL(window.parent.location.href);
+        url.searchParams.set("nav", page);
+        window.parent.location.href = url.toString();
+      }}
 
-          function updateState(el) {
-            el.classList.toggle('is-open', sidebarIsOpen() && window.innerWidth > 900);
-          }
+      data.items.forEach((item) => {{
+        const btn = doc.createElement("button");
+        btn.className = "zentix-drawer-link" + (item.page === data.pagina ? " active" : "");
+        btn.innerHTML = `<span class="icon">${{item.icon}}</span><span>${{item.label}}</span>`;
+        btn.addEventListener("click", function() {{
+          closeDrawer();
+          go(item.page);
+        }});
+        linksContainer.appendChild(btn);
+      }});
 
-          fab.addEventListener('click', function() {
-            const toggle = findToggleButton();
-            if (toggle) {
-              toggle.click();
-              setTimeout(() => updateState(fab), 240);
-              setTimeout(() => updateState(fab), 700);
-            }
-          });
+      fab.addEventListener("click", function(ev) {{
+        ev.preventDefault();
+        ev.stopPropagation();
+        overlay.classList.toggle("is-open");
+      }});
+      closeBtn.addEventListener("click", closeDrawer);
+      backdrop.addEventListener("click", closeDrawer);
+      logoutBtn.addEventListener("click", function() {{
+        const url = new URL(window.parent.location.href);
+        url.searchParams.set("nav", "__logout__");
+        window.parent.location.href = url.toString();
+      }});
 
-          doc.body.appendChild(fab);
-          updateState(fab);
-          window.addEventListener('resize', () => updateState(fab));
-          setInterval(() => updateState(fab), 1200);
-        })();
-        </script>
-        """,
-        height=0,
-    )
+      if (window.parent.innerWidth >= 1200) {{
+        openDrawer();
+      }}
+    }})();
+    </script>
+    """
+    components.html(drawer_html, height=0)
 
 def zentix_brand_header():
     st.markdown("<div class='zentix-brand-shell fade-up'>", unsafe_allow_html=True)
@@ -6442,6 +6599,8 @@ if "zentix_refresh_token" not in st.session_state:
 maybe_handle_public_automation_job()
 launch_cfg = obtener_config_lanzamiento()
 
+maybe_handle_special_nav_actions()
+
 if st.session_state.user is None and st.session_state.get("zentix_access_token") and st.session_state.get("zentix_refresh_token"):
     try:
         supabase.auth.set_session(st.session_state["zentix_access_token"], st.session_state["zentix_refresh_token"])
@@ -6574,6 +6733,7 @@ if "pagina" not in st.session_state or st.session_state.pagina not in paginas_di
     st.session_state.pagina = "Inicio"
 
 aplicar_nav_desde_query(paginas_disponibles)
+inyectar_sidebar_drawer(nombre_usuario, plan_usuario_actual, consultas_usadas_hoy, consultas_limite_hoy, st.session_state.pagina)
 
 with st.sidebar:
     col_sb_icon, col_sb_text = st.columns([1, 3])
@@ -6621,7 +6781,6 @@ with st.sidebar:
 
 render_nav_rapida_premium()
 render_transition_overlay()
-render_sidebar_toggle_fab()
 
 pagina = st.session_state.pagina
 track_page_view_once(user_id, pagina)
