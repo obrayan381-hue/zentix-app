@@ -1122,6 +1122,64 @@ def aplicar_estilo_zentix():
     }
 
 
+    /* ===== V5 · contraste explícito IA ===== */
+    .assistant-card {
+        background:
+            radial-gradient(circle at top left, rgba(255,255,255,0.10), transparent 28%),
+            linear-gradient(135deg, #0F172A 0%, #1E293B 56%, #312E81 100%) !important;
+        border: 1px solid rgba(129,140,248,0.18) !important;
+        box-shadow: 0 24px 48px rgba(15,23,42,0.18) !important;
+    }
+    .assistant-card,
+    .assistant-card *,
+    .assistant-card .assistant-title,
+    .assistant-card .assistant-text,
+    .assistant-card .assistant-mini,
+    .assistant-card .quick-action-note,
+    .assistant-card .chat-label,
+    .assistant-card .chat-input-label,
+    .assistant-card label,
+    .assistant-card p,
+    .assistant-card span,
+    .assistant-card div {
+        color: #F8FAFC !important;
+    }
+    .assistant-card .assistant-mini,
+    .assistant-card .quick-action-note {
+        color: rgba(248,250,252,0.88) !important;
+    }
+    .assistant-card .stTextInput > div > div > input {
+        background: rgba(255,255,255,0.96) !important;
+        color: #0F172A !important;
+        border: 1px solid rgba(255,255,255,0.18) !important;
+    }
+    .assistant-card .stButton > button[kind="secondary"] {
+        background: rgba(255,255,255,0.12) !important;
+        color: #FFFFFF !important;
+        border: 1px solid rgba(255,255,255,0.18) !important;
+    }
+    .premium-floating-guide {
+        background:
+            radial-gradient(circle at top left, rgba(255,255,255,0.12), transparent 28%),
+            linear-gradient(135deg, #0B1220 0%, #172554 54%, #312E81 100%) !important;
+        border: 1px solid rgba(129,140,248,0.22) !important;
+        box-shadow: 0 24px 48px rgba(15,23,42,0.22) !important;
+    }
+    .premium-floating-guide,
+    .premium-floating-guide *,
+    .premium-floating-guide-title,
+    .premium-floating-guide-copy,
+    .premium-floating-guide .tiny-muted,
+    .premium-floating-guide .assistant-mini,
+    .premium-floating-guide p,
+    .premium-floating-guide span,
+    .premium-floating-guide div {
+        color: #F8FAFC !important;
+    }
+    .premium-floating-guide .tiny-muted {
+        color: rgba(248,250,252,0.82) !important;
+    }
+
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     </style>
@@ -1294,11 +1352,11 @@ def inyectar_sidebar_drawer(nombre_usuario, plan_actual, consultas_usadas, consu
         "limite": int(consultas_limite or 0),
         "pagina": str(pagina_actual or "Inicio"),
         "items": [
-            {"page": "Inicio", "label": "Inicio", "icon": "🏠"},
-            {"page": "Registrar", "label": "Registrar", "icon": "➕"},
-            {"page": "Análisis", "label": "Análisis", "icon": "📈"},
-            {"page": "Ahorro", "label": "Ahorro", "icon": "🎯"},
-            {"page": "Perfil", "label": "Perfil", "icon": "⚙️"},
+            {"page": "Inicio", "label": "Inicio", "icon": "🏠", "streamlit_label": "🏠 Inicio"},
+            {"page": "Registrar", "label": "Registrar", "icon": "➕", "streamlit_label": "➕ Registrar"},
+            {"page": "Análisis", "label": "Análisis", "icon": "📈", "streamlit_label": "📈 Análisis"},
+            {"page": "Ahorro", "label": "Ahorro", "icon": "🎯", "streamlit_label": "🎯 Ahorro"},
+            {"page": "Perfil", "label": "Perfil", "icon": "⚙️", "streamlit_label": "⚙️ Perfil"},
         ]
     }
 
@@ -1323,9 +1381,7 @@ def inyectar_sidebar_drawer(nombre_usuario, plan_actual, consultas_usadas, consu
             color: white; box-shadow: 0 18px 32px rgba(79,70,229,0.22);
             display:flex; align-items:center; justify-content:center; font-size: 22px; font-weight: 900;
           }}
-          #zentix-drawer-overlay {{
-            position: fixed; inset: 0; z-index: 999999; pointer-events: none;
-          }}
+          #zentix-drawer-overlay {{ position: fixed; inset: 0; z-index: 999999; pointer-events: none; }}
           #zentix-drawer-overlay.is-open {{ pointer-events: auto; }}
           #zentix-drawer-backdrop {{
             position: absolute; inset: 0; background: rgba(15,23,42,0.18); backdrop-filter: blur(4px);
@@ -1345,9 +1401,7 @@ def inyectar_sidebar_drawer(nombre_usuario, plan_actual, consultas_usadas, consu
             position: absolute; top: 14px; right: 14px; width: 40px; height: 40px; border: none; border-radius: 14px;
             background: #EEF2FF; color: #4338CA; cursor: pointer; font-size: 22px; font-weight: 700;
           }}
-          #zentix-drawer-brand {{
-            padding: 8px 4px 16px 4px; border-bottom: 1px solid rgba(148,163,184,0.14); margin-bottom: 16px;
-          }}
+          #zentix-drawer-brand {{ padding: 8px 4px 16px 4px; border-bottom: 1px solid rgba(148,163,184,0.14); margin-bottom: 16px; }}
           #zentix-drawer-brand-title {{ font-size: 1.2rem; font-weight: 900; color: #0F172A; }}
           #zentix-drawer-brand-sub {{ color: #64748B; font-size: 0.88rem; margin-top: 4px; }}
           #zentix-drawer-user {{
@@ -1357,10 +1411,7 @@ def inyectar_sidebar_drawer(nombre_usuario, plan_actual, consultas_usadas, consu
           #zentix-drawer-user .label {{ color: #64748B; font-size: 0.78rem; }}
           #zentix-drawer-user .name {{ color: #0F172A; font-size: 1rem; font-weight: 900; margin-top: 2px; }}
           #zentix-drawer-user .meta {{ color: #475569; font-size: 0.86rem; margin-top: 6px; }}
-          #zentix-drawer-section {{
-            color: #475569; text-transform: uppercase; letter-spacing: .11em; font-size: 0.73rem; font-weight: 900;
-            margin: 14px 4px 10px 4px;
-          }}
+          #zentix-drawer-section {{ color: #475569; text-transform: uppercase; letter-spacing: .11em; font-size: 0.73rem; font-weight: 900; margin: 14px 4px 10px 4px; }}
           .zentix-drawer-link {{
             display:flex; align-items:center; gap: 12px; width: 100%; padding: 12px 14px; margin-bottom: 10px;
             background: linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%); border: 1px solid rgba(148,163,184,0.18);
@@ -1415,11 +1466,18 @@ def inyectar_sidebar_drawer(nombre_usuario, plan_actual, consultas_usadas, consu
 
       function openDrawer() {{ overlay.classList.add("is-open"); }}
       function closeDrawer() {{ overlay.classList.remove("is-open"); }}
-
-      function go(page) {{
-        const url = new URL(window.parent.location.href);
-        url.searchParams.set("nav", page);
-        window.parent.location.href = url.toString();
+      function normalize(txt) {{ return String(txt || "").replace(/\s+/g, " ").trim(); }}
+      function clickStreamlitButton(label) {{
+        const wanted = normalize(label);
+        const buttons = Array.from(doc.querySelectorAll('button'));
+        for (const btn of buttons) {{
+          const txt = normalize(btn.innerText || btn.textContent || "");
+          if (txt === wanted || txt.includes(wanted)) {{
+            btn.click();
+            return true;
+          }}
+        }}
+        return false;
       }}
 
       data.items.forEach((item) => {{
@@ -1428,7 +1486,12 @@ def inyectar_sidebar_drawer(nombre_usuario, plan_actual, consultas_usadas, consu
         btn.innerHTML = `<span class="icon">${{item.icon}}</span><span>${{item.label}}</span>`;
         btn.addEventListener("click", function() {{
           closeDrawer();
-          go(item.page);
+          const ok = clickStreamlitButton(item.streamlit_label || item.label);
+          if (!ok) {{
+            const url = new URL(window.parent.location.href);
+            url.searchParams.set("nav", item.page);
+            window.parent.location.href = url.toString();
+          }}
         }});
         linksContainer.appendChild(btn);
       }});
@@ -1441,9 +1504,13 @@ def inyectar_sidebar_drawer(nombre_usuario, plan_actual, consultas_usadas, consu
       closeBtn.addEventListener("click", closeDrawer);
       backdrop.addEventListener("click", closeDrawer);
       logoutBtn.addEventListener("click", function() {{
-        const url = new URL(window.parent.location.href);
-        url.searchParams.set("nav", "__logout__");
-        window.parent.location.href = url.toString();
+        closeDrawer();
+        const ok = clickStreamlitButton("Cerrar sesión");
+        if (!ok) {{
+          const url = new URL(window.parent.location.href);
+          url.searchParams.set("nav", "__logout__");
+          window.parent.location.href = url.toString();
+        }}
       }});
 
       if (window.parent.innerWidth >= 1200) {{
@@ -5591,7 +5658,7 @@ def render_avatar(pagina, nombre, total_ingresos, total_gastos, ahorro_actual, u
         st.session_state[input_key] = ""
         st.session_state[clear_key] = False
 
-    st.markdown('<div class="assistant-card">', unsafe_allow_html=True)
+    st.markdown('<div class="assistant-card" style="background:linear-gradient(135deg,#0F172A 0%, #1E293B 56%, #312E81 100%);border:1px solid rgba(129,140,248,0.18);box-shadow:0 24px 48px rgba(15,23,42,0.18);">', unsafe_allow_html=True)
 
     col1, col2 = st.columns([1.15, 4])
 
@@ -6470,13 +6537,13 @@ def render_bienvenida_flotante(nombre, pagina_actual):
 
     ultimo = st.session_state.get("zentix_last_tipo") or "Sin movimientos"
     st.markdown(f"""
-    <div class='premium-floating-guide'>
+    <div class='premium-floating-guide' style='background:linear-gradient(135deg,#0F172A 0%, #1E293B 58%, #312E81 100%); border:1px solid rgba(129,140,248,0.24); box-shadow:0 24px 48px rgba(15,23,42,0.22); color:#F8FAFC;'>
         <div style='display:flex;gap:0.85rem;align-items:flex-start;'>
             <div>{avatar_html}</div>
             <div style='flex:1;'>
-                <div class='premium-floating-guide-title'>Zentix IA</div>
-                <div class='premium-floating-guide-copy'>{mensaje}</div>
-                <div class='tiny-muted' style='margin-top:0.45rem;'>Último movimiento: {ultimo} · Vista actual: {pagina_actual}</div>
+                <div class='premium-floating-guide-title' style='color:#FFFFFF;font-weight:900;'>Zentix IA</div>
+                <div class='premium-floating-guide-copy' style='color:#F8FAFC;line-height:1.55;'>{mensaje}</div>
+                <div class='tiny-muted' style='margin-top:0.45rem;color:rgba(248,250,252,0.82);'>Último movimiento: {ultimo} · Vista actual: {pagina_actual}</div>
             </div>
         </div>
     </div>
