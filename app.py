@@ -1122,62 +1122,48 @@ def aplicar_estilo_zentix():
     }
 
 
-    /* ===== V5 · contraste explícito IA ===== */
-    .assistant-card {
-        background:
-            radial-gradient(circle at top left, rgba(255,255,255,0.10), transparent 28%),
-            linear-gradient(135deg, #0F172A 0%, #1E293B 56%, #312E81 100%) !important;
-        border: 1px solid rgba(129,140,248,0.18) !important;
-        box-shadow: 0 24px 48px rgba(15,23,42,0.18) !important;
-    }
+    /* ===== V5 · contraste y limpieza final ===== */
     .assistant-card,
     .assistant-card *,
+    .premium-floating-guide,
+    .premium-floating-guide * {
+        color: #0F172A !important;
+        text-shadow: none !important;
+    }
+
+    .assistant-card,
+    .premium-floating-guide {
+        background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(247,250,255,0.98)) !important;
+        border: 1px solid rgba(148,163,184,0.18) !important;
+        box-shadow: 0 14px 28px rgba(15,23,42,0.05) !important;
+    }
+
     .assistant-card .assistant-title,
     .assistant-card .assistant-text,
+    .premium-floating-guide-title,
+    .premium-floating-guide-copy {
+        color: #0F172A !important;
+    }
+
     .assistant-card .assistant-mini,
     .assistant-card .quick-action-note,
     .assistant-card .chat-label,
     .assistant-card .chat-input-label,
-    .assistant-card label,
-    .assistant-card p,
-    .assistant-card span,
-    .assistant-card div {
-        color: #F8FAFC !important;
-    }
-    .assistant-card .assistant-mini,
-    .assistant-card .quick-action-note {
-        color: rgba(248,250,252,0.88) !important;
-    }
-    .assistant-card .stTextInput > div > div > input {
-        background: rgba(255,255,255,0.96) !important;
-        color: #0F172A !important;
-        border: 1px solid rgba(255,255,255,0.18) !important;
-    }
-    .assistant-card .stButton > button[kind="secondary"] {
-        background: rgba(255,255,255,0.12) !important;
-        color: #FFFFFF !important;
-        border: 1px solid rgba(255,255,255,0.18) !important;
-    }
-    .premium-floating-guide {
-        background:
-            radial-gradient(circle at top left, rgba(255,255,255,0.12), transparent 28%),
-            linear-gradient(135deg, #0B1220 0%, #172554 54%, #312E81 100%) !important;
-        border: 1px solid rgba(129,140,248,0.22) !important;
-        box-shadow: 0 24px 48px rgba(15,23,42,0.22) !important;
-    }
-    .premium-floating-guide,
-    .premium-floating-guide *,
-    .premium-floating-guide-title,
-    .premium-floating-guide-copy,
     .premium-floating-guide .tiny-muted,
-    .premium-floating-guide .assistant-mini,
-    .premium-floating-guide p,
-    .premium-floating-guide span,
-    .premium-floating-guide div {
-        color: #F8FAFC !important;
+    .premium-floating-guide .assistant-mini {
+        color: #475569 !important;
     }
-    .premium-floating-guide .tiny-muted {
-        color: rgba(248,250,252,0.82) !important;
+
+    .assistant-card .stButton > button,
+    .premium-floating-guide .stButton > button {
+        background: linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%) !important;
+        color: #0F172A !important;
+        border: 1px solid rgba(148,163,184,0.22) !important;
+    }
+
+    .assistant-card .stButton > button[kind="primary"],
+    .premium-floating-guide .stButton > button[kind="primary"] {
+        color: #FFFFFF !important;
     }
 
     #MainMenu {visibility: hidden;}
@@ -1188,6 +1174,25 @@ def aplicar_estilo_zentix():
 
 def money(value):
     return f"${float(value):,.0f}"
+
+def limpiar_cache_datos():
+    for fn_name in [
+        "obtener_movimientos",
+        "obtener_perfil",
+        "obtener_categorias_usuario",
+        "obtener_meta",
+        "obtener_deudas_usuario",
+        "obtener_cuentas_por_cobrar_usuario",
+        "obtener_o_crear_plan_usuario",
+        "obtener_uso_ia_hoy",
+        "obtener_nombre_meta_guardado",
+    ]:
+        fn = globals().get(fn_name)
+        if fn and hasattr(fn, "clear"):
+            try:
+                fn.clear()
+            except Exception:
+                pass
 
 
 def limpiar_formulario_registrar():
@@ -1251,9 +1256,9 @@ def aplicar_estilo_plotly(fig, height=360):
 
 
 def ir_a_pagina(destino):
-    st.session_state.pagina = destino
-    st.session_state["zentix_show_transition"] = True
-    st.rerun()
+    if st.session_state.get("pagina") != destino:
+        st.session_state.pagina = destino
+        st.rerun()
 
 
 def aplicar_nav_desde_query(paginas_validas):
@@ -1291,6 +1296,7 @@ def maybe_handle_special_nav_actions():
             supabase.auth.sign_out()
         except Exception:
             pass
+        limpiar_cache_datos()
         st.session_state.user = None
         st.session_state["zentix_access_token"] = None
         st.session_state["zentix_refresh_token"] = None
@@ -1304,45 +1310,7 @@ def maybe_handle_special_nav_actions():
         st.rerun()
 
 def render_transition_overlay():
-    if not st.session_state.get("zentix_show_transition"):
-        return
-    logo_html = ""
-    if icono_path.exists():
-        try:
-            logo_b64 = base64.b64encode(Path(icono_path).read_bytes()).decode()
-            logo_html = f"<img src='data:image/png;base64,{logo_b64}' style='width:88px;height:88px;object-fit:contain;margin-bottom:16px;'/>"
-        except Exception:
-            logo_html = ""
-    splash = f"""
-    <script>
-    const doc = window.parent.document;
-    const prev = doc.getElementById('zentix-transition-overlay');
-    if (prev) prev.remove();
-    const layer = doc.createElement('div');
-    layer.id = 'zentix-transition-overlay';
-    layer.innerHTML = `
-      <style>
-        #zentix-transition-overlay {{ position: fixed; inset:0; z-index:999999; display:flex; align-items:center; justify-content:center; background: linear-gradient(180deg, rgba(245,247,251,0.98), rgba(238,243,250,0.98)); backdrop-filter: blur(14px); opacity:1; transition: opacity .35s ease; }}
-        #zentix-transition-overlay.hide {{ opacity:0; }}
-        #zentix-transition-card {{ display:flex; flex-direction:column; align-items:center; justify-content:center; padding:28px 34px; border-radius:28px; background:rgba(255,255,255,0.96); border:1px solid rgba(79,70,229,0.10); box-shadow:0 24px 50px rgba(15,23,42,0.10); color:#0F172A; font-family:Inter,system-ui,sans-serif; }}
-        #zentix-spinner {{ width:36px;height:36px;border-radius:999px;border:4px solid rgba(79,70,229,0.12);border-top-color:#4F46E5;animation:zentixSpin .8s linear infinite;margin-top:8px; }}
-        @keyframes zentixSpin {{ from {{ transform:rotate(0deg); }} to {{ transform:rotate(360deg); }} }}
-      </style>
-      <div id='zentix-transition-card'>
-        {logo_html}
-        <div style='font-size:1.12rem;font-weight:900;margin-bottom:0.2rem;'>Zentix</div>
-        <div style='font-size:0.92rem;color:#64748B;margin-bottom:10px;'>Preparando tu siguiente vista…</div>
-        <div id='zentix-spinner'></div>
-      </div>`;
-    doc.body.appendChild(layer);
-    setTimeout(() => layer.classList.add('hide'), 420);
-    setTimeout(() => {{ try {{ layer.remove(); }} catch(e) {{}} }}, 820);
-    </script>
-    """
-    components.html(splash, height=0)
-    st.session_state["zentix_show_transition"] = False
-
-
+    return
 
 def inyectar_sidebar_drawer(nombre_usuario, plan_actual, consultas_usadas, consultas_limite, pagina_actual):
     payload = {
@@ -1612,6 +1580,7 @@ def obtener_plan_default():
     }
 
 
+@st.cache_data(ttl=60, show_spinner=False)
 def obtener_o_crear_plan_usuario(user_id):
     plan_default = obtener_plan_default()
 
@@ -1647,6 +1616,7 @@ def obtener_o_crear_plan_usuario(user_id):
     return plan_default
 
 
+@st.cache_data(ttl=15, show_spinner=False)
 def obtener_uso_ia_hoy(user_id):
     hoy = date.today().isoformat()
     session_key = f"uso_ia_local_{user_id}_{hoy}"
@@ -1737,7 +1707,9 @@ def insertar_movimiento_seguro(payload):
     last_error = None
     for candidate in candidatos:
         try:
-            return supabase.table("movimientos").insert(candidate).execute()
+            result = supabase.table("movimientos").insert(candidate).execute()
+            limpiar_cache_datos()
+            return result
         except Exception as e:
             last_error = e
 
@@ -1816,7 +1788,9 @@ def guardar_preferencias_usuario(user_id, payload):
     }
 
     try:
-        return supabase.table("preferencias_usuario").upsert(base, on_conflict="usuario_id").execute()
+        result = supabase.table("preferencias_usuario").upsert(base, on_conflict="usuario_id").execute()
+        limpiar_cache_datos()
+        return result
     except Exception:
         try:
             existe = (
@@ -1827,13 +1801,17 @@ def guardar_preferencias_usuario(user_id, payload):
                 .execute()
             )
             if existe.data:
-                return (
+                result = (
                     supabase.table("preferencias_usuario")
                     .update(base)
                     .eq("usuario_id", user_id)
                     .execute()
                 )
-            return supabase.table("preferencias_usuario").insert(base).execute()
+                limpiar_cache_datos()
+                return result
+            result = supabase.table("preferencias_usuario").insert(base).execute()
+            limpiar_cache_datos()
+            return result
         except Exception:
             return None
 
@@ -2262,6 +2240,7 @@ def guardar_control_recordatorios_usuario(user_id, updates):
     for candidate in candidates:
         try:
             supabase.table("preferencias_usuario").upsert(candidate, on_conflict="usuario_id").execute()
+            limpiar_cache_datos()
             break
         except Exception:
             continue
@@ -2474,6 +2453,7 @@ def normalizar_estado_deuda(valor):
     return "activa"
 
 
+@st.cache_data(ttl=20, show_spinner=False)
 def obtener_deudas_usuario(user_id):
     columnas = [
         "id", "usuario_id", "nombre", "prestamista", "monto_total",
@@ -2530,6 +2510,7 @@ def crear_deuda_segura(payload):
         try:
             result = supabase.table("deudas").insert(candidate).execute()
             if result.data:
+                limpiar_cache_datos()
                 return result.data[0]
         except Exception:
             continue
@@ -2546,20 +2527,24 @@ def actualizar_deuda_pago_seguro(deuda_id, nuevo_saldo):
     }
 
     try:
-        return (
+        result = (
             supabase.table("deudas")
             .update(payload)
             .eq("id", deuda_id)
             .execute()
         )
+        limpiar_cache_datos()
+        return result
     except Exception:
         try:
-            return (
+            result = (
                 supabase.table("deudas")
                 .update({"saldo_pendiente": saldo_final})
                 .eq("id", deuda_id)
                 .execute()
             )
+            limpiar_cache_datos()
+            return result
         except Exception:
             return None
 
@@ -2573,6 +2558,7 @@ def normalizar_estado_cxc(valor):
     return "activa"
 
 
+@st.cache_data(ttl=20, show_spinner=False)
 def obtener_cuentas_por_cobrar_usuario(user_id):
     columnas = [
         "id", "usuario_id", "nombre", "cliente", "monto_total",
@@ -2628,6 +2614,7 @@ def crear_cuenta_por_cobrar_segura(payload):
         try:
             result = supabase.table("cuentas_por_cobrar").insert(candidate).execute()
             if result.data:
+                limpiar_cache_datos()
                 return result.data[0]
         except Exception:
             continue
@@ -2644,20 +2631,24 @@ def actualizar_cuenta_por_cobrar_cobro_seguro(cxc_id, nuevo_saldo):
     }
 
     try:
-        return (
+        result = (
             supabase.table("cuentas_por_cobrar")
             .update(payload)
             .eq("id", cxc_id)
             .execute()
         )
+        limpiar_cache_datos()
+        return result
     except Exception:
         try:
-            return (
+            result = (
                 supabase.table("cuentas_por_cobrar")
                 .update({"saldo_pendiente": saldo_final})
                 .eq("id", cxc_id)
                 .execute()
             )
+            limpiar_cache_datos()
+            return result
         except Exception:
             return None
 
@@ -2820,24 +2811,28 @@ def actualizar_movimiento_seguro(movimiento_id, payload):
     last_error = None
     for candidate in candidatos:
         try:
-            return (
+            result = (
                 supabase.table("movimientos")
                 .update(candidate)
                 .eq("id", movimiento_id)
                 .execute()
             )
+            limpiar_cache_datos()
+            return result
         except Exception as e:
             last_error = e
     raise last_error
 
 
 def eliminar_movimiento_seguro(movimiento_id):
-    return (
+    result = (
         supabase.table("movimientos")
         .delete()
         .eq("id", movimiento_id)
         .execute()
     )
+    limpiar_cache_datos()
+    return result
 
 
 def recalcular_deudas_usuario_desde_movimientos(user_id, df_movs, df_deudas_actuales=None):
@@ -3807,7 +3802,7 @@ def render_dashboard_pro(nombre, df_base, df_mes_actual, df_cxc_local, total_ing
                     actual = item["grupo"]
                 grupos.append(
                     f"<div style='display:flex;justify-content:space-between;gap:1rem;padding:0.55rem 0;border-bottom:1px solid rgba(148,163,184,0.10);'>"
-                    f"<div><div style='font-weight:800;color:#F8FAFC;'>{item['titulo']}</div><div class='tiny-muted'>{item['subtitulo']} · {item['tipo']}</div></div>"
+                    f"<div><div style='font-weight:800;color:#0F172A;'>{item['titulo']}</div><div class='tiny-muted'>{item['subtitulo']} · {item['tipo']}</div></div>"
                     f"<div style='font-weight:900;color:{item['color']};white-space:nowrap;'>{item['monto_txt']}</div></div>"
                 )
             grupos.append("</div>")
@@ -4199,21 +4194,7 @@ def generar_imagen_reporte_premium(nombre_usuario, plan_nombre, periodicidad, in
 
 
 def render_nav_rapida_premium():
-    st.markdown("<div class='top-nav-premium fade-up'><div class='top-nav-premium-title'>Centro rápido</div>", unsafe_allow_html=True)
-    nav_items = [
-        ("🏠", "Inicio"),
-        ("➕", "Registrar"),
-        ("📈", "Análisis"),
-        ("🎯", "Ahorro"),
-        ("⚙️", "Perfil"),
-    ]
-    cols = st.columns(len(nav_items))
-    for col, (icono, pagina_destino) in zip(cols, nav_items):
-        with col:
-            activo = st.session_state.pagina == pagina_destino
-            if st.button(f"{icono} {pagina_destino}", key=f"nav_top_{pagina_destino}", use_container_width=True, type="primary" if activo else "secondary"):
-                ir_a_pagina(pagina_destino)
-    st.markdown("<div class='sidebar-nav-note'>La navegación principal quedó más parecida a una app: clara, directa y sin capas innecesarias sobre el dashboard.</div></div>", unsafe_allow_html=True)
+    return
 
 
 def render_reporte_descargable(nombre_usuario, plan_actual, df_base, user_id=None):
@@ -4261,6 +4242,7 @@ def render_reporte_descargable(nombre_usuario, plan_actual, df_base, user_id=Non
             if descargado:
                 registrar_evento_producto("report_download", user_id=user_id, pagina="Análisis", detalle=f"{periodicidad} {inicio_rep} {fin_rep}")
             st.caption("Descarga el PDF y podrás imprimirlo desde tu navegador o visor favorito.")
+@st.cache_data(ttl=60, show_spinner=False)
 def obtener_nombre_meta_guardado(user_id):
     try:
         result = (
@@ -4286,34 +4268,44 @@ def guardar_meta_segura(user_id, meta_valor, nombre_meta, meta_result):
 
     try:
         if meta_result:
-            return (
+            result = (
                 supabase.table("ahorro_meta")
                 .update(payload)
                 .eq("usuario_id", user_id)
                 .execute()
             )
+            limpiar_cache_datos()
+            return result
         payload_insert = dict(payload)
         payload_insert["usuario_id"] = user_id
-        return supabase.table("ahorro_meta").insert(payload_insert).execute()
+        result = supabase.table("ahorro_meta").insert(payload_insert).execute()
+        limpiar_cache_datos()
+        return result
     except Exception:
         payload_fallback = {
             "meta": float(meta_valor),
             "actualizado_en": datetime.now().isoformat()
         }
         if meta_result:
-            return (
+            result = (
                 supabase.table("ahorro_meta")
                 .update(payload_fallback)
                 .eq("usuario_id", user_id)
                 .execute()
             )
+            limpiar_cache_datos()
+            return result
         payload_insert = dict(payload_fallback)
         payload_insert["usuario_id"] = user_id
-        return supabase.table("ahorro_meta").insert(payload_insert).execute()
+        result = supabase.table("ahorro_meta").insert(payload_insert).execute()
+        limpiar_cache_datos()
+        return result
 
 
 def eliminar_meta_segura(user_id):
-    return supabase.table("ahorro_meta").delete().eq("usuario_id", user_id).execute()
+    result = supabase.table("ahorro_meta").delete().eq("usuario_id", user_id).execute()
+    limpiar_cache_datos()
+    return result
 
 
 def calcular_ratio_fin_semana(df_base):
@@ -5689,55 +5681,7 @@ def render_avatar(pagina, nombre, total_ingresos, total_gastos, ahorro_actual, u
             unsafe_allow_html=True
         )
 
-    st.markdown('<div class="quick-action-note">Acciones rápidas</div>', unsafe_allow_html=True)
-
-    preguntas_rapidas = {
-        "Inicio": [
-            "Resúmeme mi semana premium",
-            "¿Cuál es mi perfil financiero?",
-            "¿Qué alerta debería vigilar hoy?",
-            "Dame una acción concreta para mejorar"
-        ],
-        "Registrar": [
-            "¿Cómo registrar bien una deuda?",
-            "¿Qué impacto tienen mis pagos de deuda?",
-            "Dame una recomendación para registrar mejor",
-            "¿Cómo usar recurrentes sin desorden?"
-        ],
-        "Análisis": [
-            "Interpreta mis patrones de gasto",
-            "Compárame esta semana con la pasada",
-            "¿Cómo van mis deudas?",
-            "Dame 3 insights personalizados"
-        ],
-        "Ahorro": [
-            "Explícame mi progreso de ahorro",
-            "¿Cuánto me falta realmente?",
-            "¿Qué ajuste me acerca más rápido?",
-            "Convierte mi meta en un plan corto"
-        ],
-        "Perfil": [
-            "¿Cómo aprovechar mejor mi plan actual?",
-            "Resume mis recordatorios activos",
-            "¿Qué diferencia elegante hay entre Free y Pro?",
-            "¿Qué debería configurar primero?"
-        ]
-    }
-
     pregunta_final = None
-    qa = preguntas_rapidas.get(pagina, preguntas_rapidas["Inicio"])
-
-    q1, q2 = st.columns(2)
-    with q1:
-        if st.button(qa[0], key=f"qa1_{pagina}", use_container_width=True):
-            pregunta_final = qa[0]
-        if st.button(qa[2], key=f"qa3_{pagina}", use_container_width=True):
-            pregunta_final = qa[2]
-    with q2:
-        if st.button(qa[1], key=f"qa2_{pagina}", use_container_width=True):
-            pregunta_final = qa[1]
-        if st.button(qa[3], key=f"qa4_{pagina}", use_container_width=True):
-            pregunta_final = qa[3]
 
     st.markdown('<div class="chat-wrap">', unsafe_allow_html=True)
     st.markdown('<div class="chat-label">Conversación</div>', unsafe_allow_html=True)
@@ -5838,28 +5782,7 @@ def obtener_categoria_top(df_mes):
 
 
 def render_home_action_tiles():
-    section_header("Acciones rápidas", "Como en una app mobile bien pensada: lo más usado vive arriba y el resto se abre solo cuando toca.")
-    acciones = [
-        ("➕", "Registrar", "Agrega ingresos, gastos, deuda o cobros sin salirte del flujo principal.", "primary"),
-        ("📈", "Análisis", "Abre patrones, reportes y comparativas cuando quieras profundidad.", "secondary"),
-        ("🎯", "Ahorro", "Mira tu meta y conviértela en un plan realista.", "secondary"),
-        ("⚙️", "Perfil", "Ajusta recordatorios, límites y tu experiencia.", "secondary"),
-    ]
-    cols = st.columns(4)
-    for col, (icono, page, copy, tone) in zip(cols, acciones):
-        with col:
-            st.markdown(
-                f"""
-                <div class='quick-tile'>
-                    <div class='quick-tile-icon'>{icono}</div>
-                    <div class='quick-tile-title'>{page}</div>
-                    <div class='quick-tile-copy'>{copy}</div>
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
-            if st.button(f"Abrir {page}", key=f"quick_open_{page}", use_container_width=True, type="primary" if page == "Registrar" else "secondary"):
-                ir_a_pagina(page)
+    return
 
 
 def render_recent_activity_feed(df_movs, limit=6):
@@ -6007,7 +5930,6 @@ def render_home_hub(nombre_usuario, user_id, df, df_mes, df_deudas, df_cxc, tota
     zentix_hero(nombre_usuario, saldo_disponible, total_ingresos, total_gastos)
     render_contexto_descubrimiento("Inicio")
     render_tutorial_zentix("Inicio", nombre_usuario, user_id, df, meta_guardada_global, preferencias_usuario_actual)
-    render_home_action_tiles()
 
     tabs = st.tabs(["Resumen", "Actividad", "Planificación", "Profundo"])
 
@@ -6109,6 +6031,7 @@ def render_home_hub(nombre_usuario, user_id, df, df_mes, df_deudas, df_cxc, tota
 aplicar_estilo_zentix()
 
 
+@st.cache_data(ttl=20, show_spinner=False)
 def obtener_movimientos(user_id):
     result = (
         supabase.table("movimientos")
@@ -6149,6 +6072,7 @@ def obtener_movimientos(user_id):
     return df_local
 
 
+@st.cache_data(ttl=60, show_spinner=False)
 def obtener_perfil(user_id):
     result = (
         supabase.table("perfiles_usuario")
@@ -6186,7 +6110,10 @@ def guardar_onboarding(user_id, nombre_mostrado, categorias_gasto, categorias_in
     if registros:
         supabase.table("categorias_usuario").insert(registros).execute()
 
+    limpiar_cache_datos()
 
+
+@st.cache_data(ttl=120, show_spinner=False)
 def obtener_categorias_usuario(user_id, tipo):
     result = (
         supabase.table("categorias_usuario")
@@ -6520,47 +6447,38 @@ def render_bienvenida_flotante(nombre, pagina_actual):
         return
 
     tips = {
-        "Inicio": "Te dejo a mano accesos rápidos y lectura corta del momento para que Zentix se sienta más guiado y premium.",
-        "Registrar": "Registra más rápido desde aquí y luego vuelve al panel principal sin perder el hilo.",
-        "Análisis": "Desde análisis puedes profundizar en gráficas, patrones y reportes cuando lo necesites.",
-        "Ahorro": "Tu meta y tus recordatorios viven aquí como módulo aparte, más claro y menos saturado.",
-        "Perfil": "Aquí ajustas tu cuenta, plan, recordatorios y configuración general de Zentix."
+        "Inicio": "Lectura corta del momento, sin duplicar la navegación principal.",
+        "Registrar": "Registra y vuelve al panel lateral cuando quieras cambiar de módulo.",
+        "Análisis": "Aquí profundizas en gráficas, patrones y reportes cuando lo necesites.",
+        "Ahorro": "Tu meta y tus recordatorios viven aquí con una vista más clara.",
+        "Perfil": "Ajusta tu cuenta, recordatorios y configuración general desde este módulo."
     }
-    mensaje = tips.get(pagina_actual, "Estoy aquí para ayudarte a moverte rápido por Zentix.")
+    mensaje = tips.get(pagina_actual, "Estoy aquí para ayudarte a moverte por Zentix.")
     avatar_html = ""
     if avatar_path.exists():
         try:
             avatar_b64 = base64.b64encode(Path(avatar_path).read_bytes()).decode()
-            avatar_html = f"<img src='data:image/png;base64,{avatar_b64}' style='width:58px;height:58px;border-radius:18px;object-fit:cover;'/>"
+            avatar_html = f"<img src='data:image/png;base64,{avatar_b64}' style='width:54px;height:54px;border-radius:16px;object-fit:cover;'/>"
         except Exception:
             avatar_html = ""
 
     ultimo = st.session_state.get("zentix_last_tipo") or "Sin movimientos"
     st.markdown(f"""
-    <div class='premium-floating-guide' style='background:linear-gradient(135deg,#0F172A 0%, #1E293B 58%, #312E81 100%); border:1px solid rgba(129,140,248,0.24); box-shadow:0 24px 48px rgba(15,23,42,0.22); color:#F8FAFC;'>
+    <div class='premium-floating-guide'>
         <div style='display:flex;gap:0.85rem;align-items:flex-start;'>
             <div>{avatar_html}</div>
             <div style='flex:1;'>
-                <div class='premium-floating-guide-title' style='color:#FFFFFF;font-weight:900;'>Zentix IA</div>
-                <div class='premium-floating-guide-copy' style='color:#F8FAFC;line-height:1.55;'>{mensaje}</div>
-                <div class='tiny-muted' style='margin-top:0.45rem;color:rgba(248,250,252,0.82);'>Último movimiento: {ultimo} · Vista actual: {pagina_actual}</div>
+                <div class='premium-floating-guide-title' style='font-weight:900;'>Zentix IA</div>
+                <div class='premium-floating-guide-copy' style='line-height:1.55;'>{mensaje}</div>
+                <div class='tiny-muted' style='margin-top:0.45rem;'>Último movimiento: {ultimo} · Vista actual: {pagina_actual}</div>
             </div>
         </div>
     </div>
     """, unsafe_allow_html=True)
 
-    a1, a2, a3 = st.columns(3)
-    with a1:
-        if st.button("➕ Registrar", key=f"guide_quick_register_{pagina_actual}", use_container_width=True, type="primary"):
-            ir_a_pagina("Registrar")
-    with a2:
-        if st.button("📈 Análisis", key=f"guide_quick_analysis_{pagina_actual}", use_container_width=True, type="secondary"):
-            ir_a_pagina("Análisis")
-    with a3:
-        if st.button("Ocultar", key=f"guide_hide_{pagina_actual}", use_container_width=True, type="secondary"):
-            st.session_state["zentix_guide_hidden"] = True
-            st.rerun()
-
+    if st.button("Ocultar asistente", key=f"guide_hide_{pagina_actual}", use_container_width=True, type="secondary"):
+        st.session_state["zentix_guide_hidden"] = True
+        st.rerun()
 
 def render_reporte_preview_modal(pdf_bytes, filename, titulo="Reporte premium Zentix"):
 
@@ -6645,6 +6563,7 @@ def render_reportes_compactos(nombre_usuario, plan_actual, df_base, user_id=None
                     render_reporte_preview_modal(pdf_bytes, f"{filename_base}.pdf", titulo=f"Reporte {tab_name} Zentix")
                 registrar_evento_producto("report_preview_open", user_id=user_id, pagina="Análisis", detalle=f"{tab_name} {inicio_rep} {fin_rep}")
 
+@st.cache_data(ttl=60, show_spinner=False)
 def obtener_meta(user_id):
     result = (
         supabase.table("ahorro_meta")
@@ -6762,6 +6681,7 @@ if st.session_state.user is None:
                         if getattr(res, "session", None):
                             st.session_state["zentix_access_token"] = getattr(res.session, "access_token", None)
                             st.session_state["zentix_refresh_token"] = getattr(res.session, "refresh_token", None)
+                        limpiar_cache_datos()
                         registrar_evento_producto("login_success", user_id=getattr(res.user, "id", None), pagina="Acceso", detalle=correo)
                         st.success("Bienvenido a Zentix.")
                         st.rerun()
@@ -6843,11 +6763,12 @@ with st.sidebar:
     st.markdown("<div class='sidebar-nav-note'>Este panel lateral puede mantenerse visible o plegarse con el botón superior izquierdo. La idea es que se sienta como un drawer premium de app móvil.</div>", unsafe_allow_html=True)
 
     if st.button("Cerrar sesión", use_container_width=True):
+        limpiar_cache_datos()
         st.session_state.user = None
+        st.session_state["zentix_access_token"] = None
+        st.session_state["zentix_refresh_token"] = None
         st.rerun()
 
-render_nav_rapida_premium()
-render_transition_overlay()
 
 pagina = st.session_state.pagina
 track_page_view_once(user_id, pagina)
