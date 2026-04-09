@@ -1166,6 +1166,50 @@ def aplicar_estilo_zentix():
         color: #FFFFFF !important;
     }
 
+    .assistant-card .chat-wrap,
+    .assistant-card .chat-wrap * {
+        color: #0F172A !important;
+    }
+
+    .assistant-card .chat-bubble-ai {
+        background: #FFFFFF !important;
+        border: 1px solid rgba(148,163,184,0.22) !important;
+        color: #0F172A !important;
+        box-shadow: 0 8px 18px rgba(15,23,42,0.04) !important;
+    }
+
+    .assistant-card .chat-bubble-user {
+        background: #EEF2FF !important;
+        border: 1px solid rgba(129,140,248,0.18) !important;
+        color: #0F172A !important;
+        box-shadow: 0 8px 18px rgba(79,70,229,0.05) !important;
+    }
+
+    .assistant-card .chat-bubble-ai strong,
+    .assistant-card .chat-bubble-user strong,
+    .assistant-card .chat-bubble-ai br,
+    .assistant-card .chat-bubble-user br {
+        color: #0F172A !important;
+    }
+
+    .assistant-card .stTextInput > div > div > input,
+    .assistant-card textarea {
+        background: #FFFFFF !important;
+        color: #0F172A !important;
+        border: 1px solid rgba(148,163,184,0.24) !important;
+    }
+
+    .assistant-card [data-baseweb="input"],
+    .assistant-card [data-baseweb="base-input"] {
+        background: #FFFFFF !important;
+        color: #0F172A !important;
+    }
+
+    .assistant-card img {
+        filter: none !important;
+        opacity: 1 !important;
+    }
+
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     </style>
@@ -5650,7 +5694,7 @@ def render_avatar(pagina, nombre, total_ingresos, total_gastos, ahorro_actual, u
         st.session_state[input_key] = ""
         st.session_state[clear_key] = False
 
-    st.markdown('<div class="assistant-card" style="background:linear-gradient(135deg,#0F172A 0%, #1E293B 56%, #312E81 100%);border:1px solid rgba(129,140,248,0.18);box-shadow:0 24px 48px rgba(15,23,42,0.18);">', unsafe_allow_html=True)
+    st.markdown('<div class="assistant-card">', unsafe_allow_html=True)
 
     col1, col2 = st.columns([1.15, 4])
 
