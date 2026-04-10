@@ -7103,7 +7103,6 @@ render_transition_overlay()
 
 pagina = st.session_state.pagina
 track_page_view_once(user_id, pagina)
-render_bienvenida_flotante(nombre_usuario, pagina, total_ingresos, total_gastos, saldo_disponible, ultimo_tipo)
 
 
 if not perfil or not perfil.get("onboarding_completo", False):
@@ -7268,6 +7267,8 @@ estado_recordatorios_automaticos_global = disparar_recordatorio_automatico_si_ap
     fallback_email=getattr(st.session_state.user, "email", "")
 )
 _, consultas_usadas_hoy, consultas_limite_hoy, consultas_restantes_hoy, plan_usuario_actual = puede_usar_ia(user_id)
+
+render_bienvenida_flotante(nombre_usuario, pagina, total_ingresos, total_gastos, saldo_disponible, ultimo_tipo)
 
 if pagina == "Inicio":
     render_home_hub(
