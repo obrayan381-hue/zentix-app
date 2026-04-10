@@ -1180,6 +1180,103 @@ def aplicar_estilo_zentix():
         color: rgba(248,250,252,0.82) !important;
     }
 
+
+
+    /* ===== V6 · contraste final avatar + gráficas ===== */
+    .assistant-card,
+    .assistant-card *,
+    .assistant-card .assistant-title,
+    .assistant-card .assistant-text,
+    .assistant-card .assistant-mini,
+    .assistant-card .chat-label,
+    .assistant-card .chat-input-label,
+    .assistant-card label,
+    .assistant-card p,
+    .assistant-card span,
+    .assistant-card div {
+        color: #0F172A !important;
+        text-shadow: none !important;
+    }
+
+    .assistant-card {
+        background: linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%) !important;
+        border: 1px solid rgba(148,163,184,0.24) !important;
+        box-shadow: 0 14px 28px rgba(15,23,42,0.06) !important;
+    }
+
+    .assistant-card .assistant-title,
+    .assistant-card .assistant-text {
+        color: #0F172A !important;
+    }
+
+    .assistant-card .assistant-mini,
+    .assistant-card .chat-label,
+    .assistant-card .chat-input-label {
+        color: #475569 !important;
+    }
+
+    .assistant-card .chat-bubble-ai {
+        background: #FFFFFF !important;
+        border: 1px solid rgba(148,163,184,0.22) !important;
+        color: #0F172A !important;
+        box-shadow: 0 8px 18px rgba(15,23,42,0.04) !important;
+    }
+
+    .assistant-card .chat-bubble-user {
+        background: #EEF2FF !important;
+        border: 1px solid rgba(129,140,248,0.18) !important;
+        color: #0F172A !important;
+        box-shadow: 0 8px 18px rgba(79,70,229,0.05) !important;
+    }
+
+    .assistant-card .chat-bubble-ai strong,
+    .assistant-card .chat-bubble-user strong,
+    .assistant-card .chat-bubble-ai br,
+    .assistant-card .chat-bubble-user br {
+        color: #0F172A !important;
+    }
+
+    .assistant-card .stTextInput > div > div > input,
+    .assistant-card textarea,
+    .assistant-card [data-baseweb="input"],
+    .assistant-card [data-baseweb="base-input"] {
+        background: #FFFFFF !important;
+        color: #0F172A !important;
+        border: 1px solid rgba(148,163,184,0.24) !important;
+    }
+
+    .assistant-card .stButton > button {
+        background: linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%) !important;
+        color: #0F172A !important;
+        border: 1px solid rgba(148,163,184,0.22) !important;
+    }
+
+    .assistant-card .stButton > button[kind="primary"] {
+        color: #FFFFFF !important;
+    }
+
+    .assistant-card img {
+        filter: none !important;
+        opacity: 1 !important;
+    }
+
+    .js-plotly-plot,
+    .plotly-graph-div {
+        background: #0F172A !important;
+        border-radius: 18px !important;
+        padding: 8px !important;
+    }
+
+    .js-plotly-plot .plotly text,
+    .js-plotly-plot .plotly .gtitle,
+    .js-plotly-plot .plotly .xtitle,
+    .js-plotly-plot .plotly .ytitle,
+    .js-plotly-plot .plotly .legendtext,
+    .js-plotly-plot .plotly .annotation-text {
+        fill: #F8FAFC !important;
+        color: #F8FAFC !important;
+    }
+
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     </style>
@@ -1241,18 +1338,53 @@ def ejecutar_reset_registrar_si_aplica():
 
 
 def aplicar_estilo_plotly(fig, height=360):
+    titulo_actual = None
+    try:
+        titulo_actual = fig.layout.title.text
+    except Exception:
+        titulo_actual = None
+
+    if titulo_actual in {None, "undefined"}:
+        titulo_actual = ""
+
     fig.update_layout(
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
-        font_color="#0F172A",
-        title_font_size=18,
+        paper_bgcolor="#0F172A",
+        plot_bgcolor="#111827",
+        font_color="#F8FAFC",
+        title_text=titulo_actual,
+        title_font_size=20,
+        title_font_color="#F8FAFC",
         title_x=0.03,
-        margin=dict(l=20, r=20, t=60, b=20),
+        margin=dict(l=20, r=20, t=70, b=45),
         height=height,
-        legend_title_text=""
+        legend_title_text="",
+        legend=dict(
+            bgcolor="rgba(15,23,42,0)",
+            font=dict(color="#F8FAFC")
+        )
     )
-    fig.update_xaxes(showgrid=True, gridcolor="rgba(148,163,184,0.16)", zeroline=False)
-    fig.update_yaxes(showgrid=True, gridcolor="rgba(148,163,184,0.16)", zeroline=False)
+    fig.update_xaxes(
+        showgrid=True,
+        gridcolor="rgba(255,255,255,0.12)",
+        zeroline=False,
+        linecolor="rgba(255,255,255,0.20)",
+        tickfont=dict(color="#E5E7EB"),
+        title_font=dict(color="#F8FAFC")
+    )
+    fig.update_yaxes(
+        showgrid=True,
+        gridcolor="rgba(255,255,255,0.12)",
+        zeroline=False,
+        linecolor="rgba(255,255,255,0.20)",
+        tickfont=dict(color="#E5E7EB"),
+        title_font=dict(color="#F8FAFC")
+    )
+
+    try:
+        fig.update_traces(textfont_color="#FFFFFF")
+    except Exception:
+        pass
+
     return fig
 
 
@@ -5655,7 +5787,7 @@ def render_avatar(pagina, nombre, total_ingresos, total_gastos, ahorro_actual, u
         st.session_state[input_key] = ""
         st.session_state[clear_key] = False
 
-    st.markdown('<div class="assistant-card" style="background:linear-gradient(135deg,#0F172A 0%, #1E293B 56%, #312E81 100%);border:1px solid rgba(129,140,248,0.18);box-shadow:0 24px 48px rgba(15,23,42,0.18);">', unsafe_allow_html=True)
+    st.markdown('<div class="assistant-card">', unsafe_allow_html=True)
 
     col1, col2 = st.columns([1.15, 4])
 
