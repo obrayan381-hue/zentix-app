@@ -1122,124 +1122,62 @@ def aplicar_estilo_zentix():
     }
 
 
-    /* ===== V5 · contraste final IA + gráficas ===== */
+    /* ===== V5 · contraste explícito IA ===== */
+    .assistant-card {
+        background:
+            radial-gradient(circle at top left, rgba(255,255,255,0.10), transparent 28%),
+            linear-gradient(135deg, #0F172A 0%, #1E293B 56%, #312E81 100%) !important;
+        border: 1px solid rgba(129,140,248,0.18) !important;
+        box-shadow: 0 24px 48px rgba(15,23,42,0.18) !important;
+    }
     .assistant-card,
     .assistant-card *,
     .assistant-card .assistant-title,
     .assistant-card .assistant-text,
     .assistant-card .assistant-mini,
+    .assistant-card .quick-action-note,
     .assistant-card .chat-label,
     .assistant-card .chat-input-label,
     .assistant-card label,
     .assistant-card p,
     .assistant-card span,
-    .assistant-card div,
-    .assistant-card strong,
-    .assistant-card [data-testid="stMarkdownContainer"] p,
-    .assistant-card [data-testid="stMarkdownContainer"] span,
-    .assistant-card [data-testid="stMarkdownContainer"] div,
+    .assistant-card div {
+        color: #F8FAFC !important;
+    }
+    .assistant-card .assistant-mini,
+    .assistant-card .quick-action-note {
+        color: rgba(248,250,252,0.88) !important;
+    }
+    .assistant-card .stTextInput > div > div > input {
+        background: rgba(255,255,255,0.96) !important;
+        color: #0F172A !important;
+        border: 1px solid rgba(255,255,255,0.18) !important;
+    }
+    .assistant-card .stButton > button[kind="secondary"] {
+        background: rgba(255,255,255,0.12) !important;
+        color: #FFFFFF !important;
+        border: 1px solid rgba(255,255,255,0.18) !important;
+    }
+    .premium-floating-guide {
+        background:
+            radial-gradient(circle at top left, rgba(255,255,255,0.12), transparent 28%),
+            linear-gradient(135deg, #0B1220 0%, #172554 54%, #312E81 100%) !important;
+        border: 1px solid rgba(129,140,248,0.22) !important;
+        box-shadow: 0 24px 48px rgba(15,23,42,0.22) !important;
+    }
     .premium-floating-guide,
     .premium-floating-guide *,
     .premium-floating-guide-title,
     .premium-floating-guide-copy,
     .premium-floating-guide .tiny-muted,
-    .premium-floating-guide .assistant-mini {
-        color: #0B0B0B !important;
-        text-shadow: none !important;
-        opacity: 1 !important;
+    .premium-floating-guide .assistant-mini,
+    .premium-floating-guide p,
+    .premium-floating-guide span,
+    .premium-floating-guide div {
+        color: #F8FAFC !important;
     }
-
-    .assistant-card,
-    .premium-floating-guide {
-        background: linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%) !important;
-        border: 1px solid rgba(148,163,184,0.24) !important;
-        box-shadow: 0 16px 30px rgba(15,23,42,0.06) !important;
-    }
-
-    .assistant-card .assistant-title,
-    .assistant-card .assistant-text,
-    .premium-floating-guide-title,
-    .premium-floating-guide-copy {
-        color: #0B0B0B !important;
-    }
-
-    .assistant-card .assistant-mini,
-    .assistant-card .quick-action-note,
-    .assistant-card .chat-label,
-    .assistant-card .chat-input-label,
-    .premium-floating-guide .tiny-muted,
-    .premium-floating-guide .assistant-mini {
-        color: #334155 !important;
-    }
-
-    .assistant-card .chat-wrap,
-    .assistant-card .chat-wrap *,
-    .assistant-card .chat-bubble-ai,
-    .assistant-card .chat-bubble-user,
-    .assistant-card .chat-bubble-ai *,
-    .assistant-card .chat-bubble-user * {
-        color: #0B0B0B !important;
-        opacity: 1 !important;
-    }
-
-    .assistant-card .chat-bubble-ai {
-        background: #FFFFFF !important;
-        border: 1px solid rgba(148,163,184,0.24) !important;
-        color: #0B0B0B !important;
-        box-shadow: 0 8px 18px rgba(15,23,42,0.04) !important;
-    }
-
-    .assistant-card .chat-bubble-user {
-        background: #EEF2FF !important;
-        border: 1px solid rgba(99,102,241,0.18) !important;
-        color: #0B0B0B !important;
-        box-shadow: 0 8px 18px rgba(79,70,229,0.05) !important;
-    }
-
-    .assistant-card .stTextInput > div > div > input,
-    .assistant-card textarea,
-    .assistant-card [data-baseweb="input"],
-    .assistant-card [data-baseweb="base-input"] {
-        background: #FFFFFF !important;
-        color: #0B0B0B !important;
-        border: 1px solid rgba(15,23,42,0.35) !important;
-        opacity: 1 !important;
-    }
-
-    .assistant-card .stTextInput > div > div > input::placeholder,
-    .assistant-card textarea::placeholder {
-        color: #64748B !important;
-        opacity: 1 !important;
-    }
-
-    .assistant-card .stButton > button {
-        background: linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%) !important;
-        color: #0B0B0B !important;
-        border: 1px solid rgba(148,163,184,0.24) !important;
-    }
-
-    .assistant-card .stButton > button[kind="primary"],
-    .premium-floating-guide .stButton > button[kind="primary"] {
-        color: #FFFFFF !important;
-    }
-
-    .assistant-card img {
-        filter: none !important;
-        opacity: 1 !important;
-    }
-
-    /* Refuerzo extra para Plotly */
-    .js-plotly-plot .plotly .gtitle,
-    .js-plotly-plot .plotly .xtitle,
-    .js-plotly-plot .plotly .ytitle,
-    .js-plotly-plot .plotly .legendtext,
-    .js-plotly-plot .plotly .xtick text,
-    .js-plotly-plot .plotly .ytick text,
-    .js-plotly-plot .plotly text {
-        fill: #FFFFFF !important;
-        color: #FFFFFF !important;
-        opacity: 1 !important;
-        font-weight: 600 !important;
+    .premium-floating-guide .tiny-muted {
+        color: rgba(248,250,252,0.82) !important;
     }
 
     #MainMenu {visibility: hidden;}
@@ -1250,6 +1188,16 @@ def aplicar_estilo_zentix():
 
 def money(value):
     return f"${float(value):,.0f}"
+
+TIPO_DISPLAY = {
+    "Ingreso (Deuda)": "Crédito solicitado",
+    "Pago de deuda": "Pago a crédito",
+    "Cuenta por cobrar": "Prestaste Dinero",
+    "Cobro cuenta por cobrar": "Ya me pagaron",
+}
+
+def tipo_display(tipo):
+    return TIPO_DISPLAY.get(str(tipo or "").strip(), str(tipo or ""))
 
 
 def limpiar_formulario_registrar():
@@ -1294,34 +1242,17 @@ def ejecutar_reset_registrar_si_aplica():
 
 def aplicar_estilo_plotly(fig, height=360):
     fig.update_layout(
-        template="plotly_dark",
-        paper_bgcolor="#0F172A",
-        plot_bgcolor="#111827",
-        font=dict(color="#FFFFFF", size=13),
-        title_font=dict(size=18, color="#FFFFFF"),
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        font_color="#0F172A",
+        title_font_size=18,
         title_x=0.03,
-        margin=dict(l=20, r=20, t=70, b=30),
+        margin=dict(l=20, r=20, t=60, b=20),
         height=height,
-        legend_title_text="",
-        legend=dict(font=dict(color="#FFFFFF"), bgcolor="rgba(0,0,0,0)"),
-        xaxis=dict(
-            title_font=dict(color="#FFFFFF"),
-            tickfont=dict(color="#FFFFFF"),
-            gridcolor="rgba(255,255,255,0.14)",
-            zeroline=False,
-            showline=False
-        ),
-        yaxis=dict(
-            title_font=dict(color="#FFFFFF"),
-            tickfont=dict(color="#FFFFFF"),
-            gridcolor="rgba(255,255,255,0.14)",
-            zeroline=False,
-            showline=False
-        )
+        legend_title_text=""
     )
-    fig.update_xaxes(showgrid=True, gridcolor="rgba(255,255,255,0.14)", zeroline=False, tickfont=dict(color="#FFFFFF"), title_font=dict(color="#FFFFFF"))
-    fig.update_yaxes(showgrid=True, gridcolor="rgba(255,255,255,0.14)", zeroline=False, tickfont=dict(color="#FFFFFF"), title_font=dict(color="#FFFFFF"))
-    fig.update_traces(textfont=dict(color="#FFFFFF"))
+    fig.update_xaxes(showgrid=True, gridcolor="rgba(148,163,184,0.16)", zeroline=False)
+    fig.update_yaxes(showgrid=True, gridcolor="rgba(148,163,184,0.16)", zeroline=False)
     return fig
 
 
@@ -3080,7 +3011,7 @@ def render_editor_movimientos(user_id, df_movs, df_deudas_local):
         descripcion_txt = str(row.get("descripcion") or "").strip()
         if len(descripcion_txt) > 36:
             descripcion_txt = descripcion_txt[:36] + "..."
-        return f"{fecha_txt} · {row.get('tipo', 'Sin tipo')} · {money(row.get('monto', 0))} · {descripcion_txt or 'Sin descripción'}{deuda_txt}"
+        return f"{fecha_txt} · {tipo_display(row.get('tipo', 'Sin tipo'))} · {money(row.get('monto', 0))} · {descripcion_txt or 'Sin descripción'}{deuda_txt}"
 
     labels = {str(row["id"]): build_label(row) for _, row in df_editor.iterrows() if pd.notna(row.get("id"))}
     if not labels:
@@ -3138,7 +3069,8 @@ def render_editor_movimientos(user_id, df_movs, df_deudas_local):
             "Tipo",
             ["Ingreso", "Gasto", "Ingreso (Deuda)", "Pago de deuda", "Cuenta por cobrar", "Cobro cuenta por cobrar"],
             index=["Ingreso", "Gasto", "Ingreso (Deuda)", "Pago de deuda", "Cuenta por cobrar", "Cobro cuenta por cobrar"].index(tipo_actual if tipo_actual in ["Ingreso", "Gasto", "Ingreso (Deuda)", "Pago de deuda", "Cuenta por cobrar", "Cobro cuenta por cobrar"] else "Gasto"),
-            key=f"edit_tipo_{selected_id}"
+            key=f"edit_tipo_{selected_id}",
+            format_func=lambda x: tipo_display(x)
         )
         fecha_edit = st.date_input("Fecha", value=fecha_actual, key=f"edit_fecha_{selected_id}")
         descripcion_edit = st.text_input("Descripción", value=descripcion_actual, key=f"edit_descripcion_{selected_id}")
@@ -3173,7 +3105,7 @@ def render_editor_movimientos(user_id, df_movs, df_deudas_local):
             )
         elif tipo_edit == "Ingreso (Deuda)":
             categoria_edit = "Deuda"
-            deuda_nombre_edit = st.text_input("Nombre de la deuda", value=deuda_nombre_actual or descripcion_actual, key=f"edit_deuda_nombre_{selected_id}")
+            deuda_nombre_edit = st.text_input("Nombre del crédito", value=deuda_nombre_actual or descripcion_actual, key=f"edit_deuda_nombre_{selected_id}")
             prestamista_edit = st.text_input("Prestamista", value=prestamista_actual, key=f"edit_prestamista_{selected_id}")
             usar_fecha_limite = st.checkbox("Tiene fecha límite", value=pd.notna(fecha_limite_actual), key=f"edit_deuda_lim_toggle_{selected_id}")
             if usar_fecha_limite:
@@ -3182,7 +3114,7 @@ def render_editor_movimientos(user_id, df_movs, df_deudas_local):
                 fecha_limite_edit = None
         elif tipo_edit == "Cuenta por cobrar":
             categoria_edit = "Cuenta por cobrar"
-            deuda_nombre_edit = st.text_input("Nombre de la cuenta por cobrar", value=deuda_nombre_actual or descripcion_actual, key=f"edit_cxc_nombre_{selected_id}")
+            deuda_nombre_edit = st.text_input("Nombre del dinero prestado", value=deuda_nombre_actual or descripcion_actual, key=f"edit_cxc_nombre_{selected_id}")
             prestamista_edit = st.text_input("Cliente / quién debe", value=prestamista_actual, key=f"edit_cxc_cliente_{selected_id}")
             usar_fecha_limite = st.checkbox("Tiene fecha límite", value=pd.notna(fecha_limite_actual), key=f"edit_cxc_lim_toggle_{selected_id}")
             if usar_fecha_limite:
@@ -3191,7 +3123,7 @@ def render_editor_movimientos(user_id, df_movs, df_deudas_local):
                 fecha_limite_edit = None
         elif tipo_edit == "Cobro cuenta por cobrar":
             categoria_edit = "Cobro cuenta por cobrar"
-            deuda_nombre_edit = st.text_input("Nombre de la cuenta por cobrar", value=deuda_nombre_actual or descripcion_actual, key=f"edit_cobro_cxc_nombre_{selected_id}")
+            deuda_nombre_edit = st.text_input("Nombre del dinero prestado", value=deuda_nombre_actual or descripcion_actual, key=f"edit_cobro_cxc_nombre_{selected_id}")
             prestamista_edit = st.text_input("Cliente / quién paga", value=prestamista_actual, key=f"edit_cobro_cxc_cliente_{selected_id}")
         else:
             categoria_edit = "Pago de deuda"
@@ -3210,7 +3142,7 @@ def render_editor_movimientos(user_id, df_movs, df_deudas_local):
                 prestamista_edit = deuda_row["prestamista"]
                 deuda_id_edit = deuda_row["id"]
                 fecha_limite_edit = deuda_row["fecha_limite"].date() if pd.notna(deuda_row["fecha_limite"]) else None
-            deuda_nombre_edit = st.text_input("Nombre de la deuda", value=deuda_nombre_edit, key=f"edit_pago_deuda_nombre_{selected_id}")
+            deuda_nombre_edit = st.text_input("Nombre del crédito", value=deuda_nombre_edit, key=f"edit_pago_deuda_nombre_{selected_id}")
             prestamista_edit = st.text_input("Prestamista", value=prestamista_edit, key=f"edit_pago_prestamista_{selected_id}")
 
         monto_edit = st.number_input("Monto", min_value=0.0, step=1000.0, value=float(monto_actual), key=f"edit_monto_{selected_id}")
@@ -3245,17 +3177,17 @@ def render_editor_movimientos(user_id, df_movs, df_deudas_local):
                 if float(monto_edit or 0) <= 0:
                     errores.append("El monto debe ser mayor que 0.")
                 if tipo_edit == "Ingreso (Deuda)" and not str(deuda_nombre_edit or "").strip():
-                    errores.append("Escribe un nombre para la deuda.")
+                    errores.append("Escribe un nombre para el crédito.")
                 if tipo_edit == "Ingreso (Deuda)" and not str(prestamista_edit or "").strip():
-                    errores.append("Indica quién prestó.")
+                    errores.append("Indica quién te prestó.")
                 if tipo_edit == "Pago de deuda" and not str(deuda_nombre_edit or "").strip():
-                    errores.append("Define la deuda a la que corresponde este pago.")
+                    errores.append("Define el crédito al que corresponde este pago.")
                 if tipo_edit == "Cuenta por cobrar" and not str(deuda_nombre_edit or "").strip():
-                    errores.append("Escribe un nombre para la cuenta por cobrar.")
+                    errores.append("Escribe un nombre para el dinero prestado.")
                 if tipo_edit == "Cuenta por cobrar" and not str(prestamista_edit or "").strip():
-                    errores.append("Indica quién te debe.")
+                    errores.append("Indica quién te debe ese dinero.")
                 if tipo_edit == "Cobro cuenta por cobrar" and not str(deuda_nombre_edit or "").strip():
-                    errores.append("Define la cuenta por cobrar a la que corresponde este cobro.")
+                    errores.append("Define el registro de dinero prestado al que corresponde este pago recibido.")
                 if es_recurrente_edit and proxima_edit and proxima_edit < fecha_edit:
                     errores.append("La próxima fecha recurrente no puede ser anterior al movimiento.")
                 if es_recurrente_edit and fecha_fin_edit and proxima_edit and fecha_fin_edit < proxima_edit:
@@ -4278,21 +4210,7 @@ def generar_imagen_reporte_premium(nombre_usuario, plan_nombre, periodicidad, in
 
 
 def render_nav_rapida_premium():
-    st.markdown("<div class='top-nav-premium fade-up'><div class='top-nav-premium-title'>Centro rápido</div>", unsafe_allow_html=True)
-    nav_items = [
-        ("🏠", "Inicio"),
-        ("➕", "Registrar"),
-        ("📈", "Análisis"),
-        ("🎯", "Ahorro"),
-        ("⚙️", "Perfil"),
-    ]
-    cols = st.columns(len(nav_items))
-    for col, (icono, pagina_destino) in zip(cols, nav_items):
-        with col:
-            activo = st.session_state.pagina == pagina_destino
-            if st.button(f"{icono} {pagina_destino}", key=f"nav_top_{pagina_destino}", use_container_width=True, type="primary" if activo else "secondary"):
-                ir_a_pagina(pagina_destino)
-    st.markdown("<div class='sidebar-nav-note'>La navegación principal quedó más parecida a una app: clara, directa y sin capas innecesarias sobre el dashboard.</div></div>", unsafe_allow_html=True)
+    return
 
 
 def render_reporte_descargable(nombre_usuario, plan_actual, df_base, user_id=None):
@@ -4778,13 +4696,13 @@ def construir_chips_movimiento(row):
     elif tipo == "Gasto":
         chips.append(movimiento_chip("Gasto", "expense"))
     elif tipo == "Ingreso (Deuda)":
-        chips.append(movimiento_chip("Deuda recibida", "debt"))
+        chips.append(movimiento_chip("Crédito solicitado", "debt"))
     elif tipo == "Pago de deuda":
-        chips.append(movimiento_chip("Pago deuda", "pay"))
+        chips.append(movimiento_chip("Pago a crédito", "pay"))
     elif tipo == "Cuenta por cobrar":
-        chips.append(movimiento_chip("Cuenta por cobrar", "info"))
+        chips.append(movimiento_chip("Prestaste Dinero", "info"))
     elif tipo == "Cobro cuenta por cobrar":
-        chips.append(movimiento_chip("Cobro recibido", "income"))
+        chips.append(movimiento_chip("Ya me pagaron", "income"))
 
     if bool(row.get("es_recurrente")):
         chips.append(movimiento_chip("Recurrente", "recurrent"))
@@ -5303,23 +5221,23 @@ def render_registrar_spotlight(tipo, monto, categoria, deuda_nombre, prestamista
         info = {
             "Ingreso": "Estás registrando dinero propio que sí alimenta tus KPIs reales.",
             "Gasto": "Este gasto impacta tu caja operativa y puede afectar tus patrones del mes.",
-            "Ingreso (Deuda)": "Entra a caja, pero Zentix lo separa del ingreso real para que tu lectura siga siendo honesta.",
-            "Pago de deuda": "Este pago reduce obligación pendiente y mejora tu salud financiera, aunque salga de caja.",
-            "Cuenta por cobrar": "Registras dinero que te deben, pero aún no entra como ingreso real hasta cobrarlo.",
-            "Cobro cuenta por cobrar": "Este cobro sí entra a caja y mejora tu disponible sin inflar ventas no pagadas."
+            "Ingreso (Deuda)": "Corresponde a un crédito solicitado: entra a caja, pero Zentix lo separa del ingreso real para que tu lectura siga siendo honesta.",
+            "Pago de deuda": "Este pago a crédito reduce tu obligación pendiente y mejora tu salud financiera, aunque salga de caja.",
+            "Cuenta por cobrar": "Registras dinero que prestaste; aún no entra como ingreso real hasta que te paguen.",
+            "Cobro cuenta por cobrar": "Este pago recibido sí entra a caja y mejora tu disponible sin inflar ventas no pagadas."
         }
         st.markdown(f"<div class='tiny-muted' style='margin-bottom:0.6rem;'>{info.get(tipo, 'Registro contextual.')}</div>", unsafe_allow_html=True)
         x1, x2 = st.columns(2)
         with x1:
-            render_spotlight_metric("Tipo", tipo, "Naturaleza activa")
+            render_spotlight_metric("Tipo", tipo_display(tipo), "Naturaleza activa")
         with x2:
             render_spotlight_metric("Monto", money(monto or 0), "Lectura inmediata")
         if tipo == "Pago de deuda" and saldo_deuda_actual > 0:
-            data = pd.DataFrame({"concepto": ["Pago actual", "Saldo actual", "Saldo luego"], "monto": [float(monto or 0), float(saldo_deuda_actual), float(max(saldo_deuda_actual - float(monto or 0), 0))]})
+            data = pd.DataFrame({"concepto": ["Pago a crédito", "Saldo actual", "Saldo luego"], "monto": [float(monto or 0), float(saldo_deuda_actual), float(max(saldo_deuda_actual - float(monto or 0), 0))]})
         elif tipo == "Ingreso (Deuda)":
-            data = pd.DataFrame({"concepto": ["Ingreso por deuda", "Pendiente total actual"], "monto": [float(monto or 0), float(globals().get('saldo_pendiente_deudas_global', 0) or 0)]})
+            data = pd.DataFrame({"concepto": ["Crédito solicitado", "Pendiente total actual"], "monto": [float(monto or 0), float(globals().get('saldo_pendiente_deudas_global', 0) or 0)]})
         elif tipo == "Cuenta por cobrar":
-            data = pd.DataFrame({"concepto": ["Cuenta por cobrar", "Pendiente por cobrar actual"], "monto": [float(monto or 0), float(globals().get('saldo_pendiente_cxc_global', 0) or 0)]})
+            data = pd.DataFrame({"concepto": ["Prestaste Dinero", "Pendiente actual por recibir"], "monto": [float(monto or 0), float(globals().get('saldo_pendiente_cxc_global', 0) or 0)]})
         elif tipo == "Cobro cuenta por cobrar":
             data = pd.DataFrame({"concepto": ["Cobro actual", "Pendiente por cobrar"], "monto": [float(monto or 0), float(globals().get('saldo_pendiente_cxc_global', 0) or 0)]})
         else:
@@ -5698,10 +5616,10 @@ def render_avatar(pagina, nombre, total_ingresos, total_gastos, ahorro_actual, u
     estado = {
         "Ingreso": "🟢 Último movimiento: ingreso",
         "Gasto": "🔴 Último movimiento: gasto",
-        "Ingreso (Deuda)": "🔵 Último movimiento: ingreso por deuda",
-        "Pago de deuda": "🟠 Último movimiento: pago de deuda",
-        "Cuenta por cobrar": "🟣 Último movimiento: cuenta por cobrar creada",
-        "Cobro cuenta por cobrar": "🟢 Último movimiento: cobro recibido"
+        "Ingreso (Deuda)": "🔵 Último movimiento: crédito solicitado",
+        "Pago de deuda": "🟠 Último movimiento: pago a crédito",
+        "Cuenta por cobrar": "🟣 Último movimiento: prestaste dinero",
+        "Cobro cuenta por cobrar": "🟢 Último movimiento: ya me pagaron"
     }.get(ultimo_tipo, "⚪ Aún no hay movimientos")
 
     contexto_ia = construir_contexto_zentix(
@@ -5737,7 +5655,7 @@ def render_avatar(pagina, nombre, total_ingresos, total_gastos, ahorro_actual, u
         st.session_state[input_key] = ""
         st.session_state[clear_key] = False
 
-    st.markdown('<div class="assistant-card">', unsafe_allow_html=True)
+    st.markdown('<div class="assistant-card" style="background:linear-gradient(135deg,#0F172A 0%, #1E293B 56%, #312E81 100%);border:1px solid rgba(129,140,248,0.18);box-shadow:0 24px 48px rgba(15,23,42,0.18);">', unsafe_allow_html=True)
 
     col1, col2 = st.columns([1.15, 4])
 
@@ -5746,7 +5664,7 @@ def render_avatar(pagina, nombre, total_ingresos, total_gastos, ahorro_actual, u
             st.image(str(avatar_path), width=124)
 
     with col2:
-        st.markdown('<div class="assistant-title" style="color:#0B0B0B;font-weight:900;">Avatar Zentix IA</div>', unsafe_allow_html=True)
+        st.markdown('<div class="assistant-title">Avatar Zentix IA</div>', unsafe_allow_html=True)
         st.markdown(f'<div class="assistant-text">{mensaje}</div>', unsafe_allow_html=True)
         st.markdown(f'<div class="assistant-mini">{estado}</div>', unsafe_allow_html=True)
         st.markdown(
@@ -5768,58 +5686,10 @@ def render_avatar(pagina, nombre, total_ingresos, total_gastos, ahorro_actual, u
             unsafe_allow_html=True
         )
 
-    st.markdown('<div class="quick-action-note">Acciones rápidas</div>', unsafe_allow_html=True)
-
-    preguntas_rapidas = {
-        "Inicio": [
-            "Resúmeme mi semana premium",
-            "¿Cuál es mi perfil financiero?",
-            "¿Qué alerta debería vigilar hoy?",
-            "Dame una acción concreta para mejorar"
-        ],
-        "Registrar": [
-            "¿Cómo registrar bien una deuda?",
-            "¿Qué impacto tienen mis pagos de deuda?",
-            "Dame una recomendación para registrar mejor",
-            "¿Cómo usar recurrentes sin desorden?"
-        ],
-        "Análisis": [
-            "Interpreta mis patrones de gasto",
-            "Compárame esta semana con la pasada",
-            "¿Cómo van mis deudas?",
-            "Dame 3 insights personalizados"
-        ],
-        "Ahorro": [
-            "Explícame mi progreso de ahorro",
-            "¿Cuánto me falta realmente?",
-            "¿Qué ajuste me acerca más rápido?",
-            "Convierte mi meta en un plan corto"
-        ],
-        "Perfil": [
-            "¿Cómo aprovechar mejor mi plan actual?",
-            "Resume mis recordatorios activos",
-            "¿Qué diferencia elegante hay entre Free y Pro?",
-            "¿Qué debería configurar primero?"
-        ]
-    }
-
     pregunta_final = None
-    qa = preguntas_rapidas.get(pagina, preguntas_rapidas["Inicio"])
-
-    q1, q2 = st.columns(2)
-    with q1:
-        if st.button(qa[0], key=f"qa1_{pagina}", use_container_width=True):
-            pregunta_final = qa[0]
-        if st.button(qa[2], key=f"qa3_{pagina}", use_container_width=True):
-            pregunta_final = qa[2]
-    with q2:
-        if st.button(qa[1], key=f"qa2_{pagina}", use_container_width=True):
-            pregunta_final = qa[1]
-        if st.button(qa[3], key=f"qa4_{pagina}", use_container_width=True):
-            pregunta_final = qa[3]
 
     st.markdown('<div class="chat-wrap">', unsafe_allow_html=True)
-    st.markdown('<div class="chat-label" style="color:#0B0B0B;font-weight:800;">Conversación</div>', unsafe_allow_html=True)
+    st.markdown('<div class="chat-label">Conversación</div>', unsafe_allow_html=True)
 
     historial = st.session_state[chat_key][-6:]
     for item in historial:
@@ -5829,7 +5699,7 @@ def render_avatar(pagina, nombre, total_ingresos, total_gastos, ahorro_actual, u
         else:
             st.markdown(f'<div class="chat-bubble-user"><strong>Tú:</strong><br>{contenido}</div>', unsafe_allow_html=True)
 
-    st.markdown('<div class="chat-input-label" style="color:#0B0B0B;font-weight:800;">Pregúntale a Zentix</div>', unsafe_allow_html=True)
+    st.markdown('<div class="chat-input-label">Pregúntale a Zentix</div>', unsafe_allow_html=True)
     pregunta_manual = st.text_input(
         "Pregúntale a Zentix",
         key=input_key,
@@ -5917,28 +5787,7 @@ def obtener_categoria_top(df_mes):
 
 
 def render_home_action_tiles():
-    section_header("Acciones rápidas", "Como en una app mobile bien pensada: lo más usado vive arriba y el resto se abre solo cuando toca.")
-    acciones = [
-        ("➕", "Registrar", "Agrega ingresos, gastos, deuda o cobros sin salirte del flujo principal.", "primary"),
-        ("📈", "Análisis", "Abre patrones, reportes y comparativas cuando quieras profundidad.", "secondary"),
-        ("🎯", "Ahorro", "Mira tu meta y conviértela en un plan realista.", "secondary"),
-        ("⚙️", "Perfil", "Ajusta recordatorios, límites y tu experiencia.", "secondary"),
-    ]
-    cols = st.columns(4)
-    for col, (icono, page, copy, tone) in zip(cols, acciones):
-        with col:
-            st.markdown(
-                f"""
-                <div class='quick-tile'>
-                    <div class='quick-tile-icon'>{icono}</div>
-                    <div class='quick-tile-title'>{page}</div>
-                    <div class='quick-tile-copy'>{copy}</div>
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
-            if st.button(f"Abrir {page}", key=f"quick_open_{page}", use_container_width=True, type="primary" if page == "Registrar" else "secondary"):
-                ir_a_pagina(page)
+    return
 
 
 def render_recent_activity_feed(df_movs, limit=6):
@@ -5967,7 +5816,7 @@ def render_recent_activity_feed(df_movs, limit=6):
                     <div class='activity-feed-bullet'>{icono}</div>
                     <div>
                         <div class='activity-feed-title'>{html.escape(descripcion)}</div>
-                        <div class='activity-feed-sub'>{html.escape(tipo)} · {fecha_txt}</div>
+                        <div class='activity-feed-sub'>{html.escape(tipo_display(tipo))} · {fecha_txt}</div>
                     </div>
                 </div>
                 <div class='activity-feed-amount {amount_class}'>{money(row.get('monto', 0))}</div>
@@ -6925,7 +6774,7 @@ with st.sidebar:
         st.session_state.user = None
         st.rerun()
 
-render_nav_rapida_premium()
+# render_nav_rapida_premium()
 render_transition_overlay()
 
 pagina = st.session_state.pagina
@@ -7143,10 +6992,10 @@ if pagina == "Registrar":
         tipo_labels = {
             "Ingreso": "🟢 Ingreso",
             "Gasto": "🔴 Gasto",
-            "Ingreso (Deuda)": "🔵 Ingreso (Deuda)",
-            "Pago de deuda": "🟡 Pago de deuda",
-            "Cuenta por cobrar": "🟣 Cuenta por cobrar",
-            "Cobro cuenta por cobrar": "🟦 Cobro cuenta por cobrar",
+            "Ingreso (Deuda)": "🔵 Crédito solicitado",
+            "Pago de deuda": "🟡 Pago a crédito",
+            "Cuenta por cobrar": "🟣 Prestaste Dinero",
+            "Cobro cuenta por cobrar": "🟦 Ya me pagaron",
         }
         tipo = st.radio(
             "Tipo de movimiento",
@@ -7161,13 +7010,13 @@ if pagina == "Registrar":
         elif tipo == "Gasto":
             st.markdown('<div class="pill-gasto">Gasto seleccionado</div>', unsafe_allow_html=True)
         elif tipo == "Ingreso (Deuda)":
-            st.markdown('<div class="pill-debt">Ingreso por deuda seleccionado</div>', unsafe_allow_html=True)
+            st.markdown('<div class="pill-debt">Crédito solicitado seleccionado</div>', unsafe_allow_html=True)
         elif tipo == "Pago de deuda":
-            st.markdown('<div class="pill-pay">Pago de deuda seleccionado</div>', unsafe_allow_html=True)
+            st.markdown('<div class="pill-pay">Pago a crédito seleccionado</div>', unsafe_allow_html=True)
         elif tipo == "Cuenta por cobrar":
-            st.markdown('<div class="pill-debt" style="background:#F3E8FF;border-color:#D8B4FE;color:#7E22CE;">Cuenta por cobrar seleccionada</div>', unsafe_allow_html=True)
+            st.markdown('<div class="pill-debt" style="background:#F3E8FF;border-color:#D8B4FE;color:#7E22CE;">Prestaste Dinero seleccionado</div>', unsafe_allow_html=True)
         else:
-            st.markdown('<div class="pill-ingreso" style="background:#CCFBF1;border-color:#5EEAD4;color:#0F766E;">Cobro de cuenta por cobrar seleccionado</div>', unsafe_allow_html=True)
+            st.markdown('<div class="pill-ingreso" style="background:#CCFBF1;border-color:#5EEAD4;color:#0F766E;">Ya me pagaron seleccionado</div>', unsafe_allow_html=True)
 
         fecha_mov = st.date_input("Fecha", value=date.today(), key="registrar_fecha_mov")
         descripcion = st.text_input("Descripción", key="registrar_descripcion")
@@ -7240,14 +7089,14 @@ if pagina == "Registrar":
 
         elif tipo == "Ingreso (Deuda)":
             categoria = "Deuda"
-            with st.expander("💳 Bloque específico de deuda", expanded=True):
+            with st.expander("💳 Bloque específico de crédito", expanded=True):
                 deuda_nombre = st.text_input(
-                    "Nombre de la deuda",
-                    placeholder="Ej: Préstamo de emergencia, Préstamo Juan",
+                    "Nombre del crédito",
+                    placeholder="Ej: Crédito Banco, Crédito Juan",
                     key="registrar_deuda_nombre"
                 )
                 prestamista = st.text_input(
-                    "Quién prestó",
+                    "Quién te prestó",
                     placeholder="Ej: Banco, mamá, Juan",
                     key="registrar_prestamista"
                 )
@@ -7259,46 +7108,46 @@ if pagina == "Registrar":
                         value=fecha_mov + timedelta(days=30),
                         key="registrar_deuda_limite"
                     )
-                st.caption("Este movimiento entra a caja, pero no contaminará tus KPIs de ingresos reales.")
+                st.caption("Este movimiento entra a caja como crédito solicitado, pero no contaminará tus KPIs de ingresos reales.")
 
         elif tipo == "Cuenta por cobrar":
             categoria = "Cuenta por cobrar"
-            with st.expander("🧾 Bloque de dinero que te deben", expanded=True):
+            with st.expander("🧾 Bloque de dinero que prestaste", expanded=True):
                 cuenta_cobrar_nombre = st.text_input(
-                    "Nombre de la cuenta por cobrar",
-                    placeholder="Ej: Venta fiada, Pedido minimercado",
+                    "Nombre del dinero prestado",
+                    placeholder="Ej: Préstamo a Juan, Dinero prestado a cliente",
                     key="registrar_cxc_nombre"
                 )
                 cliente_cxc = st.text_input(
-                    "Quién te debe",
+                    "Quién te debe ese dinero",
                     placeholder="Ej: Cliente Juan, Vecino, Distribuidor",
                     key="registrar_cxc_cliente"
                 )
-                monto = st.number_input("Monto pendiente por cobrar", min_value=0.0, step=1000.0, key="registrar_cxc_monto")
-                activar_fecha_limite_cxc = st.checkbox("Agregar fecha límite de cobro", key="registrar_cxc_limite_toggle")
+                monto = st.number_input("Monto que te deben", min_value=0.0, step=1000.0, key="registrar_cxc_monto")
+                activar_fecha_limite_cxc = st.checkbox("Agregar fecha estimada de pago", key="registrar_cxc_limite_toggle")
                 if activar_fecha_limite_cxc:
                     fecha_limite_cxc = st.date_input(
-                        "Fecha límite de cobro",
+                        "Fecha estimada de pago",
                         value=fecha_mov + timedelta(days=30),
                         key="registrar_cxc_limite"
                     )
                 deuda_nombre = cuenta_cobrar_nombre
                 prestamista = cliente_cxc
                 fecha_limite_deuda = fecha_limite_cxc
-                st.caption("Se registra como dinero pendiente por cobrar. No entra aún como ingreso real hasta que lo recibas.")
+                st.caption("Se registra como dinero que prestaste. No entra aún como ingreso real hasta que te paguen.")
 
         elif tipo == "Cobro cuenta por cobrar":
             categoria = "Cobro cuenta por cobrar"
             cxc_activas_df = df_cxc[df_cxc["saldo_pendiente"] > 0].copy() if not df_cxc.empty else pd.DataFrame()
             if cxc_activas_df.empty:
-                st.info("Aún no tienes cuentas por cobrar activas registradas. Primero crea una 'Cuenta por cobrar'.")
+                st.info("Aún no tienes registros activos de 'Prestaste Dinero'. Primero crea uno.")
             else:
                 cxc_activas_df["label"] = cxc_activas_df.apply(
                     lambda row: f"{row['nombre']} · {row['cliente']} · pendiente {money(row['saldo_pendiente'])}",
                     axis=1
                 )
                 cxc_label = st.selectbox(
-                    "Selecciona una cuenta por cobrar",
+                    "Selecciona un registro de dinero prestado",
                     cxc_activas_df["label"].tolist(),
                     key="registrar_cobro_cxc_select"
                 )
@@ -7309,7 +7158,7 @@ if pagina == "Registrar":
                 saldo_cxc_actual = float(cxc_row["saldo_pendiente"] or 0)
                 fecha_limite_cxc = cxc_row["fecha_limite"].date() if pd.notna(cxc_row["fecha_limite"]) else None
                 monto = st.number_input(
-                    "Monto cobrado",
+                    "Monto que te pagaron",
                     min_value=0.0,
                     max_value=float(saldo_cxc_actual) if saldo_cxc_actual > 0 else None,
                     step=1000.0,
@@ -7318,20 +7167,20 @@ if pagina == "Registrar":
                 deuda_nombre = cuenta_cobrar_nombre
                 prestamista = cliente_cxc
                 fecha_limite_deuda = fecha_limite_cxc
-                st.caption(f"Pendiente actual por cobrar: {money(saldo_cxc_actual)}")
+                st.caption(f"Pendiente actual por recibir: {money(saldo_cxc_actual)}")
 
         else:
             categoria = "Pago de deuda"
             deudas_activas_df = df_deudas[df_deudas["saldo_pendiente"] > 0].copy() if not df_deudas.empty else pd.DataFrame()
             if deudas_activas_df.empty:
-                st.info("Aún no tienes deudas activas registradas. Primero crea un 'Ingreso (Deuda)'.")
+                st.info("Aún no tienes créditos activos registrados. Primero crea un 'Crédito solicitado'.")
             else:
                 deudas_activas_df["label"] = deudas_activas_df.apply(
                     lambda row: f"{row['nombre']} · {row['prestamista']} · pendiente {money(row['saldo_pendiente'])}",
                     axis=1
                 )
                 deuda_label = st.selectbox(
-                    "Selecciona una deuda",
+                    "Selecciona un crédito",
                     deudas_activas_df["label"].tolist(),
                     key="registrar_pago_deuda_select"
                 )
@@ -7342,13 +7191,13 @@ if pagina == "Registrar":
                 saldo_deuda_actual = float(deuda_row["saldo_pendiente"] or 0)
                 fecha_limite_deuda = deuda_row["fecha_limite"].date() if pd.notna(deuda_row["fecha_limite"]) else None
                 monto = st.number_input(
-                    "Monto a pagar",
+                    "Monto pagado al crédito",
                     min_value=0.0,
                     max_value=float(saldo_deuda_actual) if saldo_deuda_actual > 0 else None,
                     step=1000.0,
                     key="registrar_pago_deuda_monto"
                 )
-                st.caption(f"Pendiente actual: {money(saldo_deuda_actual)}")
+                st.caption(f"Pendiente actual del crédito: {money(saldo_deuda_actual)}")
 
         col_btn_1, col_btn_2 = st.columns(2)
         with col_btn_1:
@@ -7360,7 +7209,7 @@ if pagina == "Registrar":
                 if monto <= 0:
                     errores.append("El monto debe ser mayor que 0.")
                 if tipo == "Ingreso (Deuda)" and not deuda_nombre.strip():
-                    errores.append("Escribe un nombre para la deuda.")
+                    errores.append("Escribe un nombre para el crédito.")
                 if tipo == "Gasto":
                     try:
                         df_limites_eval = obtener_limites_categoria_usuario(user_id)
@@ -7374,19 +7223,19 @@ if pagina == "Registrar":
                     except Exception:
                         pass
                 if tipo == "Ingreso (Deuda)" and not prestamista.strip():
-                    errores.append("Indica quién prestó.")
+                    errores.append("Indica quién te prestó.")
                 if tipo == "Cuenta por cobrar" and not cuenta_cobrar_nombre.strip():
-                    errores.append("Escribe un nombre para la cuenta por cobrar.")
+                    errores.append("Escribe un nombre para el dinero prestado.")
                 if tipo == "Cuenta por cobrar" and not cliente_cxc.strip():
-                    errores.append("Indica quién te debe.")
+                    errores.append("Indica quién te debe ese dinero.")
                 if tipo == "Cobro cuenta por cobrar" and not cuenta_cobrar_id:
-                    errores.append("Selecciona una cuenta por cobrar activa para registrar el cobro.")
+                    errores.append("Selecciona un registro activo de dinero prestado para registrar el pago recibido.")
                 if tipo == "Cobro cuenta por cobrar" and saldo_cxc_actual > 0 and monto > saldo_cxc_actual:
-                    errores.append("El cobro no puede superar el saldo pendiente por cobrar.")
+                    errores.append("Lo recibido no puede superar el saldo pendiente que te deben.")
                 if tipo == "Pago de deuda" and not deuda_id:
-                    errores.append("Selecciona una deuda activa para registrar el pago.")
+                    errores.append("Selecciona un crédito activo para registrar el pago.")
                 if tipo == "Pago de deuda" and saldo_deuda_actual > 0 and monto > saldo_deuda_actual:
-                    errores.append("El pago no puede superar el saldo pendiente de la deuda.")
+                    errores.append("El pago no puede superar el saldo pendiente del crédito.")
                 if es_recurrente and proxima_fecha_recurrencia and proxima_fecha_recurrencia < fecha_mov:
                     errores.append("La próxima fecha recurrente no puede ser anterior al movimiento.")
                 if es_recurrente and fecha_fin_recurrencia and proxima_fecha_recurrencia and fecha_fin_recurrencia < proxima_fecha_recurrencia:
@@ -7470,7 +7319,7 @@ if pagina == "Registrar":
                             "movement_created",
                             user_id=user_id,
                             pagina="Registrar",
-                            detalle=f"{tipo} · {categoria}",
+                            detalle=f"{tipo_display(tipo)} · {categoria}",
                             valor=float(monto)
                         )
                         st.session_state["reset_registrar_form"] = True
