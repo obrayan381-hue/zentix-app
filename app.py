@@ -5904,31 +5904,28 @@ def render_widget_chat_flotante_zentix(pagina, nombre, total_ingresos, total_gas
     consultas_limite = globals().get("consultas_limite_hoy", 10)
     meta_superior = f"{texto_plan_avatar(plan_actual, consultas_usadas, consultas_limite)} · Vista actual: {pagina}"
 
-    def _chat_href(open_chat: bool):
-        params = {}
-        try:
-            for k, v in dict(st.query_params).items():
-                if isinstance(v, list):
-                    v = v[0] if v else ""
-                params[str(k)] = str(v)
-        except Exception:
-            params = {}
-
-        for clave in ["zq", "zclear"]:
-            params.pop(clave, None)
-
-        params["zpage"] = str(pagina)
-
+    def _chat_js(open_chat: bool):
+        page_json = json.dumps(str(pagina), ensure_ascii=False)
         if open_chat:
-            params["zchat"] = "open"
-        else:
-            params.pop("zchat", None)
-
-        query = urllib.parse.urlencode(params)
-        return f"?{query}" if query else "?"
+            return (
+                "const url = new URL(window.parent.location.href);"
+                "url.searchParams.set('zchat','open');"
+                f"url.searchParams.set('zpage',{page_json});"
+                "window.parent.history.replaceState({},'',url.toString());"
+                "window.parent.location.reload();"
+                "return false;"
+            )
+        return (
+            "const url = new URL(window.parent.location.href);"
+            "url.searchParams.delete('zchat');"
+            f"url.searchParams.set('zpage',{page_json});"
+            "window.parent.history.replaceState({},'',url.toString());"
+            "window.parent.location.reload();"
+            "return false;"
+        )
 
     if not abierto:
-        launcher_href = _chat_href(True)
+        launcher_js = _chat_js(True)
         st.markdown(f"""
         <style>
           .zentix-chat-launcher {{
@@ -5939,6 +5936,7 @@ def render_widget_chat_flotante_zentix(pagina, nombre, total_ingresos, total_gas
             height: 152px;
             z-index: 1000000;
             display: block;
+            cursor: pointer;
           }}
           .zentix-chat-launcher img {{
             width: 100%;
@@ -5946,6 +5944,7 @@ def render_widget_chat_flotante_zentix(pagina, nombre, total_ingresos, total_gas
             object-fit: contain;
             display: block;
             filter: drop-shadow(0 18px 28px rgba(15,23,42,.22));
+            pointer-events: none;
           }}
           @media (max-width: 900px) {{
             .zentix-chat-launcher {{
@@ -5956,7 +5955,7 @@ def render_widget_chat_flotante_zentix(pagina, nombre, total_ingresos, total_gas
             }}
           }}
         </style>
-        <a class="zentix-chat-launcher" href="{launcher_href}" aria-label="Abrir Zentix IA">
+        <a class="zentix-chat-launcher" href="#" onclick="{launcher_js}" aria-label="Abrir Zentix IA">
           <img src="{asset_uri}" alt="Zentix IA" />
         </a>
         """, unsafe_allow_html=True)
@@ -5964,7 +5963,7 @@ def render_widget_chat_flotante_zentix(pagina, nombre, total_ingresos, total_gas
 
     historial = st.session_state.get(chat_key, [])[-8:]
     historial_html = construir_html_historial_chat(historial)
-    close_href = _chat_href(False)
+    close_js = _chat_js(False)
 
     st.markdown("""
     <style>
@@ -6122,7 +6121,7 @@ def render_widget_chat_flotante_zentix(pagina, nombre, total_ingresos, total_gas
             <div class="copy">{html.escape(mensaje)}</div>
             <div class="meta">Último movimiento: {html.escape(ultimo)}<br>{html.escape(meta_superior)}</div>
           </div>
-          <a class="zentix-native-chat-close" href="{close_href}" aria-label="Cerrar chat">×</a>
+          <a class="zentix-native-chat-close" href="#" onclick="{close_js}" aria-label="Cerrar chat">×</a>
         </div>
         <div class="zentix-native-chat-history">{historial_html}</div>
         """, unsafe_allow_html=True)
