@@ -6026,7 +6026,8 @@ def render_widget_chat_flotante_zentix(pagina, nombre, total_ingresos, total_gas
         url.searchParams.set('zchat', 'open');
         url.searchParams.set('zpage', data.page);
         url.searchParams.set('zq', value);
-        window.parent.location.href = url.toString();
+        window.parent.history.replaceState({{}}, '', url.toString());
+        window.parent.location.reload();
       }});
       clearBtn.addEventListener('click', function(ev) {{
         ev.preventDefault();
@@ -6034,7 +6035,8 @@ def render_widget_chat_flotante_zentix(pagina, nombre, total_ingresos, total_gas
         url.searchParams.set('zchat', 'open');
         url.searchParams.set('zpage', data.page);
         url.searchParams.set('zclear', '1');
-        window.parent.location.href = url.toString();
+        window.parent.history.replaceState({{}}, '', url.toString());
+        window.parent.location.reload();
       }});
       input.addEventListener('keydown', function(ev) {{
         if (ev.key === 'Enter' && !ev.shiftKey) {{
