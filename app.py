@@ -5877,17 +5877,33 @@ def render_widget_chat_flotante_zentix(pagina, nombre, total_ingresos, total_gas
         ultimo_tipo=ultimo_tipo
     )
 
-    chat_key, _, _, _ = procesar_chat_flotante_zentix(pagina, nombre, contexto_ia)
+    # Mantiene compatibilidad con mensajes pendientes de versiones anteriores.
+    try:
+        if st.query_params.get("zq") or st.query_params.get("zclear"):
+            procesar_chat_flotante_zentix(pagina, nombre, contexto_ia)
+    except Exception:
+        pass
+
+    chat_key, input_key, clear_key, mensajes_iniciales = asegurar_estado_chat_zentix(pagina, nombre)
+
+    open_key = f"zentix_chat_open_{pagina}"
+    bridge_key = f"zentix_bridge_input_{pagina}"
+    bridge_reset_key = f"zentix_bridge_reset_{pagina}"
+
+    if open_key not in st.session_state:
+        st.session_state[open_key] = False
+    if bridge_key not in st.session_state:
+        st.session_state[bridge_key] = ""
+    if bridge_reset_key not in st.session_state:
+        st.session_state[bridge_reset_key] = False
+
+    # Limpiar el input puente ANTES de instanciar el widget para evitar StreamlitAPIException.
+    if st.session_state.get(bridge_reset_key):
+        st.session_state[bridge_key] = ""
+        st.session_state[bridge_reset_key] = False
+
     historial = st.session_state.get(chat_key, [])[-8:]
     historial_html = construir_html_historial_chat(historial)
-
-    try:
-        chat_abierto = st.query_params.get("zchat")
-    except Exception:
-        chat_abierto = None
-    if isinstance(chat_abierto, list):
-        chat_abierto = chat_abierto[0] if chat_abierto else None
-    abierto = str(chat_abierto or "").strip().lower() == "open"
 
     asset_uri = obtener_data_uri_imagen(zentix_floating_path if zentix_floating_path.exists() else avatar_path)
     mensaje = tips.get(pagina, "Estoy aquí para ayudarte a moverte rápido por Zentix.")
@@ -5899,13 +5915,18 @@ def render_widget_chat_flotante_zentix(pagina, nombre, total_ingresos, total_gas
 
     payload = {
         "page": pagina,
-        "open": abierto,
+        "open": bool(st.session_state.get(open_key, False)),
         "asset": asset_uri,
         "intro": mensaje,
         "ultimo": ultimo,
         "meta": meta_superior,
         "historyHtml": historial_html,
         "placeholder": "Ej: ¿Cómo voy este mes? ¿Qué patrón estás viendo? ¿Qué debería activar primero?",
+        "bridgeLabel": f"__ZENTIX_BRIDGE__{pagina}",
+        "openLabel": f"__ZENTIX_OPEN__{pagina}",
+        "closeLabel": f"__ZENTIX_CLOSE__{pagina}",
+        "sendLabel": f"__ZENTIX_SEND__{pagina}",
+        "clearLabel": f"__ZENTIX_CLEAR__{pagina}",
     }
 
     widget_html = f"""
@@ -5925,7 +5946,7 @@ def render_widget_chat_flotante_zentix(pagina, nombre, total_ingresos, total_gas
           #zentix-fab-shell {{ position: fixed; right: 18px; bottom: calc(18px + env(safe-area-inset-bottom)); z-index: 1000001; pointer-events:none; }}
           #zentix-fab-button {{ position: fixed; right: 18px; bottom: calc(18px + env(safe-area-inset-bottom)); width: 132px; height: 152px; border:none; background: transparent; cursor:pointer; padding:0; pointer-events:auto; transition: opacity .18s ease, transform .18s ease; }}
           #zentix-fab-button img {{ width:100%; height:100%; object-fit:contain; display:block; filter: drop-shadow(0 18px 28px rgba(15,23,42,.22)); }}
-          #zentix-chat-panel {{ position: fixed; right: 18px; bottom: calc(132px + env(safe-area-inset-bottom)); width:min(390px, calc(100vw - 20px)); max-height:min(72vh, calc(100dvh - 170px)); display:${abierto and 'flex' or 'none'}; flex-direction:column; overflow:hidden; border-radius:26px; background:linear-gradient(180deg,#FFFFFF 0%,#F8FAFC 100%); border:1px solid rgba(148,163,184,.20); box-shadow:0 28px 60px rgba(15,23,42,.22); pointer-events:auto; }}
+          #zentix-chat-panel {{ position: fixed; right: 18px; bottom: calc(132px + env(safe-area-inset-bottom)); width:min(390px, calc(100vw - 20px)); max-height:min(72vh, calc(100dvh - 170px)); display:${bool(st.session_state.get(open_key, False)) and 'flex' or 'none'}; flex-direction:column; overflow:hidden; border-radius:26px; background:linear-gradient(180deg,#FFFFFF 0%,#F8FAFC 100%); border:1px solid rgba(148,163,184,.20); box-shadow:0 28px 60px rgba(15,23,42,.22); pointer-events:auto; }}
           #zentix-chat-head {{ padding:16px 16px 12px 16px; border-bottom:1px solid rgba(148,163,184,.16); background:linear-gradient(135deg,#0F172A 0%, #172554 55%, #312E81 100%); color:#F8FAFC; display:flex; gap:12px; align-items:center; }}
           #zentix-chat-head img {{ width:54px; height:54px; object-fit:contain; flex:0 0 54px; }}
           #zentix-chat-head .title {{ font-size:1.02rem; font-weight:900; line-height:1.1; color:#FFFFFF; }}
@@ -5990,7 +6011,20 @@ def render_widget_chat_flotante_zentix(pagina, nombre, total_ingresos, total_gas
       const input = doc.getElementById('zentix-chat-input');
       const historyBox = doc.getElementById('zentix-chat-history');
 
-      function currentUrl() {{ return new URL(window.parent.location.href); }}
+      function applyPanelState(isOpen) {{
+        if (isOpen) {{
+          panel.style.display = 'flex';
+          launcher.style.opacity = '0';
+          launcher.style.pointerEvents = 'none';
+          launcher.style.transform = 'translateY(10px) scale(.96)';
+        }} else {{
+          panel.style.display = 'none';
+          launcher.style.opacity = '1';
+          launcher.style.pointerEvents = 'auto';
+          launcher.style.transform = 'translateY(0) scale(1)';
+        }}
+      }}
+
       function clickHiddenTrigger(label) {{
         try {{
           const buttons = Array.from(window.parent.document.querySelectorAll('button'));
@@ -6014,33 +6048,50 @@ def render_widget_chat_flotante_zentix(pagina, nombre, total_ingresos, total_gas
         }} catch (e) {{}}
         return false;
       }}
-      function persistOpenState(isOpen) {{
-        const url = currentUrl();
-        if (isOpen) url.searchParams.set('zchat', 'open');
-        else url.searchParams.delete('zchat');
-        url.searchParams.delete('zq');
-        url.searchParams.delete('zclear');
-        url.searchParams.delete('zpage');
-        window.parent.history.replaceState({{}}, '', url.toString());
+
+      function setBridgeValue(label, value) {{
+        try {{
+          const fields = Array.from(window.parent.document.querySelectorAll('input, textarea'));
+          const wanted = String(label || '').replace(/\s+/g, ' ').trim();
+          for (const field of fields) {{
+            const aria = String(field.getAttribute('aria-label') || '').replace(/\s+/g, ' ').trim();
+            const placeholder = String(field.getAttribute('placeholder') || '').replace(/\s+/g, ' ').trim();
+            const title = String(field.getAttribute('title') || '').replace(/\s+/g, ' ').trim();
+            if (
+              aria === wanted ||
+              placeholder === wanted ||
+              title === wanted ||
+              aria.includes(wanted) ||
+              placeholder.includes(wanted) ||
+              title.includes(wanted)
+            ) {{
+              const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set
+                || Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value')?.set;
+              if (setter) setter.call(field, value);
+              else field.value = value;
+              field.dispatchEvent(new Event('input', {{ bubbles: true }}));
+              field.dispatchEvent(new Event('change', {{ bubbles: true }}));
+              return true;
+            }}
+          }}
+        }} catch (e) {{}}
+        return false;
       }}
-      function applyPanelState(isOpen) {{
-        if (isOpen) {{
-          panel.style.display = 'flex';
-          launcher.style.opacity = '0';
-          launcher.style.pointerEvents = 'none';
-          launcher.style.transform = 'translateY(10px) scale(.96)';
-        }} else {{
-          panel.style.display = 'none';
-          launcher.style.opacity = '1';
-          launcher.style.pointerEvents = 'auto';
-          launcher.style.transform = 'translateY(0) scale(1)';
-        }}
-      }}
-      function openPanel() {{ applyPanelState(true); persistOpenState(true); setTimeout(() => {{ try {{ historyBox.scrollTop = historyBox.scrollHeight; input.focus(); }} catch(e) {{}} }}, 80); }}
-      function closePanel() {{ applyPanelState(false); persistOpenState(false); }}
+
       applyPanelState(Boolean(data.open));
-      launcher.addEventListener('click', function(ev) {{ ev.preventDefault(); if (panel.style.display === 'flex') closePanel(); else openPanel(); }});
-      closeBtn.addEventListener('click', function(ev) {{ ev.preventDefault(); closePanel(); }});
+
+      launcher.addEventListener('click', function(ev) {{
+        ev.preventDefault();
+        applyPanelState(true);
+        clickHiddenTrigger(data.openLabel);
+      }});
+
+      closeBtn.addEventListener('click', function(ev) {{
+        ev.preventDefault();
+        applyPanelState(false);
+        clickHiddenTrigger(data.closeLabel);
+      }});
+
       sendBtn.addEventListener('click', function(ev) {{
         ev.preventDefault();
         const value = (input.value || '').trim();
@@ -6049,94 +6100,104 @@ def render_widget_chat_flotante_zentix(pagina, nombre, total_ingresos, total_gas
         sendBtn.disabled = true;
         clearBtn.disabled = true;
 
-        const url = currentUrl();
-        url.searchParams.set('zchat', 'open');
-        url.searchParams.set('zpage', data.page);
-        url.searchParams.set('zq', value);
-        window.parent.history.replaceState({{}}, '', url.toString());
-
-        const clicked = clickHiddenTrigger('__ZENTIX_SEND__' + data.page);
+        const okSet = setBridgeValue(data.bridgeLabel, value);
+        const okClick = clickHiddenTrigger(data.sendLabel);
 
         setTimeout(() => {{
           sendBtn.disabled = false;
           clearBtn.disabled = false;
           try {{ input.focus(); }} catch(e) {{}}
-        }}, 600);
+        }}, 700);
 
-        if (!clicked) {{
+        if (!okSet || !okClick) {{
           sendBtn.disabled = false;
           clearBtn.disabled = false;
         }}
       }});
+
       clearBtn.addEventListener('click', function(ev) {{
         ev.preventDefault();
-
         sendBtn.disabled = true;
         clearBtn.disabled = true;
 
-        const url = currentUrl();
-        url.searchParams.set('zchat', 'open');
-        url.searchParams.set('zpage', data.page);
-        url.searchParams.set('zclear', '1');
-        window.parent.history.replaceState({{}}, '', url.toString());
-
-        const clicked = clickHiddenTrigger('__ZENTIX_CLEAR__' + data.page);
+        const okClick = clickHiddenTrigger(data.clearLabel);
 
         setTimeout(() => {{
           sendBtn.disabled = false;
           clearBtn.disabled = false;
           try {{ input.focus(); }} catch(e) {{}}
-        }}, 600);
+        }}, 500);
 
-        if (!clicked) {{
+        if (!okClick) {{
           sendBtn.disabled = false;
           clearBtn.disabled = false;
         }}
       }});
+
       input.addEventListener('keydown', function(ev) {{
         if (ev.key === 'Enter' && !ev.shiftKey) {{
           ev.preventDefault();
           sendBtn.click();
         }}
       }});
-      setTimeout(() => {{ try {{ historyBox.scrollTop = historyBox.scrollHeight; if (Boolean(data.open)) input.focus(); }} catch(e) {{}} }}, 20);
+
+      setTimeout(() => {{
+        try {{
+          historyBox.scrollTop = historyBox.scrollHeight;
+          if (Boolean(data.open)) input.focus();
+        }} catch(e) {{}}
+      }}, 20);
     }})();
     </script>
     """
     components.html(widget_html, height=0)
 
-    st.markdown("""
-    <style>
-      div[data-testid="stVerticalBlock"]:has(#zentix-hidden-triggers-anchor) {
-        position: fixed !important;
-        left: -10000px !important;
-        top: -10000px !important;
-        width: 1px !important;
-        height: 1px !important;
-        overflow: hidden !important;
-        opacity: 0 !important;
-        pointer-events: none !important;
-        z-index: -1 !important;
-        padding: 0 !important;
-        margin: 0 !important;
-      }
-      div[data-testid="stVerticalBlock"]:has(#zentix-hidden-triggers-anchor) .stButton > button {
-        min-height: 1px !important;
-        height: 1px !important;
-        font-size: 0 !important;
-        color: transparent !important;
-        padding: 0 !important;
-        border: 0 !important;
-        background: transparent !important;
-        box-shadow: none !important;
-      }
-    </style>
-    """, unsafe_allow_html=True)
+    with st.sidebar:
+        puente = st.text_input(f"__ZENTIX_BRIDGE__{pagina}", key=bridge_key)
+        abrir_trigger = st.button(f"__ZENTIX_OPEN__{pagina}", key=f"zentix_hidden_open_{pagina}")
+        cerrar_trigger = st.button(f"__ZENTIX_CLOSE__{pagina}", key=f"zentix_hidden_close_{pagina}")
+        enviar_trigger = st.button(f"__ZENTIX_SEND__{pagina}", key=f"zentix_hidden_send_{pagina}")
+        limpiar_trigger = st.button(f"__ZENTIX_CLEAR__{pagina}", key=f"zentix_hidden_clear_{pagina}")
 
-    with st.container():
-        st.markdown("<div id='zentix-hidden-triggers-anchor'></div>", unsafe_allow_html=True)
-        st.button(f"__ZENTIX_SEND__{pagina}", key=f"zentix_hidden_send_{pagina}")
-        st.button(f"__ZENTIX_CLEAR__{pagina}", key=f"zentix_hidden_clear_{pagina}")
+    if abrir_trigger:
+        st.session_state[open_key] = True
+        st.rerun()
+
+    if cerrar_trigger:
+        st.session_state[open_key] = False
+        st.rerun()
+
+    if limpiar_trigger:
+        st.session_state[chat_key] = [
+            {"role": "assistant", "content": mensajes_iniciales.get(pagina, "Hola. Soy tu avatar financiero de Zentix.")}
+        ]
+        st.session_state[clear_key] = True
+        st.session_state[open_key] = True
+        st.session_state[bridge_reset_key] = True
+        st.rerun()
+
+    if enviar_trigger:
+        pregunta_final = str(puente or "").strip()
+        if pregunta_final:
+            st.session_state[chat_key].append({"role": "user", "content": pregunta_final})
+
+            permitido, usadas, limite, _, plan = puede_usar_ia(st.session_state.user.id)
+            if not permitido:
+                respuesta = (
+                    f"Has alcanzado tu límite diario de IA ({limite} consultas) en el plan "
+                    f"{plan.get('plan', 'free')}. Pásate a Pro para tener más acceso y análisis más profundos."
+                )
+            else:
+                with st.spinner("Zentix está analizando tu información."):
+                    respuesta = consultar_ia_zentix(pregunta_final, contexto_ia)
+                registrar_uso_ia(st.session_state.user.id)
+
+            st.session_state[chat_key].append({"role": "assistant", "content": respuesta})
+
+        st.session_state[clear_key] = True
+        st.session_state[open_key] = True
+        st.session_state[bridge_reset_key] = True
+        st.rerun()
 
 
 def render_avatar(pagina, nombre, total_ingresos, total_gastos, ahorro_actual, ultimo_tipo):
