@@ -1408,8 +1408,15 @@ def aplicar_nav_desde_query(paginas_validas):
     except Exception:
         nav = None
 
+    try:
+        zpage = st.query_params.get("zpage")
+    except Exception:
+        zpage = None
+
     if isinstance(nav, list):
         nav = nav[0] if nav else None
+    if isinstance(zpage, list):
+        zpage = zpage[0] if zpage else None
 
     if nav in paginas_validas:
         st.session_state.pagina = nav
@@ -1420,6 +1427,8 @@ def aplicar_nav_desde_query(paginas_validas):
                 st.query_params.clear()
             except Exception:
                 pass
+    elif zpage in paginas_validas:
+        st.session_state.pagina = zpage
 
 
 
@@ -5904,12 +5913,17 @@ def render_widget_chat_flotante_zentix(pagina, nombre, total_ingresos, total_gas
                 params[str(k)] = str(v)
         except Exception:
             params = {}
-        for clave in ["zq", "zclear", "zpage"]:
+
+        for clave in ["zq", "zclear"]:
             params.pop(clave, None)
+
+        params["zpage"] = str(pagina)
+
         if open_chat:
             params["zchat"] = "open"
         else:
             params.pop("zchat", None)
+
         query = urllib.parse.urlencode(params)
         return f"?{query}" if query else "?"
 
