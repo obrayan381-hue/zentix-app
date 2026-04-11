@@ -5925,7 +5925,7 @@ def render_widget_chat_flotante_zentix(pagina, nombre, total_ingresos, total_gas
         )
 
     if not abierto:
-        launcher_js = _chat_js(True)
+        launcher_js = html.escape(_chat_js(True), quote=True)
         st.markdown(f"""
         <style>
           .zentix-chat-launcher {{
@@ -5937,6 +5937,9 @@ def render_widget_chat_flotante_zentix(pagina, nombre, total_ingresos, total_gas
             z-index: 1000000;
             display: block;
             cursor: pointer;
+            background: transparent;
+            border: none;
+            padding: 0;
           }}
           .zentix-chat-launcher img {{
             width: 100%;
@@ -5955,15 +5958,15 @@ def render_widget_chat_flotante_zentix(pagina, nombre, total_ingresos, total_gas
             }}
           }}
         </style>
-        <a class="zentix-chat-launcher" href="#" onclick="{launcher_js}" aria-label="Abrir Zentix IA">
+        <button type="button" class="zentix-chat-launcher" onclick="{launcher_js}" aria-label="Abrir Zentix IA">
           <img src="{asset_uri}" alt="Zentix IA" />
-        </a>
+        </button>
         """, unsafe_allow_html=True)
         return
 
     historial = st.session_state.get(chat_key, [])[-8:]
     historial_html = construir_html_historial_chat(historial)
-    close_js = _chat_js(False)
+    close_js = html.escape(_chat_js(False), quote=True)
 
     st.markdown("""
     <style>
@@ -6121,7 +6124,7 @@ def render_widget_chat_flotante_zentix(pagina, nombre, total_ingresos, total_gas
             <div class="copy">{html.escape(mensaje)}</div>
             <div class="meta">Último movimiento: {html.escape(ultimo)}<br>{html.escape(meta_superior)}</div>
           </div>
-          <a class="zentix-native-chat-close" href="#" onclick="{close_js}" aria-label="Cerrar chat">×</a>
+          <button type="button" class="zentix-native-chat-close" onclick="{close_js}" aria-label="Cerrar chat">×</button>
         </div>
         <div class="zentix-native-chat-history">{historial_html}</div>
         """, unsafe_allow_html=True)
