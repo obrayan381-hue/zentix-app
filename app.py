@@ -5859,6 +5859,7 @@ def construir_html_historial_chat(historial):
     return "".join(bloques)
 
 
+
 def render_widget_chat_flotante_zentix(pagina, nombre, total_ingresos, total_gastos, ahorro_actual, ultimo_tipo):
     tips = {
         "Inicio": "Estoy listo para resumirte tu panorama y decirte cuál sería el siguiente mejor paso.",
@@ -5877,7 +5878,9 @@ def render_widget_chat_flotante_zentix(pagina, nombre, total_ingresos, total_gas
         ultimo_tipo=ultimo_tipo
     )
 
-    chat_key, _, _, _ = procesar_chat_flotante_zentix(pagina, nombre, contexto_ia)
+    # Mantengo compatibilidad con versiones anteriores del chat por query params,
+    # pero el flujo principal de Enviar/Limpiar ya no depende de recargar la página.
+    chat_key, _, _, mensajes_iniciales = procesar_chat_flotante_zentix(pagina, nombre, contexto_ia)
     historial = st.session_state.get(chat_key, [])[-8:]
     historial_html = construir_html_historial_chat(historial)
 
@@ -6013,43 +6016,203 @@ def render_widget_chat_flotante_zentix(pagina, nombre, total_ingresos, total_gas
           launcher.style.transform = 'translateY(0) scale(1)';
         }}
       }}
-      function openPanel() {{ applyPanelState(true); persistOpenState(true); setTimeout(() => {{ try {{ historyBox.scrollTop = historyBox.scrollHeight; input.focus(); }} catch(e) {{}} }}, 80); }}
-      function closePanel() {{ applyPanelState(false); persistOpenState(false); }}
+      function normalize(txt) {{
+        return String(txt || '').replace(/\\s+/g, ' ').trim();
+      }}
+      function clickStreamlitButton(label) {{
+        try {{
+          const wanted = normalize(label);
+          const buttons = Array.from(window.parent.document.querySelectorAll('button'));
+          for (const btn of buttons) {{
+            const txt = normalize(btn.innerText || btn.textContent || '');
+            const aria = normalize(btn.getAttribute('aria-label') || '');
+            const title = normalize(btn.getAttribute('title') || '');
+            if (txt === wanted || aria === wanted || title === wanted || txt.includes(wanted) || aria.includes(wanted) || title.includes(wanted)) {{
+              btn.click();
+              return true;
+            }}
+          }}
+        }} catch (e) {{}}
+        return false;
+      }}
+      function setStreamlitInput(label, value) {{
+        try {{
+          const wanted = normalize(label);
+          const nodes = Array.from(window.parent.document.querySelectorAll('input, textarea'));
+          for (const el of nodes) {{
+            const aria = normalize(el.getAttribute('aria-label') || '');
+            const place = normalize(el.getAttribute('placeholder') || '');
+            if (aria === wanted || place === wanted || aria.includes(wanted) || place.includes(wanted)) {{
+              const proto = el.tagName === 'TEXTAREA'
+                ? window.parent.HTMLTextAreaElement.prototype
+                : window.parent.HTMLInputElement.prototype;
+              const desc = Object.getOwnPropertyDescriptor(proto, 'value');
+              if (desc && desc.set) {{
+                desc.set.call(el, value);
+              }} else {{
+                el.value = value;
+              }}
+              el.dispatchEvent(new window.parent.Event('input', {{ bubbles: true }}));
+              el.dispatchEvent(new window.parent.Event('change', {{ bubbles: true }}));
+              return true;
+            }}
+          }}
+        }} catch (e) {{}}
+        return false;
+      }}
+
+      function openPanel() {{
+        applyPanelState(true);
+        persistOpenState(true);
+        setTimeout(() => {{ try {{ historyBox.scrollTop = historyBox.scrollHeight; input.focus(); }} catch(e) {{}} }}, 80);
+      }}
+      function closePanel() {{
+        applyPanelState(false);
+        persistOpenState(false);
+      }}
+
       applyPanelState(Boolean(data.open));
-      launcher.addEventListener('click', function(ev) {{ ev.preventDefault(); if (panel.style.display === 'flex') closePanel(); else openPanel(); }});
-      closeBtn.addEventListener('click', function(ev) {{ ev.preventDefault(); closePanel(); }});
+      launcher.addEventListener('click', function(ev) {{
+        ev.preventDefault();
+        if (panel.style.display === 'flex') closePanel(); else openPanel();
+      }});
+      closeBtn.addEventListener('click', function(ev) {{
+        ev.preventDefault();
+        closePanel();
+      }});
+
       sendBtn.addEventListener('click', function(ev) {{
         ev.preventDefault();
         const value = (input.value || '').trim();
         if (!value) return;
-        const url = currentUrl();
-        url.searchParams.set('zchat', 'open');
-        url.searchParams.set('zpage', data.page);
-        url.searchParams.set('zq', value);
-        window.parent.location.href = url.toString();
+
+        sendBtn.disabled = true;
+        clearBtn.disabled = true;
+
+        persistOpenState(true);
+        const okInput = setStreamlitInput('__ZENTIX_BRIDGE_INPUT__' + data.page, value);
+
+        setTimeout(() => {{
+          const okBtn = clickStreamlitButton('__ZENTIX_SEND__' + data.page);
+          if (!okBtn) {{
+            sendBtn.disabled = false;
+            clearBtn.disabled = false;
+          }}
+        }}, okInput ? 40 : 0);
       }});
+
       clearBtn.addEventListener('click', function(ev) {{
         ev.preventDefault();
-        const url = currentUrl();
-        url.searchParams.set('zchat', 'open');
-        url.searchParams.set('zpage', data.page);
-        url.searchParams.set('zclear', '1');
-        window.parent.location.href = url.toString();
+
+        sendBtn.disabled = true;
+        clearBtn.disabled = true;
+
+        persistOpenState(true);
+        setStreamlitInput('__ZENTIX_BRIDGE_INPUT__' + data.page, '');
+
+        setTimeout(() => {{
+          const okBtn = clickStreamlitButton('__ZENTIX_CLEAR__' + data.page);
+          if (!okBtn) {{
+            sendBtn.disabled = false;
+            clearBtn.disabled = false;
+          }}
+        }}, 30);
       }});
+
       input.addEventListener('keydown', function(ev) {{
         if (ev.key === 'Enter' && !ev.shiftKey) {{
           ev.preventDefault();
           sendBtn.click();
         }}
       }});
-      setTimeout(() => {{ try {{ historyBox.scrollTop = historyBox.scrollHeight; if (Boolean(data.open)) input.focus(); }} catch(e) {{}} }}, 20);
+
+      setTimeout(() => {{
+        try {{
+          historyBox.scrollTop = historyBox.scrollHeight;
+          if (Boolean(data.open)) input.focus();
+        }} catch(e) {{}}
+      }}, 20);
     }})();
     </script>
     """
     components.html(widget_html, height=0)
 
+    bridge_key = f"zentix_bridge_input_{pagina}"
 
-def render_avatar(pagina, nombre, total_ingresos, total_gastos, ahorro_actual, ultimo_tipo):
+    st.markdown("""
+    <style>
+      div[data-testid="stSidebar"] div[data-testid="stVerticalBlock"]:has(#zentix-hidden-bridge-anchor) {
+        position: fixed !important;
+        left: -10000px !important;
+        top: 0 !important;
+        width: 1px !important;
+        height: 1px !important;
+        overflow: hidden !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+        z-index: -1 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+      }
+      div[data-testid="stSidebar"] div[data-testid="stVerticalBlock"]:has(#zentix-hidden-bridge-anchor) .stButton > button,
+      div[data-testid="stSidebar"] div[data-testid="stVerticalBlock"]:has(#zentix-hidden-bridge-anchor) input {
+        min-height: 1px !important;
+        height: 1px !important;
+        padding: 0 !important;
+        border: 0 !important;
+      }
+    </style>
+    """, unsafe_allow_html=True)
+
+    with st.sidebar:
+        st.markdown("<div id='zentix-hidden-bridge-anchor'></div>", unsafe_allow_html=True)
+        st.text_input(
+            f"__ZENTIX_BRIDGE_INPUT__{pagina}",
+            key=bridge_key,
+            label_visibility="collapsed"
+        )
+        send_clicked = st.button(f"__ZENTIX_SEND__{pagina}", key=f"zentix_hidden_send_{pagina}")
+        clear_clicked = st.button(f"__ZENTIX_CLEAR__{pagina}", key=f"zentix_hidden_clear_{pagina}")
+
+    if clear_clicked:
+        st.session_state[chat_key] = [
+            {"role": "assistant", "content": mensajes_iniciales.get(pagina, "Hola. Soy tu avatar financiero de Zentix.")}
+        ]
+        st.session_state[bridge_key] = ""
+        try:
+            st.query_params["zchat"] = "open"
+        except Exception:
+            pass
+        st.rerun()
+
+    if send_clicked:
+        pregunta_final = str(st.session_state.get(bridge_key, "") or "").strip()
+        if pregunta_final:
+            st.session_state[chat_key].append({"role": "user", "content": pregunta_final})
+
+            permitido, usadas, limite, _, plan = puede_usar_ia(st.session_state.user.id)
+            if not permitido:
+                respuesta = (
+                    f"Has alcanzado tu límite diario de IA ({limite} consultas) en el plan "
+                    f"{plan.get('plan', 'free')}. Pásate a Pro para tener más acceso y análisis más profundos."
+                )
+            else:
+                with st.spinner("Zentix está analizando tu información..."):
+                    respuesta = consultar_ia_zentix(pregunta_final, contexto_ia)
+                registrar_uso_ia(st.session_state.user.id)
+
+            st.session_state[chat_key].append({"role": "assistant", "content": respuesta})
+
+        st.session_state[bridge_key] = ""
+        try:
+            st.query_params["zchat"] = "open"
+        except Exception:
+            pass
+        st.rerun()
+
+
+def render_avatar(
+pagina, nombre, total_ingresos, total_gastos, ahorro_actual, ultimo_tipo):
     # El bloque antiguo de Avatar Zentix IA se desactiva para evitar duplicidad.
     # Toda la conversación ahora vive en el widget flotante premium.
     return
