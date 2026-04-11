@@ -5922,10 +5922,10 @@ def render_widget_chat_flotante_zentix(pagina, nombre, total_ingresos, total_gas
       root.innerHTML = `
         <style>
           #zentix-fab-chat-root * {{ box-sizing:border-box; font-family: Inter, system-ui, -apple-system, sans-serif; }}
-          #zentix-fab-shell {{ position: fixed; right: 18px; bottom: 18px; z-index: 1000001; pointer-events:none; }}
-          #zentix-fab-button {{ position: fixed; right: 18px; bottom: 18px; width: 132px; height: 152px; border:none; background: transparent; cursor:pointer; padding:0; pointer-events:auto; }}
+          #zentix-fab-shell {{ position: fixed; right: 18px; bottom: calc(18px + env(safe-area-inset-bottom)); z-index: 1000001; pointer-events:none; }}
+          #zentix-fab-button {{ position: fixed; right: 18px; bottom: calc(18px + env(safe-area-inset-bottom)); width: 132px; height: 152px; border:none; background: transparent; cursor:pointer; padding:0; pointer-events:auto; transition: opacity .18s ease, transform .18s ease; }}
           #zentix-fab-button img {{ width:100%; height:100%; object-fit:contain; display:block; filter: drop-shadow(0 18px 28px rgba(15,23,42,.22)); }}
-          #zentix-chat-panel {{ position: fixed; right: 18px; bottom: 132px; width:min(390px, calc(100vw - 20px)); max-height:min(72vh, 720px); display:${abierto and 'flex' or 'none'}; flex-direction:column; overflow:hidden; border-radius:26px; background:linear-gradient(180deg,#FFFFFF 0%,#F8FAFC 100%); border:1px solid rgba(148,163,184,.20); box-shadow:0 28px 60px rgba(15,23,42,.22); pointer-events:auto; }}
+          #zentix-chat-panel {{ position: fixed; right: 18px; bottom: calc(132px + env(safe-area-inset-bottom)); width:min(390px, calc(100vw - 20px)); max-height:min(72vh, calc(100dvh - 170px)); display:${abierto and 'flex' or 'none'}; flex-direction:column; overflow:hidden; border-radius:26px; background:linear-gradient(180deg,#FFFFFF 0%,#F8FAFC 100%); border:1px solid rgba(148,163,184,.20); box-shadow:0 28px 60px rgba(15,23,42,.22); pointer-events:auto; }}
           #zentix-chat-head {{ padding:16px 16px 12px 16px; border-bottom:1px solid rgba(148,163,184,.16); background:linear-gradient(135deg,#0F172A 0%, #172554 55%, #312E81 100%); color:#F8FAFC; display:flex; gap:12px; align-items:center; }}
           #zentix-chat-head img {{ width:54px; height:54px; object-fit:contain; flex:0 0 54px; }}
           #zentix-chat-head .title {{ font-size:1.02rem; font-weight:900; line-height:1.1; color:#FFFFFF; }}
@@ -5939,16 +5939,20 @@ def render_widget_chat_flotante_zentix(pagina, nombre, total_ingresos, total_gas
           .zentix-chat-msg .role {{ font-size:.72rem; font-weight:900; text-transform:uppercase; letter-spacing:.06em; margin-bottom:4px; color:#475569; }}
           .zentix-chat-msg.user .role {{ color:#4338CA; }}
           .zentix-chat-msg .copy {{ color:#0F172A; }}
-          #zentix-chat-form {{ padding:14px; border-top:1px solid rgba(148,163,184,.16); background:#FFFFFF; display:flex; flex-direction:column; gap:10px; flex-shrink:0; }}
-          #zentix-chat-input {{ width:100%; min-height:54px; height:54px; max-height:110px; resize:vertical; border-radius:16px; border:1px solid rgba(148,163,184,.24); padding:14px 14px; font-size:.95rem; color:#0F172A; outline:none; box-shadow: inset 0 1px 0 rgba(255,255,255,.9), 0 6px 12px rgba(15,23,42,.03); }}
-          #zentix-chat-actions {{ display:flex; gap:10px; margin-top:10px; }}
+          #zentix-chat-form {{ padding:14px 14px calc(14px + env(safe-area-inset-bottom)) 14px; border-top:1px solid rgba(148,163,184,.16); background:#FFFFFF; display:flex; flex-direction:column; gap:10px; flex-shrink:0; }}
+          #zentix-chat-input {{ width:100%; min-height:52px; height:54px; max-height:96px; resize:vertical; border-radius:16px; border:1px solid rgba(148,163,184,.24); padding:14px 14px; font-size:.95rem; color:#0F172A; outline:none; box-shadow: inset 0 1px 0 rgba(255,255,255,.9), 0 6px 12px rgba(15,23,42,.03); }}
+          #zentix-chat-actions {{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:6px; }}
           .zentix-chat-btn {{ flex:1; min-height:48px; border-radius:16px; border:none; cursor:pointer; font-weight:800; font-size:.95rem; display:flex; align-items:center; justify-content:center; }}
           #zentix-chat-send {{ background:linear-gradient(135deg,#5B5CF8 0%, #4F46E5 45%, #7C3AED 100%); color:#FFFFFF; box-shadow:0 16px 30px rgba(79,70,229,.18); min-width:120px; }}
           #zentix-chat-clear {{ background:linear-gradient(180deg,#FFFFFF 0%,#F8FAFC 100%); color:#0F172A; border:1px solid rgba(148,163,184,.22); min-width:110px; }}
           @media (max-width: 900px) {{
-            #zentix-fab-shell {{ right: 10px; bottom: 10px; }}
-            #zentix-fab-button {{ right: 10px; bottom: 10px; width: 118px; height: 138px; }}
-            #zentix-chat-panel {{ right: 10px; bottom: 118px; width:min(94vw, 390px); max-height:74vh; }}
+            #zentix-fab-shell {{ right: 10px; bottom: calc(8px + env(safe-area-inset-bottom)); }}
+            #zentix-fab-button {{ right: 10px; bottom: calc(8px + env(safe-area-inset-bottom)); width: 110px; height: 128px; }}
+            #zentix-chat-panel {{ right: 8px; bottom: calc(92px + env(safe-area-inset-bottom)); width:min(96vw, 390px); max-height:calc(100dvh - 108px); border-radius:24px; }}
+            #zentix-chat-head {{ padding:14px 14px 10px 14px; }}
+            #zentix-chat-history {{ min-height:150px; padding:12px; }}
+            #zentix-chat-form {{ padding:12px 12px calc(12px + env(safe-area-inset-bottom)) 12px; }}
+            #zentix-chat-input {{ max-height:84px; }}
           }}
         </style>
         <div id='zentix-fab-shell'>
@@ -5996,8 +6000,22 @@ def render_widget_chat_flotante_zentix(pagina, nombre, total_ingresos, total_gas
         url.searchParams.delete('zpage');
         window.parent.history.replaceState({{}}, '', url.toString());
       }}
-      function openPanel() {{ panel.style.display = 'flex'; launcher.style.opacity = '0'; launcher.style.pointerEvents = 'none'; persistOpenState(true); setTimeout(() => {{ try {{ historyBox.scrollTop = historyBox.scrollHeight; input.focus(); }} catch(e) {{}} }}, 80); }}
-      function closePanel() {{ panel.style.display = 'none'; launcher.style.opacity = '1'; launcher.style.pointerEvents = 'auto'; persistOpenState(false); }}
+      function applyPanelState(isOpen) {{
+        if (isOpen) {{
+          panel.style.display = 'flex';
+          launcher.style.opacity = '0';
+          launcher.style.pointerEvents = 'none';
+          launcher.style.transform = 'translateY(10px) scale(.96)';
+        }} else {{
+          panel.style.display = 'none';
+          launcher.style.opacity = '1';
+          launcher.style.pointerEvents = 'auto';
+          launcher.style.transform = 'translateY(0) scale(1)';
+        }}
+      }}
+      function openPanel() {{ applyPanelState(true); persistOpenState(true); setTimeout(() => {{ try {{ historyBox.scrollTop = historyBox.scrollHeight; input.focus(); }} catch(e) {{}} }}, 80); }}
+      function closePanel() {{ applyPanelState(false); persistOpenState(false); }}
+      applyPanelState(Boolean(data.open));
       launcher.addEventListener('click', function(ev) {{ ev.preventDefault(); if (panel.style.display === 'flex') closePanel(); else openPanel(); }});
       closeBtn.addEventListener('click', function(ev) {{ ev.preventDefault(); closePanel(); }});
       sendBtn.addEventListener('click', function(ev) {{
@@ -6024,7 +6042,7 @@ def render_widget_chat_flotante_zentix(pagina, nombre, total_ingresos, total_gas
           sendBtn.click();
         }}
       }});
-      setTimeout(() => {{ try {{ historyBox.scrollTop = historyBox.scrollHeight; }} catch(e) {{}} }}, 20);
+      setTimeout(() => {{ try {{ historyBox.scrollTop = historyBox.scrollHeight; if (Boolean(data.open)) input.focus(); }} catch(e) {{}} }}, 20);
     }})();
     </script>
     """
