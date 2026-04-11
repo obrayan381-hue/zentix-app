@@ -6068,16 +6068,9 @@ def render_widget_chat_flotante_zentix(pagina, nombre, total_ingresos, total_gas
     """
     components.html(widget_html, height=0)
 
-    st.markdown("""
-    <style>
-      div[data-testid="stVerticalBlock"]:has(#zentix-hidden-triggers-anchor) {
-        display: none !important;
-      }
-    </style>
-    """, unsafe_allow_html=True)
-    st.markdown("<div id='zentix-hidden-triggers-anchor'></div>", unsafe_allow_html=True)
-    st.button(f"__ZENTIX_SEND__{pagina}", key=f"zentix_hidden_send_{pagina}")
-    st.button(f"__ZENTIX_CLEAR__{pagina}", key=f"zentix_hidden_clear_{pagina}")
+    with st.sidebar:
+        st.button(f"__ZENTIX_SEND__{pagina}", key=f"zentix_hidden_send_{pagina}")
+        st.button(f"__ZENTIX_CLEAR__{pagina}", key=f"zentix_hidden_clear_{pagina}")
 
 
 def render_avatar(pagina, nombre, total_ingresos, total_gastos, ahorro_actual, ultimo_tipo):
