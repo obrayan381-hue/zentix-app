@@ -5991,6 +5991,20 @@ def render_widget_chat_flotante_zentix(pagina, nombre, total_ingresos, total_gas
       const historyBox = doc.getElementById('zentix-chat-history');
 
       function currentUrl() {{ return new URL(window.parent.location.href); }}
+      function clickHiddenTrigger(label) {{
+        try {{
+          const buttons = Array.from(window.parent.document.querySelectorAll('button'));
+          const wanted = String(label || '').trim();
+          for (const btn of buttons) {{
+            const txt = String(btn.innerText || btn.textContent || '').replace(/\s+/g, ' ').trim();
+            if (txt === wanted) {{
+              btn.click();
+              return true;
+            }}
+          }}
+        }} catch (e) {{}}
+        return false;
+      }}
       function persistOpenState(isOpen) {{
         const url = currentUrl();
         if (isOpen) url.searchParams.set('zchat', 'open');
@@ -6027,7 +6041,9 @@ def render_widget_chat_flotante_zentix(pagina, nombre, total_ingresos, total_gas
         url.searchParams.set('zpage', data.page);
         url.searchParams.set('zq', value);
         window.parent.history.replaceState({{}}, '', url.toString());
-        window.parent.location.reload();
+        if (!clickHiddenTrigger('__ZENTIX_SEND__' + data.page)) {{
+          window.parent.location.reload();
+        }}
       }});
       clearBtn.addEventListener('click', function(ev) {{
         ev.preventDefault();
@@ -6036,7 +6052,9 @@ def render_widget_chat_flotante_zentix(pagina, nombre, total_ingresos, total_gas
         url.searchParams.set('zpage', data.page);
         url.searchParams.set('zclear', '1');
         window.parent.history.replaceState({{}}, '', url.toString());
-        window.parent.location.reload();
+        if (!clickHiddenTrigger('__ZENTIX_CLEAR__' + data.page)) {{
+          window.parent.location.reload();
+        }}
       }});
       input.addEventListener('keydown', function(ev) {{
         if (ev.key === 'Enter' && !ev.shiftKey) {{
@@ -6049,6 +6067,17 @@ def render_widget_chat_flotante_zentix(pagina, nombre, total_ingresos, total_gas
     </script>
     """
     components.html(widget_html, height=0)
+
+    st.markdown("""
+    <style>
+      div[data-testid="stVerticalBlock"]:has(#zentix-hidden-triggers-anchor) {
+        display: none !important;
+      }
+    </style>
+    """, unsafe_allow_html=True)
+    st.markdown("<div id='zentix-hidden-triggers-anchor'></div>", unsafe_allow_html=True)
+    st.button(f"__ZENTIX_SEND__{pagina}", key=f"zentix_hidden_send_{pagina}")
+    st.button(f"__ZENTIX_CLEAR__{pagina}", key=f"zentix_hidden_clear_{pagina}")
 
 
 def render_avatar(pagina, nombre, total_ingresos, total_gastos, ahorro_actual, ultimo_tipo):
