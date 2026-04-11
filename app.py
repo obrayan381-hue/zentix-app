@@ -5922,33 +5922,33 @@ def render_widget_chat_flotante_zentix(pagina, nombre, total_ingresos, total_gas
       root.innerHTML = `
         <style>
           #zentix-fab-chat-root * {{ box-sizing:border-box; font-family: Inter, system-ui, -apple-system, sans-serif; }}
-          #zentix-fab-shell {{ position: fixed; right: 18px; bottom: 18px; z-index: 1000001; display:flex; flex-direction:column; align-items:flex-end; gap: 12px; }}
-          #zentix-fab-button {{ width: 132px; height: 152px; border:none; background: transparent; cursor:pointer; padding:0; }}
+          #zentix-fab-shell {{ position: fixed; right: 18px; bottom: 18px; z-index: 1000001; pointer-events:none; }}
+          #zentix-fab-button {{ position: fixed; right: 18px; bottom: 18px; width: 132px; height: 152px; border:none; background: transparent; cursor:pointer; padding:0; pointer-events:auto; }}
           #zentix-fab-button img {{ width:100%; height:100%; object-fit:contain; display:block; filter: drop-shadow(0 18px 28px rgba(15,23,42,.22)); }}
-          #zentix-chat-panel {{ width:min(390px, calc(100vw - 20px)); max-height:min(72vh, 720px); display:${abierto and 'flex' or 'none'}; flex-direction:column; overflow:hidden; border-radius:26px; background:linear-gradient(180deg,#FFFFFF 0%,#F8FAFC 100%); border:1px solid rgba(148,163,184,.20); box-shadow:0 28px 60px rgba(15,23,42,.22); }}
+          #zentix-chat-panel {{ position: fixed; right: 18px; bottom: 132px; width:min(390px, calc(100vw - 20px)); max-height:min(72vh, 720px); display:${abierto and 'flex' or 'none'}; flex-direction:column; overflow:hidden; border-radius:26px; background:linear-gradient(180deg,#FFFFFF 0%,#F8FAFC 100%); border:1px solid rgba(148,163,184,.20); box-shadow:0 28px 60px rgba(15,23,42,.22); pointer-events:auto; }}
           #zentix-chat-head {{ padding:16px 16px 12px 16px; border-bottom:1px solid rgba(148,163,184,.16); background:linear-gradient(135deg,#0F172A 0%, #172554 55%, #312E81 100%); color:#F8FAFC; display:flex; gap:12px; align-items:center; }}
           #zentix-chat-head img {{ width:54px; height:54px; object-fit:contain; flex:0 0 54px; }}
           #zentix-chat-head .title {{ font-size:1.02rem; font-weight:900; line-height:1.1; color:#FFFFFF; }}
           #zentix-chat-head .copy {{ font-size:.86rem; line-height:1.45; color:rgba(248,250,252,.92); margin-top:4px; }}
           #zentix-chat-head .meta {{ font-size:.76rem; line-height:1.4; color:rgba(248,250,252,.78); margin-top:6px; }}
           #zentix-chat-close {{ margin-left:auto; width:36px; height:36px; border-radius:12px; border:none; background:rgba(255,255,255,.14); color:#FFFFFF; cursor:pointer; font-size:22px; font-weight:700; }}
-          #zentix-chat-history {{ padding:14px; overflow:auto; background:#F8FAFC; min-height:190px; }}
+          #zentix-chat-history {{ flex:1; padding:14px; overflow:auto; background:#F8FAFC; min-height:190px; }}
           .zentix-chat-msg {{ border-radius:18px; padding:12px 13px; margin-bottom:10px; line-height:1.5; font-size:.92rem; box-shadow:0 8px 18px rgba(15,23,42,.04); }}
           .zentix-chat-msg.assistant {{ background:#FFFFFF; border:1px solid rgba(148,163,184,.22); color:#0F172A; }}
           .zentix-chat-msg.user {{ background:#EEF2FF; border:1px solid rgba(129,140,248,.18); color:#0F172A; }}
           .zentix-chat-msg .role {{ font-size:.72rem; font-weight:900; text-transform:uppercase; letter-spacing:.06em; margin-bottom:4px; color:#475569; }}
           .zentix-chat-msg.user .role {{ color:#4338CA; }}
           .zentix-chat-msg .copy {{ color:#0F172A; }}
-          #zentix-chat-form {{ padding:14px; border-top:1px solid rgba(148,163,184,.16); background:#FFFFFF; }}
-          #zentix-chat-input {{ width:100%; min-height:54px; max-height:110px; resize:vertical; border-radius:16px; border:1px solid rgba(148,163,184,.24); padding:14px 14px; font-size:.95rem; color:#0F172A; outline:none; box-shadow: inset 0 1px 0 rgba(255,255,255,.9), 0 6px 12px rgba(15,23,42,.03); }}
+          #zentix-chat-form {{ padding:14px; border-top:1px solid rgba(148,163,184,.16); background:#FFFFFF; display:flex; flex-direction:column; gap:10px; flex-shrink:0; }}
+          #zentix-chat-input {{ width:100%; min-height:54px; height:54px; max-height:110px; resize:vertical; border-radius:16px; border:1px solid rgba(148,163,184,.24); padding:14px 14px; font-size:.95rem; color:#0F172A; outline:none; box-shadow: inset 0 1px 0 rgba(255,255,255,.9), 0 6px 12px rgba(15,23,42,.03); }}
           #zentix-chat-actions {{ display:flex; gap:10px; margin-top:10px; }}
-          .zentix-chat-btn {{ flex:1; min-height:46px; border-radius:16px; border:none; cursor:pointer; font-weight:800; font-size:.95rem; }}
-          #zentix-chat-send {{ background:linear-gradient(135deg,#5B5CF8 0%, #4F46E5 45%, #7C3AED 100%); color:#FFFFFF; box-shadow:0 16px 30px rgba(79,70,229,.18); }}
-          #zentix-chat-clear {{ background:linear-gradient(180deg,#FFFFFF 0%,#F8FAFC 100%); color:#0F172A; border:1px solid rgba(148,163,184,.22); }}
+          .zentix-chat-btn {{ flex:1; min-height:48px; border-radius:16px; border:none; cursor:pointer; font-weight:800; font-size:.95rem; display:flex; align-items:center; justify-content:center; }}
+          #zentix-chat-send {{ background:linear-gradient(135deg,#5B5CF8 0%, #4F46E5 45%, #7C3AED 100%); color:#FFFFFF; box-shadow:0 16px 30px rgba(79,70,229,.18); min-width:120px; }}
+          #zentix-chat-clear {{ background:linear-gradient(180deg,#FFFFFF 0%,#F8FAFC 100%); color:#0F172A; border:1px solid rgba(148,163,184,.22); min-width:110px; }}
           @media (max-width: 900px) {{
             #zentix-fab-shell {{ right: 10px; bottom: 10px; }}
-            #zentix-fab-button {{ width: 118px; height: 138px; }}
-            #zentix-chat-panel {{ width:min(94vw, 390px); max-height:74vh; }}
+            #zentix-fab-button {{ right: 10px; bottom: 10px; width: 118px; height: 138px; }}
+            #zentix-chat-panel {{ right: 10px; bottom: 118px; width:min(94vw, 390px); max-height:74vh; }}
           }}
         </style>
         <div id='zentix-fab-shell'>
@@ -5996,8 +5996,8 @@ def render_widget_chat_flotante_zentix(pagina, nombre, total_ingresos, total_gas
         url.searchParams.delete('zpage');
         window.parent.history.replaceState({{}}, '', url.toString());
       }}
-      function openPanel() {{ panel.style.display = 'flex'; persistOpenState(true); setTimeout(() => {{ try {{ historyBox.scrollTop = historyBox.scrollHeight; input.focus(); }} catch(e) {{}} }}, 80); }}
-      function closePanel() {{ panel.style.display = 'none'; persistOpenState(false); }}
+      function openPanel() {{ panel.style.display = 'flex'; launcher.style.opacity = '0'; launcher.style.pointerEvents = 'none'; persistOpenState(true); setTimeout(() => {{ try {{ historyBox.scrollTop = historyBox.scrollHeight; input.focus(); }} catch(e) {{}} }}, 80); }}
+      function closePanel() {{ panel.style.display = 'none'; launcher.style.opacity = '1'; launcher.style.pointerEvents = 'auto'; persistOpenState(false); }}
       launcher.addEventListener('click', function(ev) {{ ev.preventDefault(); if (panel.style.display === 'flex') closePanel(); else openPanel(); }});
       closeBtn.addEventListener('click', function(ev) {{ ev.preventDefault(); closePanel(); }});
       sendBtn.addEventListener('click', function(ev) {{
@@ -6032,83 +6032,9 @@ def render_widget_chat_flotante_zentix(pagina, nombre, total_ingresos, total_gas
 
 
 def render_avatar(pagina, nombre, total_ingresos, total_gastos, ahorro_actual, ultimo_tipo):
-    perfil_actual = globals().get("perfil_financiero", {})
-    plan_actual = globals().get("plan_usuario_actual", {})
-    consultas_usadas = globals().get("consultas_usadas_hoy", 0)
-    consultas_limite = globals().get("consultas_limite_hoy", 10)
-    alertas_actuales = globals().get("alertas_proactivas", [])
-    recomendacion_actual = globals().get("recomendacion_accionable", "Sigue registrando para obtener una recomendación más precisa.")
-    entradas_deuda = float(globals().get("total_entradas_deuda_mes", 0.0) or 0.0)
-    pagos_deuda = float(globals().get("total_pagos_deuda_mes", 0.0) or 0.0)
-    saldo_pendiente_deudas = float(globals().get("saldo_pendiente_deudas_global", 0.0) or 0.0)
-
-    tono_base = perfil_actual.get("titulo", "Perfil en construcción")
-
-    if pagina == "Inicio":
-        mensaje = f"{nombre}, ya entendí mejor tu panorama. Hoy te leo como: {tono_base.lower()}."
-    elif pagina == "Registrar":
-        mensaje = f"{nombre}, cada nuevo movimiento me ayuda a entender mejor tu comportamiento financiero, incluidas tus deudas y recurrencias."
-    elif pagina == "Análisis":
-        mensaje = f"{nombre}, aquí puedo explicarte patrones, comparar periodos y leer con claridad tus ingresos reales versus tus flujos por deuda."
-    elif pagina == "Perfil":
-        mensaje = f"{nombre}, desde aquí afinamos tu experiencia: plan, IA, recordatorios y preferencias sin recargar la interfaz."
-    else:
-        mensaje = f"{nombre}, tu meta no es solo un número. También puedo decirte qué ajuste te acercaría más rápido a ella."
-
-    estado = {
-        "Ingreso": "🟢 Último movimiento: ingreso",
-        "Gasto": "🔴 Último movimiento: gasto",
-        "Ingreso (Deuda)": "🔵 Último movimiento: crédito solicitado",
-        "Pago de deuda": "🟠 Último movimiento: pago a crédito",
-        "Cuenta por cobrar": "🟣 Último movimiento: prestaste dinero",
-        "Cobro cuenta por cobrar": "🟢 Último movimiento: ya me pagaron"
-    }.get(ultimo_tipo, "⚪ Aún no hay movimientos")
-
-    asegurar_estado_chat_zentix(pagina, nombre)
-
-    st.markdown('<div class="assistant-card">', unsafe_allow_html=True)
-
-    col1, col2 = st.columns([1.15, 4])
-
-    with col1:
-        if avatar_path.exists():
-            st.image(str(avatar_path), width=124)
-
-    with col2:
-        st.markdown('<div class="assistant-title">Avatar Zentix IA</div>', unsafe_allow_html=True)
-        st.markdown(f'<div class="assistant-text">{mensaje}</div>', unsafe_allow_html=True)
-        st.markdown(f'<div class="assistant-mini">{estado}</div>', unsafe_allow_html=True)
-        st.markdown(
-            f'<div class="assistant-mini">{texto_plan_avatar(plan_actual, consultas_usadas, consultas_limite)}</div>',
-            unsafe_allow_html=True
-        )
-        st.markdown(
-            f'<div class="assistant-mini">Perfil: {perfil_actual.get("titulo", "Sin perfil")} · Disponible: {money(ahorro_actual)}</div>',
-            unsafe_allow_html=True
-        )
-        st.markdown(
-            f'<div class="assistant-mini">Deuda recibida: {money(entradas_deuda)} · Pagos deuda: {money(pagos_deuda)} · Pendiente: {money(saldo_pendiente_deudas)}</div>',
-            unsafe_allow_html=True
-        )
-
-    if alertas_actuales:
-        st.markdown(
-            f'<div class="assistant-mini">Alerta actual: {alertas_actuales[0]}</div>',
-            unsafe_allow_html=True
-        )
-
-    st.markdown(
-        '<div class="assistant-mini" style="margin-top:0.7rem;">El chat ahora vive en el flotante premium de Zentix IA para liberar espacio visual y mantener la app más limpia.</div>',
-        unsafe_allow_html=True
-    )
-
-    if recomendacion_actual:
-        st.markdown(
-            f'<div class="assistant-mini" style="margin-top:0.65rem;">Siguiente mejor paso: {recomendacion_actual}</div>',
-            unsafe_allow_html=True
-        )
-
-    st.markdown('</div>', unsafe_allow_html=True)
+    # El bloque antiguo de Avatar Zentix IA se desactiva para evitar duplicidad.
+    # Toda la conversación ahora vive en el widget flotante premium.
+    return
 
 
 def obtener_insight_financiero(total_ingresos, total_gastos, saldo_disponible, df_mes):
