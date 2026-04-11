@@ -5865,7 +5865,7 @@ def render_widget_chat_flotante_zentix(pagina, nombre, total_ingresos, total_gas
         "Registrar": "Puedo ayudarte a decidir cómo registrar mejor tus movimientos sin ensuciar tus KPIs.",
         "Análisis": "Aquí te explico patrones, comparativas, alertas y lecturas útiles de tus gráficas.",
         "Ahorro": "Pregúntame cuánto te falta y qué ajuste te acercaría más rápido a tu meta.",
-        "Perfil": "También puedo ayudarte a afinar recordatorios, límites y tu experiencia premium."
+        "Perfil": "También puedo ayudarte a afinar recordatorios, límites y tu experiencia premium.",
     }
 
     contexto_ia = construir_contexto_zentix(
@@ -5874,10 +5874,10 @@ def render_widget_chat_flotante_zentix(pagina, nombre, total_ingresos, total_gas
         total_ingresos=total_ingresos,
         total_gastos=total_gastos,
         ahorro_actual=ahorro_actual,
-        ultimo_tipo=ultimo_tipo
+        ultimo_tipo=ultimo_tipo,
     )
 
-    # Procesa restos de query params de versiones anteriores del chat sin depender de ellos en adelante.
+    # Procesa restos de versiones anteriores sin depender ya de query params.
     try:
         if st.query_params.get("zq") or st.query_params.get("zclear"):
             procesar_chat_flotante_zentix(pagina, nombre, contexto_ia)
@@ -5890,9 +5890,9 @@ def render_widget_chat_flotante_zentix(pagina, nombre, total_ingresos, total_gas
     if open_key not in st.session_state:
         st.session_state[open_key] = False
 
-    abierto = bool(st.session_state.get(open_key, False))
-
-    asset_uri = obtener_data_uri_imagen(zentix_floating_path if zentix_floating_path.exists() else avatar_path)
+    asset_uri = obtener_data_uri_imagen(
+        zentix_floating_path if zentix_floating_path.exists() else avatar_path
+    )
     mensaje = tips.get(pagina, "Estoy aquí para ayudarte a moverte rápido por Zentix.")
     ultimo = tipo_display(ultimo_tipo) if ultimo_tipo else "Sin movimientos"
     plan_actual = globals().get("plan_usuario_actual", {})
@@ -5902,106 +5902,86 @@ def render_widget_chat_flotante_zentix(pagina, nombre, total_ingresos, total_gas
 
     st.markdown(f"""
     <style>
-      div[data-testid="stVerticalBlock"]:has(#zentix-launcher-native-anchor) {{
+      div[data-testid="stVerticalBlock"]:has(#zentix-launcher-anchor) {{
         position: fixed !important;
-        right: 18px !important;
+        right: 14px !important;
         bottom: calc(10px + env(safe-area-inset-bottom)) !important;
-        width: 118px !important;
-        height: 136px !important;
+        width: 104px !important;
+        height: 120px !important;
         z-index: 1000000 !important;
         background: transparent !important;
         box-shadow: none !important;
         border: none !important;
         padding: 0 !important;
       }}
-      div[data-testid="stVerticalBlock"]:has(#zentix-launcher-native-anchor) [data-testid="stButton"] {{
+      div[data-testid="stVerticalBlock"]:has(#zentix-launcher-anchor) [data-testid="stButton"] {{
         width: 100% !important;
         height: 100% !important;
       }}
-      div[data-testid="stVerticalBlock"]:has(#zentix-launcher-native-anchor) .stButton > button {{
+      div[data-testid="stVerticalBlock"]:has(#zentix-launcher-anchor) .stButton > button {{
         width: 100% !important;
         height: 100% !important;
         min-height: 0 !important;
-        background: transparent url('{asset_uri}') center center / contain no-repeat !important;
         border: none !important;
+        background: transparent url('{asset_uri}') center center / contain no-repeat !important;
         box-shadow: none !important;
         color: transparent !important;
         font-size: 0 !important;
         padding: 0 !important;
       }}
+      div[data-testid="stVerticalBlock"]:has(#zentix-launcher-anchor) .stButton > button:hover {{
+        transform: none !important;
+        filter: brightness(1.03) !important;
+      }}
 
-      div[data-testid="stVerticalBlock"]:has(#zentix-floating-panel-anchor) {{
-        position: fixed !important;
-        right: 18px !important;
-        top: 38px !important;
-        width: min(390px, calc(100vw - 36px)) !important;
-        z-index: 1000001 !important;
-        background: linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%) !important;
-        border: 1px solid rgba(148,163,184,.20) !important;
-        border-radius: 26px !important;
-        box-shadow: 0 28px 60px rgba(15,23,42,.22) !important;
-        overflow: hidden !important;
-        padding: 0 !important;
-      }}
-      div[data-testid="stVerticalBlock"]:has(#zentix-floating-panel-anchor) > div[data-testid="stVerticalBlockBorderWrapper"] {{
-        border-radius: 26px !important;
-      }}
-      div[data-testid="stVerticalBlock"]:has(#zentix-floating-panel-anchor) .block-container,
-      div[data-testid="stVerticalBlock"]:has(#zentix-floating-panel-anchor) [data-testid="stVerticalBlock"] {{
-        gap: 0 !important;
-      }}
-      #zentix-launcher-native-anchor, #zentix-floating-panel-anchor {{
-        display: none !important;
-      }}
-      .zentix-native-head {{
-        padding: 16px 16px 12px 16px;
-        border-bottom: 1px solid rgba(148,163,184,.16);
+      .zentix-dialog-head {{
+        padding: 10px 10px 8px 10px;
+        border-radius: 18px;
         background: linear-gradient(135deg,#0F172A 0%, #172554 55%, #312E81 100%);
         color: #F8FAFC;
+        margin-bottom: 12px;
       }}
-      .zentix-native-head-row {{
+      .zentix-dialog-head-row {{
         display:flex;
         gap:12px;
         align-items:flex-start;
       }}
-      .zentix-native-head img {{
-        width: 54px;
-        height: 54px;
+      .zentix-dialog-head img {{
+        width: 52px;
+        height: 52px;
         object-fit: contain;
-        flex: 0 0 54px;
-        margin-top: 2px;
+        flex: 0 0 52px;
       }}
-      .zentix-native-head .title {{
+      .zentix-dialog-title {{
         font-size: 1.02rem;
         font-weight: 900;
-        line-height: 1.1;
         color: #FFFFFF;
+        line-height: 1.1;
       }}
-      .zentix-native-head .copy {{
-        font-size: .86rem;
+      .zentix-dialog-copy {{
+        font-size: .9rem;
         line-height: 1.45;
-        color: rgba(248,250,252,.92);
+        color: rgba(248,250,252,.94);
         margin-top: 4px;
       }}
-      .zentix-native-head .meta {{
-        font-size: .76rem;
-        line-height: 1.4;
-        color: rgba(248,250,252,.78);
-        margin-top: 6px;
+      .zentix-dialog-meta {{
+        font-size: .78rem;
+        line-height: 1.45;
+        color: rgba(248,250,252,.82);
+        margin-top: 7px;
       }}
-      .zentix-native-chat-history {{
-        padding: 14px;
-        background: #F8FAFC;
-        max-height: min(34vh, 320px);
-        overflow: auto;
-        border-bottom: 1px solid rgba(148,163,184,.12);
+      .zentix-dialog-history {{
+        max-height: 44vh;
+        overflow-y: auto;
+        padding-right: 4px;
+        margin-bottom: 10px;
       }}
       .zentix-chat-msg {{
         border-radius: 18px;
         padding: 12px 13px;
         margin-bottom: 10px;
         line-height: 1.5;
-        font-size: .92rem;
+        font-size: .94rem;
         box-shadow: 0 8px 18px rgba(15,23,42,.04);
       }}
       .zentix-chat-msg.assistant {{
@@ -6028,148 +6008,101 @@ def render_widget_chat_flotante_zentix(pagina, nombre, total_ingresos, total_gas
       .zentix-chat-msg .copy {{
         color: #0F172A;
       }}
-      div[data-testid="stVerticalBlock"]:has(#zentix-floating-panel-anchor) div[data-testid="stTextArea"] {{
-        padding: 14px 14px 0 14px !important;
-      }}
-      div[data-testid="stVerticalBlock"]:has(#zentix-floating-panel-anchor) div[data-testid="stTextArea"] textarea {{
-        min-height: 64px !important;
-        max-height: 130px !important;
-        border-radius: 16px !important;
-      }}
-      div[data-testid="stVerticalBlock"]:has(#zentix-floating-panel-anchor) div[data-testid="stForm"] {{
-        padding: 0 14px 14px 14px !important;
-      }}
-      div[data-testid="stVerticalBlock"]:has(#zentix-floating-panel-anchor) div[data-testid="stHorizontalBlock"] {{
-        padding-top: 12px !important;
-        gap: 10px !important;
-      }}
-      div[data-testid="stVerticalBlock"]:has(#zentix-floating-panel-anchor) .zentix-close-native .stButton > button {{
-        width: 38px !important;
-        min-width: 38px !important;
-        min-height: 38px !important;
-        height: 38px !important;
-        border-radius: 12px !important;
-        background: rgba(255,255,255,.14) !important;
-        color: #FFFFFF !important;
-        border: none !important;
-        box-shadow: none !important;
-        font-size: 22px !important;
-        line-height: 1 !important;
-        padding: 0 !important;
-      }}
-      div[data-testid="stVerticalBlock"]:has(#zentix-floating-panel-anchor) .zentix-close-native .stButton > button:hover {{
-        transform: none !important;
-        filter: brightness(1.05) !important;
-      }}
       @media (max-width: 900px) {{
-        div[data-testid="stVerticalBlock"]:has(#zentix-launcher-native-anchor) {{
-          right: 10px !important;
-          bottom: calc(8px + env(safe-area-inset-bottom)) !important;
-          width: 102px !important;
-          height: 118px !important;
-        }}
-        div[data-testid="stVerticalBlock"]:has(#zentix-floating-panel-anchor) {{
+        div[data-testid="stVerticalBlock"]:has(#zentix-launcher-anchor) {{
           right: 8px !important;
-          left: 8px !important;
-          top: auto !important;
           bottom: calc(8px + env(safe-area-inset-bottom)) !important;
-          width: auto !important;
-          border-radius: 24px !important;
-        }}
-        .zentix-native-chat-history {{
-          max-height: min(26vh, 240px);
-          padding: 12px;
-        }}
-        div[data-testid="stVerticalBlock"]:has(#zentix-floating-panel-anchor) div[data-testid="stTextArea"] {{
-          padding: 12px 12px 0 12px !important;
-        }}
-        div[data-testid="stVerticalBlock"]:has(#zentix-floating-panel-anchor) div[data-testid="stForm"] {{
-          padding: 0 12px calc(12px + env(safe-area-inset-bottom)) 12px !important;
+          width: 96px !important;
+          height: 110px !important;
         }}
       }}
     </style>
     """, unsafe_allow_html=True)
 
-    if not abierto:
-        with st.container():
-            st.markdown("<div id='zentix-launcher-native-anchor'></div>", unsafe_allow_html=True)
-            abrir_chat = st.button("Abrir Zentix IA", key=f"zentix_native_open_{pagina}", use_container_width=True)
-        if abrir_chat:
-            st.session_state[open_key] = True
-            st.rerun()
-        return
+    with st.container():
+        st.markdown("<div id='zentix-launcher-anchor'></div>", unsafe_allow_html=True)
+        abrir_chat = st.button("Abrir Zentix IA", key=f"zentix_open_dialog_{pagina}", use_container_width=True)
 
-    historial = st.session_state.get(chat_key, [])[-8:]
+    if abrir_chat:
+        st.session_state[open_key] = True
+        st.rerun()
+
+    historial = st.session_state.get(chat_key, [])[-10:]
     historial_html = construir_html_historial_chat(historial)
 
-    with st.container():
-        st.markdown("<div id='zentix-floating-panel-anchor'></div>", unsafe_allow_html=True)
+    dialog_api = getattr(st, "dialog", None)
 
-        head_left, head_right = st.columns([6.5, 1])
-        with head_left:
-            st.markdown(f"""
-            <div class="zentix-native-head">
-              <div class="zentix-native-head-row">
-                <img src="{asset_uri}" alt="Zentix IA" />
-                <div style="flex:1;">
-                  <div class="title">Zentix IA</div>
-                  <div class="copy">{html.escape(mensaje)}</div>
-                  <div class="meta">Último movimiento: {html.escape(ultimo)}<br>{html.escape(meta_superior)}</div>
-                </div>
-              </div>
+    def _contenido_chat():
+        st.markdown(f"""
+        <div class="zentix-dialog-head">
+          <div class="zentix-dialog-head-row">
+            <img src="{asset_uri}" alt="Zentix IA" />
+            <div style="flex:1;">
+              <div class="zentix-dialog-title">Zentix IA</div>
+              <div class="zentix-dialog-copy">{html.escape(mensaje)}</div>
+              <div class="zentix-dialog-meta">Último movimiento: {html.escape(ultimo)}<br>{html.escape(meta_superior)}</div>
             </div>
-            """, unsafe_allow_html=True)
-        with head_right:
-            st.markdown("<div class='zentix-close-native'>", unsafe_allow_html=True)
-            cerrar_chat = st.button("×", key=f"zentix_native_close_{pagina}")
-            st.markdown("</div>", unsafe_allow_html=True)
+          </div>
+        </div>
+        <div class="zentix-dialog-history">{historial_html}</div>
+        """, unsafe_allow_html=True)
 
-        st.markdown(f"<div class='zentix-native-chat-history'>{historial_html}</div>", unsafe_allow_html=True)
-
-        with st.form(key=f"zentix_floating_form_{pagina}", clear_on_submit=False):
+        with st.form(key=f"zentix_dialog_form_{pagina}", clear_on_submit=False):
             pregunta_manual = st.text_area(
                 "Pregúntale a Zentix IA",
                 key=input_key,
                 label_visibility="collapsed",
                 placeholder="Ej: ¿Cómo voy este mes? ¿Qué patrón estás viendo? ¿Qué debería activar primero?",
-                height=72,
+                height=100,
             )
-            c1, c2 = st.columns(2)
+            c1, c2, c3 = st.columns(3)
             with c1:
                 enviar = st.form_submit_button("Enviar", use_container_width=True, type="primary")
             with c2:
                 limpiar = st.form_submit_button("Limpiar", use_container_width=True)
+            with c3:
+                cerrar = st.form_submit_button("Cerrar", use_container_width=True)
 
-    if cerrar_chat:
-        st.session_state[open_key] = False
-        st.rerun()
+        if cerrar:
+            st.session_state[open_key] = False
+            st.rerun()
 
-    if limpiar:
-        st.session_state[chat_key] = [
-            {"role": "assistant", "content": mensajes_iniciales.get(pagina, "Hola. Soy tu avatar financiero de Zentix.")}
-        ]
-        st.session_state[input_key] = ""
-        st.rerun()
-
-    if enviar:
-        pregunta_final = (pregunta_manual or "").strip()
-        if pregunta_final:
-            st.session_state[chat_key].append({"role": "user", "content": pregunta_final})
-
-            permitido, usadas, limite, _, plan = puede_usar_ia(st.session_state.user.id)
-            if not permitido:
-                respuesta = (
-                    f"Has alcanzado tu límite diario de IA ({limite} consultas) en el plan "
-                    f"{plan.get('plan', 'free')}. Pásate a Pro para tener más acceso y análisis más profundos."
-                )
-            else:
-                with st.spinner("Zentix está analizando tu información..."):
-                    respuesta = consultar_ia_zentix(pregunta_final, contexto_ia)
-                registrar_uso_ia(st.session_state.user.id)
-
-            st.session_state[chat_key].append({"role": "assistant", "content": respuesta})
+        if limpiar:
+            st.session_state[chat_key] = [
+                {"role": "assistant", "content": mensajes_iniciales.get(pagina, "Hola. Soy tu avatar financiero de Zentix.")}
+            ]
             st.session_state[input_key] = ""
             st.rerun()
+
+        if enviar:
+            pregunta_final = (pregunta_manual or "").strip()
+            if pregunta_final:
+                st.session_state[chat_key].append({"role": "user", "content": pregunta_final})
+
+                permitido, usadas, limite, _, plan = puede_usar_ia(st.session_state.user.id)
+                if not permitido:
+                    respuesta = (
+                        f"Has alcanzado tu límite diario de IA ({limite} consultas) en el plan "
+                        f"{plan.get('plan', 'free')}. Pásate a Pro para tener más acceso y análisis más profundos."
+                    )
+                else:
+                    with st.spinner("Zentix está analizando tu información..."):
+                        respuesta = consultar_ia_zentix(pregunta_final, contexto_ia)
+                    registrar_uso_ia(st.session_state.user.id)
+
+                st.session_state[chat_key].append({"role": "assistant", "content": respuesta})
+                st.session_state[input_key] = ""
+                st.rerun()
+
+    if st.session_state.get(open_key, False):
+        if dialog_api:
+            @st.dialog("Zentix IA", width="large")
+            def _dialogo_zentix():
+                _contenido_chat()
+            _dialogo_zentix()
+        else:
+            with st.expander("Zentix IA", expanded=True):
+                _contenido_chat()
 
 
 def render_avatar(pagina, nombre, total_ingresos, total_gastos, ahorro_actual, ultimo_tipo):
