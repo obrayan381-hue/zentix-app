@@ -5783,7 +5783,7 @@ def limpiar_query_params_zentix(preservar_chat=False):
                 del st.query_params["zchat"]
             except Exception:
                 pass
-        for clave in ["zq", "zclear", "zpage", "zts"]:
+        for clave in ["zq", "zclear", "zpage"]:
             try:
                 del st.query_params[clave]
             except Exception:
@@ -5994,10 +5994,19 @@ def render_widget_chat_flotante_zentix(pagina, nombre, total_ingresos, total_gas
       function clickHiddenTrigger(label) {{
         try {{
           const buttons = Array.from(window.parent.document.querySelectorAll('button'));
-          const wanted = String(label || '').trim();
+          const wanted = String(label || '').replace(/\s+/g, ' ').trim();
           for (const btn of buttons) {{
             const txt = String(btn.innerText || btn.textContent || '').replace(/\s+/g, ' ').trim();
-            if (txt === wanted) {{
+            const aria = String(btn.getAttribute('aria-label') || '').replace(/\s+/g, ' ').trim();
+            const title = String(btn.getAttribute('title') || '').replace(/\s+/g, ' ').trim();
+            if (
+              txt === wanted ||
+              aria === wanted ||
+              title === wanted ||
+              txt.includes(wanted) ||
+              aria.includes(wanted) ||
+              title.includes(wanted)
+            ) {{
               btn.click();
               return true;
             }}
@@ -6040,28 +6049,24 @@ def render_widget_chat_flotante_zentix(pagina, nombre, total_ingresos, total_gas
         sendBtn.disabled = true;
         clearBtn.disabled = true;
 
-        const token = String(Date.now());
         const url = currentUrl();
         url.searchParams.set('zchat', 'open');
         url.searchParams.set('zpage', data.page);
         url.searchParams.set('zq', value);
-        url.searchParams.set('zts', token);
         window.parent.history.replaceState({{}}, '', url.toString());
 
         const clicked = clickHiddenTrigger('__ZENTIX_SEND__' + data.page);
 
         setTimeout(() => {{
-          try {{
-            const stillUrl = new URL(window.parent.location.href);
-            const stillQ = (stillUrl.searchParams.get('zq') || '').trim();
-            const stillTs = (stillUrl.searchParams.get('zts') || '').trim();
-            if (stillQ && stillTs === token) {{
-              window.parent.location.reload();
-            }}
-          }} catch (e) {{
-            window.parent.location.reload();
-          }}
-        }}, clicked ? 220 : 60);
+          sendBtn.disabled = false;
+          clearBtn.disabled = false;
+          try {{ input.focus(); }} catch(e) {{}}
+        }}, 450);
+
+        if (!clicked) {{
+          sendBtn.disabled = false;
+          clearBtn.disabled = false;
+        }}
       }});
       clearBtn.addEventListener('click', function(ev) {{
         ev.preventDefault();
@@ -6069,28 +6074,24 @@ def render_widget_chat_flotante_zentix(pagina, nombre, total_ingresos, total_gas
         sendBtn.disabled = true;
         clearBtn.disabled = true;
 
-        const token = String(Date.now());
         const url = currentUrl();
         url.searchParams.set('zchat', 'open');
         url.searchParams.set('zpage', data.page);
         url.searchParams.set('zclear', '1');
-        url.searchParams.set('zts', token);
         window.parent.history.replaceState({{}}, '', url.toString());
 
         const clicked = clickHiddenTrigger('__ZENTIX_CLEAR__' + data.page);
 
         setTimeout(() => {{
-          try {{
-            const stillUrl = new URL(window.parent.location.href);
-            const stillClear = (stillUrl.searchParams.get('zclear') || '').trim();
-            const stillTs = (stillUrl.searchParams.get('zts') || '').trim();
-            if (stillClear && stillTs === token) {{
-              window.parent.location.reload();
-            }}
-          }} catch (e) {{
-            window.parent.location.reload();
-          }}
-        }}, clicked ? 220 : 60);
+          sendBtn.disabled = false;
+          clearBtn.disabled = false;
+          try {{ input.focus(); }} catch(e) {{}}
+        }}, 450);
+
+        if (!clicked) {{
+          sendBtn.disabled = false;
+          clearBtn.disabled = false;
+        }}
       }});
       input.addEventListener('keydown', function(ev) {{
         if (ev.key === 'Enter' && !ev.shiftKey) {{
