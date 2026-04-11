@@ -5904,28 +5904,31 @@ def render_widget_chat_flotante_zentix(pagina, nombre, total_ingresos, total_gas
     consultas_limite = globals().get("consultas_limite_hoy", 10)
     meta_superior = f"{texto_plan_avatar(plan_actual, consultas_usadas, consultas_limite)} · Vista actual: {pagina}"
 
-    def _chat_js(open_chat: bool):
-        page_json = json.dumps(str(pagina), ensure_ascii=False)
+    def _chat_href(open_chat: bool):
+        params = {}
+        try:
+            for k, v in dict(st.query_params).items():
+                if isinstance(v, list):
+                    v = v[0] if v else ""
+                params[str(k)] = str(v)
+        except Exception:
+            params = {}
+
+        for clave in ["zq", "zclear"]:
+            params.pop(clave, None)
+
+        params["zpage"] = str(pagina)
+
         if open_chat:
-            return (
-                "const url = new URL(window.parent.location.href);"
-                "url.searchParams.set('zchat','open');"
-                f"url.searchParams.set('zpage',{page_json});"
-                "window.parent.history.replaceState({},'',url.toString());"
-                "window.parent.location.reload();"
-                "return false;"
-            )
-        return (
-            "const url = new URL(window.parent.location.href);"
-            "url.searchParams.delete('zchat');"
-            f"url.searchParams.set('zpage',{page_json});"
-            "window.parent.history.replaceState({},'',url.toString());"
-            "window.parent.location.reload();"
-            "return false;"
-        )
+            params["zchat"] = "open"
+        else:
+            params.pop("zchat", None)
+
+        query = urllib.parse.urlencode(params)
+        return f"?{query}" if query else "?"
 
     if not abierto:
-        launcher_js = html.escape(_chat_js(True), quote=True)
+        launcher_href = _chat_href(True)
         st.markdown(f"""
         <style>
           .zentix-chat-launcher {{
@@ -5958,15 +5961,15 @@ def render_widget_chat_flotante_zentix(pagina, nombre, total_ingresos, total_gas
             }}
           }}
         </style>
-        <button type="button" class="zentix-chat-launcher" onclick="{launcher_js}" aria-label="Abrir Zentix IA">
+        <a class="zentix-chat-launcher" href="{launcher_href}" aria-label="Abrir Zentix IA">
           <img src="{asset_uri}" alt="Zentix IA" />
-        </button>
+        </a>
         """, unsafe_allow_html=True)
         return
 
     historial = st.session_state.get(chat_key, [])[-8:]
     historial_html = construir_html_historial_chat(historial)
-    close_js = html.escape(_chat_js(False), quote=True)
+    close_href = _chat_href(False)
 
     st.markdown("""
     <style>
@@ -6124,7 +6127,7 @@ def render_widget_chat_flotante_zentix(pagina, nombre, total_ingresos, total_gas
             <div class="copy">{html.escape(mensaje)}</div>
             <div class="meta">Último movimiento: {html.escape(ultimo)}<br>{html.escape(meta_superior)}</div>
           </div>
-          <button type="button" class="zentix-native-chat-close" onclick="{close_js}" aria-label="Cerrar chat">×</button>
+          <a class="zentix-native-chat-close" href="{close_href}" aria-label="Cerrar chat">×</a>
         </div>
         <div class="zentix-native-chat-history">{historial_html}</div>
         """, unsafe_allow_html=True)
