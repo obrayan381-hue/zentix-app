@@ -5783,7 +5783,7 @@ def limpiar_query_params_zentix(preservar_chat=False):
                 del st.query_params["zchat"]
             except Exception:
                 pass
-        for clave in ["zq", "zclear", "zpage"]:
+        for clave in ["zq", "zclear", "zpage", "zts"]:
             try:
                 del st.query_params[clave]
             except Exception:
@@ -6036,25 +6036,61 @@ def render_widget_chat_flotante_zentix(pagina, nombre, total_ingresos, total_gas
         ev.preventDefault();
         const value = (input.value || '').trim();
         if (!value) return;
+
+        sendBtn.disabled = true;
+        clearBtn.disabled = true;
+
+        const token = String(Date.now());
         const url = currentUrl();
         url.searchParams.set('zchat', 'open');
         url.searchParams.set('zpage', data.page);
         url.searchParams.set('zq', value);
+        url.searchParams.set('zts', token);
         window.parent.history.replaceState({{}}, '', url.toString());
-        if (!clickHiddenTrigger('__ZENTIX_SEND__' + data.page)) {{
-          window.parent.location.reload();
-        }}
+
+        const clicked = clickHiddenTrigger('__ZENTIX_SEND__' + data.page);
+
+        setTimeout(() => {{
+          try {{
+            const stillUrl = new URL(window.parent.location.href);
+            const stillQ = (stillUrl.searchParams.get('zq') || '').trim();
+            const stillTs = (stillUrl.searchParams.get('zts') || '').trim();
+            if (stillQ && stillTs === token) {{
+              window.parent.location.reload();
+            }}
+          }} catch (e) {{
+            window.parent.location.reload();
+          }}
+        }}, clicked ? 220 : 60);
       }});
       clearBtn.addEventListener('click', function(ev) {{
         ev.preventDefault();
+
+        sendBtn.disabled = true;
+        clearBtn.disabled = true;
+
+        const token = String(Date.now());
         const url = currentUrl();
         url.searchParams.set('zchat', 'open');
         url.searchParams.set('zpage', data.page);
         url.searchParams.set('zclear', '1');
+        url.searchParams.set('zts', token);
         window.parent.history.replaceState({{}}, '', url.toString());
-        if (!clickHiddenTrigger('__ZENTIX_CLEAR__' + data.page)) {{
-          window.parent.location.reload();
-        }}
+
+        const clicked = clickHiddenTrigger('__ZENTIX_CLEAR__' + data.page);
+
+        setTimeout(() => {{
+          try {{
+            const stillUrl = new URL(window.parent.location.href);
+            const stillClear = (stillUrl.searchParams.get('zclear') || '').trim();
+            const stillTs = (stillUrl.searchParams.get('zts') || '').trim();
+            if (stillClear && stillTs === token) {{
+              window.parent.location.reload();
+            }}
+          }} catch (e) {{
+            window.parent.location.reload();
+          }}
+        }}, clicked ? 220 : 60);
       }});
       input.addEventListener('keydown', function(ev) {{
         if (ev.key === 'Enter' && !ev.shiftKey) {{
