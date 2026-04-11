@@ -5888,10 +5888,15 @@ def render_widget_chat_flotante_zentix(pagina, nombre, total_ingresos, total_gas
 
     chat_key, input_key, clear_key, mensajes_iniciales = asegurar_estado_chat_zentix(pagina, nombre)
 
-    open_key = f"zentix_chat_open_{pagina}"
-    if open_key not in st.session_state:
-        st.session_state[open_key] = False
-    abierto = bool(st.session_state.get(open_key, False))
+    try:
+        chat_abierto = st.query_params.get("zchat")
+    except Exception:
+        chat_abierto = None
+
+    if isinstance(chat_abierto, list):
+        chat_abierto = chat_abierto[0] if chat_abierto else None
+
+    abierto = str(chat_abierto or "").strip().lower() == "open"
 
     asset_uri = obtener_data_uri_imagen(zentix_floating_path if zentix_floating_path.exists() else avatar_path)
     mensaje = tips.get(pagina, "Estoy aquí para ayudarte a moverte rápido por Zentix.")
@@ -5901,30 +5906,28 @@ def render_widget_chat_flotante_zentix(pagina, nombre, total_ingresos, total_gas
     consultas_limite = globals().get("consultas_limite_hoy", 10)
     meta_superior = f"{texto_plan_avatar(plan_actual, consultas_usadas, consultas_limite)} · Vista actual: {pagina}"
 
-    open_trigger_label = f"__OPEN_ZENTIX_CHAT__{pagina}__"
-    close_trigger_label = f"__CLOSE_ZENTIX_CHAT__{pagina}__"
-
-    def _click_hidden_button_js(label):
-        wanted = json.dumps(str(label), ensure_ascii=False)
-        return html.escape(
-            (
-                "(function(){"
-                "const doc = window.parent.document;"
-                f"const wanted = {wanted};"
-                "const norm = (s) => String(s || '').replace(/\s+/g,' ').trim();"
-                "const buttons = Array.from(doc.querySelectorAll('button'));"
-                "for (const btn of buttons) {"
-                "  const txt = norm(btn.innerText || btn.textContent || '');"
-                "  if (txt === wanted) { btn.click(); break; }"
-                "}"
+    def _chat_js(open_chat: bool):
+        page_json = json.dumps(str(pagina), ensure_ascii=False)
+        if open_chat:
+            return (
+                "const url = new URL(window.parent.location.href);"
+                "url.searchParams.set('zchat','open');"
+                f"url.searchParams.set('zpage',{page_json});"
+                "window.parent.history.replaceState({},'',url.toString());"
+                "window.parent.location.reload();"
                 "return false;"
-                "})();"
-            ),
-            quote=True
+            )
+        return (
+            "const url = new URL(window.parent.location.href);"
+            "url.searchParams.delete('zchat');"
+            f"url.searchParams.set('zpage',{page_json});"
+            "window.parent.history.replaceState({},'',url.toString());"
+            "window.parent.location.reload();"
+            "return false;"
         )
 
     if not abierto:
-        launcher_js = _click_hidden_button_js(open_trigger_label)
+        launcher_js = html.escape(_chat_js(True), quote=True)
         st.markdown(f"""
         <style>
           .zentix-chat-launcher {{
@@ -5948,9 +5951,6 @@ def render_widget_chat_flotante_zentix(pagina, nombre, total_ingresos, total_gas
             filter: drop-shadow(0 18px 28px rgba(15,23,42,.22));
             pointer-events: none;
           }}
-          div[data-testid="stVerticalBlock"]:has(#zentix-open-anchor) {{
-            display: none !important;
-          }}
           @media (max-width: 900px) {{
             .zentix-chat-launcher {{
               right: 10px;
@@ -5964,19 +5964,11 @@ def render_widget_chat_flotante_zentix(pagina, nombre, total_ingresos, total_gas
           <img src="{asset_uri}" alt="Zentix IA" />
         </button>
         """, unsafe_allow_html=True)
-
-        with st.container():
-            st.markdown("<div id='zentix-open-anchor'></div>", unsafe_allow_html=True)
-            abrir_chat_oculto = st.button(open_trigger_label, key=f"zentix_open_hidden_{pagina}")
-
-        if abrir_chat_oculto:
-            st.session_state[open_key] = True
-            st.rerun()
         return
 
     historial = st.session_state.get(chat_key, [])[-8:]
     historial_html = construir_html_historial_chat(historial)
-    close_js = _click_hidden_button_js(close_trigger_label)
+    close_js = html.escape(_chat_js(False), quote=True)
 
     st.markdown("""
     <style>
@@ -6049,9 +6041,6 @@ def render_widget_chat_flotante_zentix(pagina, nombre, total_ingresos, total_gas
         font-size: 22px;
         font-weight: 700;
       }
-      div[data-testid="stVerticalBlock"]:has(#zentix-close-anchor) {
-        display: none !important;
-      }
       .zentix-native-chat-history {
         padding: 14px;
         background: #F8FAFC;
@@ -6099,8 +6088,11 @@ def render_widget_chat_flotante_zentix(pagina, nombre, total_ingresos, total_gas
         max-height: 130px !important;
         border-radius: 16px !important;
       }
+      div[data-testid="stVerticalBlock"]:has(#zentix-native-chat-anchor) div[data-testid="stForm"] {
+        padding: 0 14px 14px 14px !important;
+      }
       div[data-testid="stVerticalBlock"]:has(#zentix-native-chat-anchor) div[data-testid="stHorizontalBlock"] {
-        padding: 12px 14px calc(14px + env(safe-area-inset-bottom)) 14px !important;
+        padding-top: 12px !important;
         gap: 10px !important;
       }
       @media (max-width: 900px) {
@@ -6120,8 +6112,8 @@ def render_widget_chat_flotante_zentix(pagina, nombre, total_ingresos, total_gas
         div[data-testid="stVerticalBlock"]:has(#zentix-native-chat-anchor) div[data-testid="stTextArea"] {
           padding: 12px 12px 0 12px !important;
         }
-        div[data-testid="stVerticalBlock"]:has(#zentix-native-chat-anchor) div[data-testid="stHorizontalBlock"] {
-          padding: 10px 12px calc(12px + env(safe-area-inset-bottom)) 12px !important;
+        div[data-testid="stVerticalBlock"]:has(#zentix-native-chat-anchor) div[data-testid="stForm"] {
+          padding: 0 12px calc(12px + env(safe-area-inset-bottom)) 12px !important;
         }
       }
     </style>
@@ -6137,32 +6129,24 @@ def render_widget_chat_flotante_zentix(pagina, nombre, total_ingresos, total_gas
             <div class="copy">{html.escape(mensaje)}</div>
             <div class="meta">Último movimiento: {html.escape(ultimo)}<br>{html.escape(meta_superior)}</div>
           </div>
-          <button type="button" class="zentix-native-chat-close" onclick="{close_js}" aria-label="Cerrar chat">×</button>
+          <a class="zentix-native-chat-close" href="#" onclick="{close_js}" aria-label="Cerrar chat">×</a>
         </div>
         <div class="zentix-native-chat-history">{historial_html}</div>
         """, unsafe_allow_html=True)
 
-        with st.container():
-            st.markdown("<div id='zentix-close-anchor'></div>", unsafe_allow_html=True)
-            cerrar_chat_oculto = st.button(close_trigger_label, key=f"zentix_close_hidden_{pagina}")
-
-        pregunta_manual = st.text_area(
-            "Pregúntale a Zentix IA",
-            key=input_key,
-            label_visibility="collapsed",
-            placeholder="Ej: ¿Cómo voy este mes? ¿Qué patrón estás viendo? ¿Qué debería activar primero?",
-            height=72,
-        )
-
-        c1, c2 = st.columns(2)
-        with c1:
-            enviar = st.button("Enviar", key=f"zentix_floating_send_{pagina}", use_container_width=True, type="primary")
-        with c2:
-            limpiar = st.button("Limpiar", key=f"zentix_floating_clear_{pagina}", use_container_width=True, type="secondary")
-
-        if cerrar_chat_oculto:
-            st.session_state[open_key] = False
-            st.rerun()
+        with st.form(key=f"zentix_floating_form_{pagina}", clear_on_submit=False):
+            pregunta_manual = st.text_area(
+                "Pregúntale a Zentix IA",
+                key=input_key,
+                label_visibility="collapsed",
+                placeholder="Ej: ¿Cómo voy este mes? ¿Qué patrón estás viendo? ¿Qué debería activar primero?",
+                height=72,
+            )
+            c1, c2 = st.columns(2)
+            with c1:
+                enviar = st.form_submit_button("Enviar", use_container_width=True, type="primary")
+            with c2:
+                limpiar = st.form_submit_button("Limpiar", use_container_width=True)
 
         if limpiar:
             st.session_state[chat_key] = [
