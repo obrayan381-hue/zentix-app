@@ -6061,7 +6061,7 @@ def render_widget_chat_flotante_zentix(pagina, nombre, total_ingresos, total_gas
           sendBtn.disabled = false;
           clearBtn.disabled = false;
           try {{ input.focus(); }} catch(e) {{}}
-        }}, 450);
+        }}, 500);
 
         if (!clicked) {{
           sendBtn.disabled = false;
@@ -6086,7 +6086,7 @@ def render_widget_chat_flotante_zentix(pagina, nombre, total_ingresos, total_gas
           sendBtn.disabled = false;
           clearBtn.disabled = false;
           try {{ input.focus(); }} catch(e) {{}}
-        }}, 450);
+        }}, 500);
 
         if (!clicked) {{
           sendBtn.disabled = false;
@@ -6105,7 +6105,32 @@ def render_widget_chat_flotante_zentix(pagina, nombre, total_ingresos, total_gas
     """
     components.html(widget_html, height=0)
 
-    with st.sidebar:
+    st.markdown("""
+    <style>
+      div[data-testid="stVerticalBlock"]:has(#zentix-hidden-triggers-anchor) {
+        position: fixed !important;
+        left: -10000px !important;
+        top: auto !important;
+        width: 1px !important;
+        height: 1px !important;
+        overflow: hidden !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+        z-index: -1 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+      }
+      div[data-testid="stVerticalBlock"]:has(#zentix-hidden-triggers-anchor) .stButton > button {
+        min-height: 1px !important;
+        height: 1px !important;
+        padding: 0 !important;
+        border: 0 !important;
+      }
+    </style>
+    """, unsafe_allow_html=True)
+
+    with st.container():
+        st.markdown("<div id='zentix-hidden-triggers-anchor'></div>", unsafe_allow_html=True)
         st.button(f"__ZENTIX_SEND__{pagina}", key=f"zentix_hidden_send_{pagina}")
         st.button(f"__ZENTIX_CLEAR__{pagina}", key=f"zentix_hidden_clear_{pagina}")
 
