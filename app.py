@@ -5861,11 +5861,11 @@ def construir_html_historial_chat(historial):
 
 def render_widget_chat_flotante_zentix(pagina, nombre, total_ingresos, total_gastos, ahorro_actual, ultimo_tipo):
     asset_path = zentix_floating_path if zentix_floating_path.exists() else avatar_path
-    asset_b64 = ""
+    imagen_b64 = ""
     try:
-        asset_b64 = base64.b64encode(Path(asset_path).read_bytes()).decode()
+        imagen_b64 = base64.b64encode(Path(asset_path).read_bytes()).decode()
     except Exception:
-        asset_b64 = ""
+        imagen_b64 = ""
 
     pagina_actual = str(pagina or "Inicio")
     pagina_retorno = str(st.session_state.get("zentix_ia_return_page", "Inicio") or "Inicio")
@@ -5874,13 +5874,14 @@ def render_widget_chat_flotante_zentix(pagina, nombre, total_ingresos, total_gas
         destino = pagina_retorno if pagina_retorno != "Zentix IA" else "Inicio"
     else:
         destino = "Zentix IA"
+        st.session_state["zentix_ia_return_page"] = pagina_actual
 
     payload = {
         "destino": destino,
-        "imagen": asset_b64,
+        "imagen": imagen_b64,
     }
 
-    widget_html = f"""
+    fab_html = f"""
     <script>
     (function() {{
       const data = {json.dumps(payload, ensure_ascii=False)};
@@ -5893,7 +5894,7 @@ def render_widget_chat_flotante_zentix(pagina, nombre, total_ingresos, total_gas
       root.id = rootId;
       root.innerHTML = `
         <style>
-          #zentix-ia-fab-root * {{ box-sizing:border-box; }}
+          #zentix-ia-fab-root * {{ box-sizing: border-box; }}
           #zentix-ia-fab-btn {{
             position: fixed;
             right: 14px;
@@ -5938,10 +5939,7 @@ def render_widget_chat_flotante_zentix(pagina, nombre, total_ingresos, total_gas
     }})();
     </script>
     """
-    components.html(widget_html, height=0)
-
-    if pagina_actual != "Zentix IA":
-        st.session_state["zentix_ia_return_page"] = pagina_actual
+    components.html(fab_html, height=0)
 
 
 def render_pagina_zentix_ia(nombre, total_ingresos, total_gastos, ahorro_actual, ultimo_tipo, pagina_origen=None):
@@ -5961,17 +5959,13 @@ def render_pagina_zentix_ia(nombre, total_ingresos, total_gastos, ahorro_actual,
     chat_key, input_key, clear_key, mensajes_iniciales = asegurar_estado_chat_zentix("Zentix IA", nombre)
     historial = st.session_state.get(chat_key, [])
 
-    if not historial:
-        historial = [{"role": "assistant", "content": mensajes_iniciales.get("Zentix IA", "Hola. Soy Zentix IA.")}]
-        st.session_state[chat_key] = historial
-
     ultimo = tipo_display(ultimo_tipo) if ultimo_tipo else "Sin movimientos"
     plan_actual = globals().get("plan_usuario_actual", {})
     consultas_usadas = globals().get("consultas_usadas_hoy", 0)
     consultas_limite = globals().get("consultas_limite_hoy", 10)
 
     zentix_hero(nombre, ahorro_actual, total_ingresos, total_gastos)
-    section_header("Zentix IA", "Tu chat vive aquí en un apartado propio, estable y limpio.")
+    section_header("Zentix IA", "Ahora el chat vive en un apartado propio, más limpio, estable y premium.")
     st.markdown(
         f"""
         <div class="soft-card" style="margin-bottom:1rem;">
@@ -5987,12 +5981,16 @@ def render_pagina_zentix_ia(nombre, total_ingresos, total_gastos, ahorro_actual,
         unsafe_allow_html=True
     )
 
-    col_chat, col_side = st.columns([1.2, 0.8])
+    col_chat, col_side = st.columns([1.25, 0.75])
 
     with col_chat:
         st.markdown("<div class='soft-card'>", unsafe_allow_html=True)
         st.markdown("<div class='section-title'>Conversación con Zentix</div>", unsafe_allow_html=True)
-        st.markdown("<div class='section-caption'>Pregunta aquí sin overlays ni recargas raras.</div>", unsafe_allow_html=True)
+        st.markdown("<div class='section-caption'>Haz tus preguntas aquí sin overlays, recargas raras ni saltos de página.</div>", unsafe_allow_html=True)
+
+        if not historial:
+            historial = [{"role": "assistant", "content": mensajes_iniciales.get("Zentix IA", "Hola. Soy Zentix IA.")}]
+            st.session_state[chat_key] = historial
 
         historial_html = construir_html_historial_chat(historial[-12:])
         st.markdown(f"<div style='margin-top:0.9rem;'>{historial_html}</div>", unsafe_allow_html=True)
@@ -6062,8 +6060,6 @@ def render_pagina_zentix_ia(nombre, total_ingresos, total_gastos, ahorro_actual,
         )
 
 
-def render_avatar(pagina, nombre, total_ingresos, total_gastos, ahorro_actual, ultimo_tipo):
-    return
 def render_avatar(pagina, nombre, total_ingresos, total_gastos, ahorro_actual, ultimo_tipo):
     # El bloque antiguo de Avatar Zentix IA se desactiva para evitar duplicidad.
     # Toda la conversación ahora vive en el apartado Zentix IA.
