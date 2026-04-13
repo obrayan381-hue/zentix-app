@@ -14,6 +14,7 @@ import smtplib
 import ssl
 import base64
 import urllib.parse
+import time
 from email.message import EmailMessage
 import streamlit.components.v1 as components
 
@@ -5682,55 +5683,84 @@ def consultar_ia_zentix(pregunta, contexto):
     if not openai_client:
         return "La IA todavía no está activa. Agrega GEMINI_API_KEY en los secrets de Streamlit Cloud para habilitar al avatar."
 
-    try:
-        response = openai_client.chat.completions.create(
-            model="gemini-2.5-flash",
-            messages=[
-                {
-                    "role": "system",
-                    "content": (
-                        "Eres Avatar Zentix, un coach financiero premium dentro de una app de finanzas personales. "
-                        "Hablas siempre en español. "
-                        "Tu tono es elegante, claro, cálido, útil y muy personalizado. "
-                        "No hablas como un banco; hablas como un asistente inteligente que entiende hábitos y comportamiento. "
-                        "Usa únicamente el contexto recibido. "
-                        "Nunca inventes cifras, categorías o movimientos. "
-                        "Si algo no está en el contexto, dilo con honestidad. "
-                        "No des asesoría financiera profesional, legal ni tributaria. "
-                        "Responde de forma breve pero valiosa, idealmente entre 4 y 8 líneas. "
-                        "Cuando convenga, usa viñetas cortas. "
-                        "Da recomendaciones aterrizadas, accionables y humanas. "
-                        "Si detectas oportunidad de mejora, exprésala con tacto. "
-                        "Adapta tu voz al perfil financiero del usuario."
-                    )
-                },
-                {
-                    "role": "user",
-                    "content": f"{contexto}\n\nPREGUNTA DEL USUARIO:\n{pregunta}"
-                }
-            ]
-        )
+    mensajes = [
+        {
+            "role": "system",
+            "content": (
+                "Eres Avatar Zentix, un coach financiero premium dentro de una app de finanzas personales. "
+                "Hablas siempre en español. "
+                "Tu tono es elegante, claro, cálido, útil y muy personalizado. "
+                "No hablas como un banco; hablas como un asistente inteligente que entiende hábitos y comportamiento. "
+                "Usa únicamente el contexto recibido. "
+                "Nunca inventes cifras, categorías o movimientos. "
+                "Si algo no está en el contexto, dilo con honestidad. "
+                "No des asesoría financiera profesional, legal ni tributaria. "
+                "Responde de forma breve pero valiosa, idealmente entre 4 y 8 líneas. "
+                "Cuando convenga, usa viñetas cortas. "
+                "Da recomendaciones aterrizadas, accionables y humanas. "
+                "Si detectas oportunidad de mejora, exprésala con tacto. "
+                "Adapta tu voz al perfil financiero del usuario."
+            )
+        },
+        {
+            "role": "user",
+            "content": f"{contexto}\n\nPREGUNTA DEL USUARIO:\n{pregunta}"
+        }
+    ]
 
-        texto = response.choices[0].message.content
+    ultimo_error = ""
+    for intento in range(3):
+        try:
+            response = openai_client.chat.completions.create(
+                model="gemini-2.5-flash",
+                messages=mensajes
+            )
 
-        if isinstance(texto, list):
-            partes = []
-            for item in texto:
-                if isinstance(item, dict) and item.get("type") == "text":
-                    partes.append(item.get("text", ""))
-            texto = "".join(partes)
+            texto = response.choices[0].message.content
 
-        texto = (texto or "").strip()
+            if isinstance(texto, list):
+                partes = []
+                for item in texto:
+                    if isinstance(item, dict) and item.get("type") == "text":
+                        partes.append(item.get("text", ""))
+                texto = "".join(partes)
 
-        if not texto:
-            return "No pude generar una respuesta útil en este momento."
+            texto = (texto or "").strip()
 
-        return texto
+            if not texto:
+                return "No pude generar una respuesta útil en este momento."
 
-    except Exception as e:
-        return f"No pude responder ahora mismo. Error: {e}"
+            return texto
 
+        except Exception as e:
+            ultimo_error = str(e)
+            error_normalizado = ultimo_error.lower()
+            es_reintentable = any(fragmento in error_normalizado for fragmento in [
+                "503",
+                "429",
+                "unavailable",
+                "high demand",
+                "resource_exhausted",
+                "temporarily unavailable",
+                "overloaded"
+            ])
 
+            if es_reintentable and intento < 2:
+                time.sleep(1.2 * (intento + 1))
+                continue
+
+            if es_reintentable:
+                return (
+                    "Zentix IA está con mucha demanda en este momento. "
+                    "Intenta de nuevo en unos segundos."
+                )
+
+            return "No pude responder en este momento. Intenta otra vez en un momento."
+
+    return (
+        "Zentix IA no pudo responder por alta demanda temporal. "
+        "Vuelve a intentarlo en unos segundos."
+    )
 
 def obtener_mensajes_iniciales_zentix(nombre):
     return {
