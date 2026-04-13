@@ -1397,6 +1397,9 @@ def aplicar_estilo_plotly(fig, height=360):
 
 
 def ir_a_pagina(destino):
+    destino = str(destino or "Inicio")
+    if st.session_state.get("pagina") == destino:
+        return
     st.session_state.pagina = destino
     st.session_state["zentix_show_transition"] = True
     st.rerun()
@@ -1481,8 +1484,8 @@ def render_transition_overlay():
         <div id='zentix-spinner'></div>
       </div>`;
     doc.body.appendChild(layer);
-    setTimeout(() => layer.classList.add('hide'), 420);
-    setTimeout(() => {{ try {{ layer.remove(); }} catch(e) {{}} }}, 820);
+    setTimeout(() => layer.classList.add('hide'), 110);
+    setTimeout(() => {{ try {{ layer.remove(); }} catch(e) {{}} }}, 220);
     </script>
     """
     components.html(splash, height=0)
@@ -1910,6 +1913,7 @@ def obtener_preferencias_default(email_contacto=""):
     }
 
 
+@st.cache_data(ttl=60, show_spinner=False)
 def obtener_preferencias_usuario(user_id, email_contacto=""):
     prefs = obtener_preferencias_default(email_contacto)
 
@@ -2621,6 +2625,7 @@ def normalizar_estado_deuda(valor):
     return "activa"
 
 
+@st.cache_data(ttl=45, show_spinner=False)
 def obtener_deudas_usuario(user_id):
     columnas = [
         "id", "usuario_id", "nombre", "prestamista", "monto_total",
@@ -2720,6 +2725,7 @@ def normalizar_estado_cxc(valor):
     return "activa"
 
 
+@st.cache_data(ttl=45, show_spinner=False)
 def obtener_cuentas_por_cobrar_usuario(user_id):
     columnas = [
         "id", "usuario_id", "nombre", "cliente", "monto_total",
@@ -5914,55 +5920,192 @@ def render_pagina_zentix_ia(nombre, total_ingresos, total_gastos, ahorro_actual,
     chat_key, input_key, clear_key, mensajes_iniciales = asegurar_estado_chat_zentix("Zentix IA", nombre)
     historial = st.session_state.get(chat_key, [])
 
+    if not historial:
+        historial = [{"role": "assistant", "content": mensajes_iniciales.get("Zentix IA", "Hola. Soy Zentix IA.")}]
+        st.session_state[chat_key] = historial
+
     ultimo = tipo_display(ultimo_tipo) if ultimo_tipo else "Sin movimientos"
     plan_actual = globals().get("plan_usuario_actual", {})
     consultas_usadas = globals().get("consultas_usadas_hoy", 0)
     consultas_limite = globals().get("consultas_limite_hoy", 10)
+    balance = float(total_ingresos or 0) - float(total_gastos or 0)
+    balance_label = "Pulso positivo" if balance >= 0 else "Pulso ajustado"
+    prompts_sugeridos = [
+        "¿Cómo voy este mes y qué debería ajustar primero?",
+        "Dame 3 patrones claros de mis gastos.",
+        "¿Qué acción concreta me acerca más a mi meta?",
+        "Resume mi panorama en lenguaje ejecutivo."
+    ]
 
-    zentix_hero(nombre, ahorro_actual, total_ingresos, total_gastos)
-    section_header("Zentix IA", "Ahora el chat vive en un apartado propio, más limpio, estable y premium.")
+    st.markdown("""
+    <style>
+      .zentix-ia-shell { display:grid; gap:1rem; }
+      .zentix-ia-hero {
+        background:
+          radial-gradient(circle at top left, rgba(255,255,255,0.18), transparent 30%),
+          radial-gradient(circle at bottom right, rgba(255,255,255,0.08), transparent 24%),
+          linear-gradient(135deg, #0F172A 0%, #172554 42%, #4F46E5 82%, #7C3AED 100%);
+        border-radius: 30px;
+        padding: 1.25rem;
+        color: #FFFFFF;
+        box-shadow: 0 28px 55px rgba(37,99,235,0.18);
+        border: 1px solid rgba(255,255,255,0.08);
+        overflow: hidden;
+      }
+      .zentix-ia-badge {
+        display:inline-flex; align-items:center; gap:.45rem;
+        padding:.42rem .8rem; border-radius:999px;
+        background: rgba(255,255,255,0.14);
+        border:1px solid rgba(255,255,255,0.18);
+        font-size:.78rem; font-weight:800; margin-bottom:.9rem;
+      }
+      .zentix-ia-title { font-size:2.08rem; line-height:1.02; font-weight:900; letter-spacing:-.04em; margin:0 0 .35rem 0; color:#FFFFFF !important; }
+      .zentix-ia-sub { font-size:1rem; line-height:1.62; color:rgba(255,255,255,.9) !important; margin:0; }
+      .zentix-ia-pills { display:flex; flex-wrap:wrap; gap:.6rem; margin-top:1rem; }
+      .zentix-ia-pill {
+        padding:.48rem .84rem; border-radius:999px;
+        background: rgba(255,255,255,0.14);
+        border:1px solid rgba(255,255,255,0.16);
+        color:#FFFFFF !important; font-size:.82rem; font-weight:700;
+      }
+      .zentix-ia-grid { display:grid; grid-template-columns: minmax(0, 1.4fr) minmax(320px, .8fr); gap:1rem; align-items:start; }
+      .zentix-ia-card {
+        background: linear-gradient(180deg, rgba(255,255,255,1), rgba(248,250,252,1));
+        border:1px solid rgba(99,102,241,.10);
+        box-shadow: 0 16px 30px rgba(15,23,42,.06);
+        border-radius: 26px;
+        padding: 1rem 1.05rem;
+      }
+      .zentix-ia-card-title { font-size:1.14rem; font-weight:900; color:#0F172A; letter-spacing:-.03em; margin-bottom:.2rem; }
+      .zentix-ia-card-sub { color:#64748B !important; font-size:.92rem; line-height:1.55; margin-bottom:.9rem; }
+      .zentix-ia-kpi-row { display:grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap:.75rem; margin-top:.95rem; }
+      .zentix-ia-kpi {
+        border-radius:20px; padding:.9rem;
+        background: linear-gradient(180deg,#FFFFFF 0%,#F8FBFF 100%);
+        border:1px solid rgba(148,163,184,.18);
+      }
+      .zentix-ia-kpi-label { font-size:.78rem; color:#64748B; font-weight:700; margin-bottom:.35rem; }
+      .zentix-ia-kpi-value { font-size:1.25rem; font-weight:900; color:#0F172A; letter-spacing:-.03em; }
+      .zentix-ia-prompt-grid { display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap:.7rem; margin-top:.95rem; }
+      .zentix-ia-prompt {
+        border-radius:18px; padding:.82rem .9rem;
+        background: linear-gradient(180deg, #EEF2FF 0%, #F8FAFF 100%);
+        border:1px solid rgba(99,102,241,.14);
+        color:#312E81; font-size:.88rem; line-height:1.45; font-weight:700;
+      }
+      .zentix-ia-chat-wrap {
+        display:flex; flex-direction:column; gap:.9rem;
+      }
+      .zentix-ia-chat-history {
+        background: linear-gradient(180deg,#F8FAFC 0%,#FFFFFF 100%);
+        border:1px solid rgba(148,163,184,.18);
+        border-radius:22px;
+        padding:.85rem;
+        min-height:320px;
+        max-height:540px;
+        overflow:auto;
+      }
+      .zentix-ia-chat-history .zentix-chat-msg {
+        border-radius:18px; padding:12px 13px; margin-bottom:10px;
+        line-height:1.55; font-size:.94rem; box-shadow:0 8px 18px rgba(15,23,42,.04);
+      }
+      .zentix-ia-chat-history .zentix-chat-msg.assistant {
+        background:#FFFFFF; border:1px solid rgba(148,163,184,.22); color:#0F172A;
+      }
+      .zentix-ia-chat-history .zentix-chat-msg.user {
+        background:#EEF2FF; border:1px solid rgba(129,140,248,.18); color:#0F172A;
+      }
+      .zentix-ia-chat-history .role {
+        font-size:.72rem; font-weight:900; text-transform:uppercase; letter-spacing:.06em; margin-bottom:4px; color:#475569;
+      }
+      .zentix-ia-chat-history .zentix-chat-msg.user .role { color:#4338CA; }
+      .zentix-ia-chat-history .copy { color:#0F172A !important; }
+      .zentix-ia-side-stack { display:grid; gap:1rem; }
+      .zentix-ia-mini-list { display:grid; gap:.65rem; }
+      .zentix-ia-mini-item {
+        border-radius:18px; padding:.84rem .9rem;
+        background: linear-gradient(180deg,#FFFFFF 0%,#F8FAFC 100%);
+        border:1px solid rgba(148,163,184,.18);
+      }
+      .zentix-ia-mini-label { font-size:.76rem; color:#64748B; font-weight:800; margin-bottom:.25rem; text-transform:uppercase; letter-spacing:.05em; }
+      .zentix-ia-mini-value { font-size:1.04rem; color:#0F172A; font-weight:900; }
+      .zentix-ia-mini-copy { font-size:.9rem; color:#475569 !important; line-height:1.5; }
+      @media (max-width: 980px) {
+        .zentix-ia-grid { grid-template-columns: 1fr; }
+        .zentix-ia-kpi-row { grid-template-columns: 1fr; }
+        .zentix-ia-prompt-grid { grid-template-columns: 1fr; }
+      }
+    </style>
+    """, unsafe_allow_html=True)
+
     st.markdown(
         f"""
-        <div class="soft-card" style="margin-bottom:1rem;">
-            <div class="section-title">Asistente premium</div>
-            <div class="section-caption">
-                Entraste desde <strong>{pagina_base}</strong>. Si tocas otra vez el avatar flotante, vuelves a ese apartado.
+        <div class="zentix-ia-shell">
+          <div class="zentix-ia-hero">
+            <div class="zentix-ia-badge">🤖 Zentix IA · Premium advisor</div>
+            <div class="zentix-ia-title">Tu copiloto financiero más claro y ejecutivo.</div>
+            <p class="zentix-ia-sub">
+              Aquí puedes conversar con Zentix IA con una vista dedicada, elegante y más útil.
+              Entraste desde <strong>{pagina_base}</strong> y el contexto ya viene preparado para darte respuestas accionables.
+            </p>
+            <div class="zentix-ia-pills">
+              <span class="zentix-ia-pill">Último movimiento: {ultimo}</span>
+              <span class="zentix-ia-pill">Plan {plan_actual.get('plan', 'free').upper()}</span>
+              <span class="zentix-ia-pill">IA hoy: {consultas_usadas}/{consultas_limite}</span>
+              <span class="zentix-ia-pill">{balance_label}</span>
             </div>
-            <div class="tiny-muted" style="margin-top:0.55rem;">
-                Último movimiento: {ultimo} · IA hoy: {consultas_usadas}/{consultas_limite} · Plan {plan_actual.get('plan', 'free').upper()}
-            </div>
+          </div>
         </div>
         """,
         unsafe_allow_html=True
     )
 
-    col_chat, col_side = st.columns([1.25, 0.75])
+    col_chat, col_side = st.columns([1.42, 0.78], gap="large")
 
     with col_chat:
-        st.markdown("<div class='soft-card'>", unsafe_allow_html=True)
-        st.markdown("<div class='section-title'>Conversación con Zentix</div>", unsafe_allow_html=True)
-        st.markdown("<div class='section-caption'>Haz tus preguntas aquí sin overlays, recargas raras ni saltos de página.</div>", unsafe_allow_html=True)
+        st.markdown("<div class='zentix-ia-card'>", unsafe_allow_html=True)
+        st.markdown("<div class='zentix-ia-card-title'>Conversación premium con Zentix</div>", unsafe_allow_html=True)
+        st.markdown("<div class='zentix-ia-card-sub'>Haz preguntas seguidas sin overlays ni saltos raros. El chat te responde con el contexto del apartado desde el que entraste.</div>", unsafe_allow_html=True)
 
-        if not historial:
-            historial = [{"role": "assistant", "content": mensajes_iniciales.get("Zentix IA", "Hola. Soy Zentix IA.")}]
-            st.session_state[chat_key] = historial
+        st.markdown(
+            f"""
+            <div class="zentix-ia-kpi-row">
+              <div class="zentix-ia-kpi">
+                <div class="zentix-ia-kpi-label">Disponible / ahorro actual</div>
+                <div class="zentix-ia-kpi-value">{money(ahorro_actual)}</div>
+              </div>
+              <div class="zentix-ia-kpi">
+                <div class="zentix-ia-kpi-label">Ingresos visibles</div>
+                <div class="zentix-ia-kpi-value">{money(total_ingresos)}</div>
+              </div>
+              <div class="zentix-ia-kpi">
+                <div class="zentix-ia-kpi-label">Gastos visibles</div>
+                <div class="zentix-ia-kpi-value">{money(total_gastos)}</div>
+              </div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
-        historial_html = construir_html_historial_chat(historial[-12:])
-        st.markdown(f"<div style='margin-top:0.9rem;'>{historial_html}</div>", unsafe_allow_html=True)
+        prompts_html = "".join([f"<div class='zentix-ia-prompt'>{html.escape(p)}</div>" for p in prompts_sugeridos])
+        st.markdown(f"<div class='zentix-ia-prompt-grid'>{prompts_html}</div>", unsafe_allow_html=True)
+
+        historial_html = construir_html_historial_chat(historial[-14:])
+        st.markdown(f"<div class='zentix-ia-chat-wrap'><div class='zentix-ia-chat-history'>{historial_html}</div></div>", unsafe_allow_html=True)
 
         with st.form(key="zentix_ia_page_form", clear_on_submit=False):
             pregunta_manual = st.text_area(
                 "Pregúntale a Zentix IA",
                 key=input_key,
                 label_visibility="collapsed",
-                placeholder="Ej: ¿Cómo voy este mes? ¿Qué categoría debería ajustar primero? ¿Qué patrón estás viendo?",
-                height=110,
+                placeholder="Ej: Resume mi mes en lenguaje ejecutivo y dime la acción más importante para mejorar.",
+                height=118,
             )
-            c1, c2 = st.columns(2)
+            c1, c2 = st.columns([1.2, 0.9])
             with c1:
-                enviar = st.form_submit_button("Enviar", use_container_width=True, type="primary")
+                enviar = st.form_submit_button("Enviar a Zentix IA", use_container_width=True, type="primary")
             with c2:
-                limpiar = st.form_submit_button("Limpiar", use_container_width=True)
+                limpiar = st.form_submit_button("Limpiar conversación", use_container_width=True)
 
         st.markdown("</div>", unsafe_allow_html=True)
 
@@ -5986,7 +6129,7 @@ def render_pagina_zentix_ia(nombre, total_ingresos, total_gastos, ahorro_actual,
                         f"{plan.get('plan', 'free')}. Pásate a Pro para tener más acceso y análisis más profundos."
                     )
                 else:
-                    with st.spinner("Zentix está analizando tu información..."):
+                    with st.spinner("Zentix está analizando tu panorama premium..."):
                         respuesta = consultar_ia_zentix(pregunta_final, contexto_ia)
                     registrar_uso_ia(st.session_state.user.id)
 
@@ -5996,23 +6139,57 @@ def render_pagina_zentix_ia(nombre, total_ingresos, total_gastos, ahorro_actual,
                 st.rerun()
 
     with col_side:
+        st.markdown("<div class='zentix-ia-side-stack'>", unsafe_allow_html=True)
         st.markdown(
             f"""
-            <div class="soft-card">
-                <div class="section-title">Contexto que estoy leyendo</div>
-                <div class="section-caption">Zentix responde usando el apartado desde el que entraste.</div>
-                <div class="tiny-muted" style="margin-top:0.7rem;">Apartado origen</div>
-                <div style="font-weight:800;font-size:1.05rem;">{pagina_base}</div>
-                <div class="tiny-muted" style="margin-top:0.7rem;">Ingresos visibles</div>
-                <div style="font-weight:800;font-size:1.05rem;">{money(total_ingresos)}</div>
-                <div class="tiny-muted" style="margin-top:0.7rem;">Gastos visibles</div>
-                <div style="font-weight:800;font-size:1.05rem;">{money(total_gastos)}</div>
-                <div class="tiny-muted" style="margin-top:0.7rem;">Disponible / ahorro actual</div>
-                <div style="font-weight:800;font-size:1.05rem;">{money(ahorro_actual)}</div>
+            <div class="zentix-ia-card">
+              <div class="zentix-ia-card-title">Contexto que estoy leyendo</div>
+              <div class="zentix-ia-card-sub">Zentix responde con el marco del apartado desde el que entraste, para no mezclar señales ni inventar panorama.</div>
+              <div class="zentix-ia-mini-list">
+                <div class="zentix-ia-mini-item">
+                  <div class="zentix-ia-mini-label">Apartado origen</div>
+                  <div class="zentix-ia-mini-value">{pagina_base}</div>
+                </div>
+                <div class="zentix-ia-mini-item">
+                  <div class="zentix-ia-mini-label">Pulso del mes</div>
+                  <div class="zentix-ia-mini-value">{balance_label}</div>
+                  <div class="zentix-ia-mini-copy">Balance visible: {money(balance)} · Disponible actual: {money(ahorro_actual)}</div>
+                </div>
+                <div class="zentix-ia-mini-item">
+                  <div class="zentix-ia-mini-label">Lectura rápida</div>
+                  <div class="zentix-ia-mini-copy">Ingreso visible {money(total_ingresos)} frente a gasto visible {money(total_gastos)}. Zentix prioriza claridad, no ruido.</div>
+                </div>
+              </div>
             </div>
             """,
             unsafe_allow_html=True
         )
+
+        st.markdown(
+            """
+            <div class="zentix-ia-card">
+              <div class="zentix-ia-card-title">Cómo aprovechar mejor esta vista</div>
+              <div class="zentix-ia-mini-list">
+                <div class="zentix-ia-mini-item">
+                  <div class="zentix-ia-mini-label">1 · Pide resumen ejecutivo</div>
+                  <div class="zentix-ia-mini-copy">Te lo devuelve corto, claro y accionable.</div>
+                </div>
+                <div class="zentix-ia-mini-item">
+                  <div class="zentix-ia-mini-label">2 · Pide patrones</div>
+                  <div class="zentix-ia-mini-copy">Úsalo para descubrir qué categoría pesa más y dónde estás perdiendo margen.</div>
+                </div>
+                <div class="zentix-ia-mini-item">
+                  <div class="zentix-ia-mini-label">3 · Pide siguiente paso</div>
+                  <div class="zentix-ia-mini-copy">Zentix te aterriza la acción más útil según tu panorama actual.</div>
+                </div>
+              </div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+        st.markdown("</div>", unsafe_allow_html=True)
+
 
 
 def render_avatar(pagina, nombre, total_ingresos, total_gastos, ahorro_actual, ultimo_tipo):
@@ -6311,6 +6488,7 @@ def render_home_hub(nombre_usuario, user_id, df, df_mes, df_deudas, df_cxc, tota
 aplicar_estilo_zentix()
 
 
+@st.cache_data(ttl=25, show_spinner=False)
 def obtener_movimientos(user_id):
     result = (
         supabase.table("movimientos")
@@ -6351,6 +6529,7 @@ def obtener_movimientos(user_id):
     return df_local
 
 
+@st.cache_data(ttl=90, show_spinner=False)
 def obtener_perfil(user_id):
     result = (
         supabase.table("perfiles_usuario")
@@ -6389,6 +6568,7 @@ def guardar_onboarding(user_id, nombre_mostrado, categorias_gasto, categorias_in
         supabase.table("categorias_usuario").insert(registros).execute()
 
 
+@st.cache_data(ttl=90, show_spinner=False)
 def obtener_categorias_usuario(user_id, tipo):
     result = (
         supabase.table("categorias_usuario")
@@ -6811,6 +6991,7 @@ def render_reportes_compactos(nombre_usuario, plan_actual, df_base, user_id=None
                     render_reporte_preview_modal(pdf_bytes, f"{filename_base}.pdf", titulo=f"Reporte {tab_name} Zentix")
                 registrar_evento_producto("report_preview_open", user_id=user_id, pagina="Análisis", detalle=f"{tab_name} {inicio_rep} {fin_rep}")
 
+@st.cache_data(ttl=60, show_spinner=False)
 def obtener_meta(user_id):
     result = (
         supabase.table("ahorro_meta")
@@ -6929,7 +7110,7 @@ if st.session_state.user is None:
                             st.session_state["zentix_access_token"] = getattr(res.session, "access_token", None)
                             st.session_state["zentix_refresh_token"] = getattr(res.session, "refresh_token", None)
                         registrar_evento_producto("login_success", user_id=getattr(res.user, "id", None), pagina="Acceso", detalle=correo)
-                        st.success("Bienvenido a Zentix.")
+                        st.session_state["zentix_show_transition"] = False
                         st.rerun()
                     except Exception as e:
                         registrar_evento_producto("login_error", pagina="Acceso", detalle=str(e))
