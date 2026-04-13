@@ -5861,65 +5861,87 @@ def construir_html_historial_chat(historial):
 
 def render_widget_chat_flotante_zentix(pagina, nombre, total_ingresos, total_gastos, ahorro_actual, ultimo_tipo):
     asset_path = zentix_floating_path if zentix_floating_path.exists() else avatar_path
-    asset_uri = obtener_data_uri_imagen(asset_path)
+    asset_b64 = ""
+    try:
+        asset_b64 = base64.b64encode(Path(asset_path).read_bytes()).decode()
+    except Exception:
+        asset_b64 = ""
 
-    st.markdown(f"""
-    <style>
-      div[data-testid="stVerticalBlock"]:has(#zentix-avatar-fab-anchor) {{
-        position: fixed !important;
-        right: 14px !important;
-        bottom: calc(10px + env(safe-area-inset-bottom)) !important;
-        width: 108px !important;
-        height: 124px !important;
-        z-index: 1000000 !important;
-        background: transparent !important;
-        border: none !important;
-        box-shadow: none !important;
-        padding: 0 !important;
-      }}
-      div[data-testid="stVerticalBlock"]:has(#zentix-avatar-fab-anchor) [data-testid="stButton"] {{
-        width: 100% !important;
-        height: 100% !important;
-      }}
-      div[data-testid="stVerticalBlock"]:has(#zentix-avatar-fab-anchor) .stButton > button {{
-        width: 100% !important;
-        height: 100% !important;
-        min-height: 0 !important;
-        border: none !important;
-        background: transparent url('{asset_uri}') center center / contain no-repeat !important;
-        box-shadow: none !important;
-        color: transparent !important;
-        font-size: 0 !important;
-        padding: 0 !important;
-      }}
-      div[data-testid="stVerticalBlock"]:has(#zentix-avatar-fab-anchor) .stButton > button:hover {{
-        transform: none !important;
-        filter: brightness(1.03) !important;
-      }}
-      @media (max-width: 900px) {{
-        div[data-testid="stVerticalBlock"]:has(#zentix-avatar-fab-anchor) {{
-          right: 8px !important;
-          bottom: calc(8px + env(safe-area-inset-bottom)) !important;
-          width: 96px !important;
-          height: 110px !important;
-        }}
-      }}
-    </style>
-    """, unsafe_allow_html=True)
+    pagina_actual = str(pagina or "Inicio")
+    pagina_retorno = str(st.session_state.get("zentix_ia_return_page", "Inicio") or "Inicio")
 
-    with st.container():
-        st.markdown("<div id='zentix-avatar-fab-anchor'></div>", unsafe_allow_html=True)
-        tocar_avatar = st.button("Abrir Zentix IA", key=f"zentix_avatar_fab_{pagina}", use_container_width=True)
+    if pagina_actual == "Zentix IA":
+        destino = pagina_retorno if pagina_retorno != "Zentix IA" else "Inicio"
+    else:
+        destino = "Zentix IA"
 
-    if tocar_avatar:
-        if pagina == "Zentix IA":
-            destino = st.session_state.get("zentix_ia_return_page", "Inicio")
-            if destino == "Zentix IA":
-                destino = "Inicio"
-            ir_a_pagina(destino)
-        else:
-            st.session_state["zentix_ia_return_page"] = pagina
-            ir_a_pagina("Zentix IA")
+    payload = {
+        "destino": destino,
+        "imagen": asset_b64,
+    }
+
+    widget_html = f"""
+    <script>
+    (function() {{
+      const data = {json.dumps(payload, ensure_ascii=False)};
+      const doc = window.parent.document;
+      const rootId = "zentix-ia-fab-root";
+      const prev = doc.getElementById(rootId);
+      if (prev) prev.remove();
+
+      const root = doc.createElement("div");
+      root.id = rootId;
+      root.innerHTML = `
+        <style>
+          #zentix-ia-fab-root * {{ box-sizing:border-box; }}
+          #zentix-ia-fab-btn {{
+            position: fixed;
+            right: 14px;
+            bottom: calc(10px + env(safe-area-inset-bottom));
+            width: 108px;
+            height: 124px;
+            z-index: 1000001;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            padding: 0;
+          }}
+          #zentix-ia-fab-btn img {{
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+            filter: drop-shadow(0 18px 28px rgba(15,23,42,.22));
+          }}
+          @media (max-width: 900px) {{
+            #zentix-ia-fab-btn {{
+              right: 8px;
+              bottom: calc(8px + env(safe-area-inset-bottom));
+              width: 96px;
+              height: 110px;
+            }}
+          }}
+        </style>
+        <button id="zentix-ia-fab-btn" aria-label="Abrir Zentix IA">
+          <img src="data:image/png;base64,${{data.imagen}}" alt="Zentix IA" />
+        </button>
+      `;
+      doc.body.appendChild(root);
+
+      const btn = doc.getElementById("zentix-ia-fab-btn");
+      btn.addEventListener("click", function(ev) {{
+        ev.preventDefault();
+        const url = new URL(window.parent.location.href);
+        url.searchParams.set("nav", data.destino);
+        window.parent.location.href = url.toString();
+      }});
+    }})();
+    </script>
+    """
+    components.html(widget_html, height=0)
+
+    if pagina_actual != "Zentix IA":
+        st.session_state["zentix_ia_return_page"] = pagina_actual
 
 
 def render_pagina_zentix_ia(nombre, total_ingresos, total_gastos, ahorro_actual, ultimo_tipo, pagina_origen=None):
@@ -5939,13 +5961,17 @@ def render_pagina_zentix_ia(nombre, total_ingresos, total_gastos, ahorro_actual,
     chat_key, input_key, clear_key, mensajes_iniciales = asegurar_estado_chat_zentix("Zentix IA", nombre)
     historial = st.session_state.get(chat_key, [])
 
+    if not historial:
+        historial = [{"role": "assistant", "content": mensajes_iniciales.get("Zentix IA", "Hola. Soy Zentix IA.")}]
+        st.session_state[chat_key] = historial
+
     ultimo = tipo_display(ultimo_tipo) if ultimo_tipo else "Sin movimientos"
     plan_actual = globals().get("plan_usuario_actual", {})
     consultas_usadas = globals().get("consultas_usadas_hoy", 0)
     consultas_limite = globals().get("consultas_limite_hoy", 10)
 
     zentix_hero(nombre, ahorro_actual, total_ingresos, total_gastos)
-    section_header("Zentix IA", "Ahora el chat vive en un apartado propio, más limpio, estable y premium.")
+    section_header("Zentix IA", "Tu chat vive aquí en un apartado propio, estable y limpio.")
     st.markdown(
         f"""
         <div class="soft-card" style="margin-bottom:1rem;">
@@ -5961,16 +5987,12 @@ def render_pagina_zentix_ia(nombre, total_ingresos, total_gastos, ahorro_actual,
         unsafe_allow_html=True
     )
 
-    col_chat, col_side = st.columns([1.25, 0.75])
+    col_chat, col_side = st.columns([1.2, 0.8])
 
     with col_chat:
         st.markdown("<div class='soft-card'>", unsafe_allow_html=True)
         st.markdown("<div class='section-title'>Conversación con Zentix</div>", unsafe_allow_html=True)
-        st.markdown("<div class='section-caption'>Haz tus preguntas aquí sin overlays, recargas raras ni saltos de página.</div>", unsafe_allow_html=True)
-
-        if not historial:
-            historial = [{"role": "assistant", "content": mensajes_iniciales.get("Zentix IA", "Hola. Soy Zentix IA.")}]
-            st.session_state[chat_key] = historial
+        st.markdown("<div class='section-caption'>Pregunta aquí sin overlays ni recargas raras.</div>", unsafe_allow_html=True)
 
         historial_html = construir_html_historial_chat(historial[-12:])
         st.markdown(f"<div style='margin-top:0.9rem;'>{historial_html}</div>", unsafe_allow_html=True)
@@ -6040,6 +6062,8 @@ def render_pagina_zentix_ia(nombre, total_ingresos, total_gastos, ahorro_actual,
         )
 
 
+def render_avatar(pagina, nombre, total_ingresos, total_gastos, ahorro_actual, ultimo_tipo):
+    return
 def render_avatar(pagina, nombre, total_ingresos, total_gastos, ahorro_actual, ultimo_tipo):
     # El bloque antiguo de Avatar Zentix IA se desactiva para evitar duplicidad.
     # Toda la conversación ahora vive en el apartado Zentix IA.
@@ -7209,6 +7233,18 @@ _, consultas_usadas_hoy, consultas_limite_hoy, consultas_restantes_hoy, plan_usu
 
 render_bienvenida_flotante(nombre_usuario, pagina, total_ingresos, total_gastos, saldo_disponible, ultimo_tipo)
 
+if pagina == "Zentix IA":
+    render_pagina_zentix_ia(
+        nombre=nombre_usuario,
+        total_ingresos=total_ingresos,
+        total_gastos=total_gastos,
+        ahorro_actual=saldo_disponible,
+        ultimo_tipo=ultimo_tipo,
+        pagina_origen=st.session_state.get("zentix_ia_return_page", "Inicio"),
+    )
+    render_footer_producto(launch_cfg)
+    st.stop()
+
 if pagina == "Inicio":
     render_home_hub(
         nombre_usuario=nombre_usuario,
@@ -8074,16 +8110,5 @@ if pagina == "Perfil":
         )
         render_avatar(pagina, nombre_usuario, total_ingresos, total_gastos, saldo_disponible, ultimo_tipo)
 
-
-
-if pagina == "Zentix IA":
-    render_pagina_zentix_ia(
-        nombre=nombre_usuario,
-        total_ingresos=total_ingresos,
-        total_gastos=total_gastos,
-        ahorro_actual=saldo_disponible,
-        ultimo_tipo=ultimo_tipo,
-        pagina_origen=st.session_state.get("zentix_ia_return_page", "Inicio"),
-    )
 
 render_footer_producto(launch_cfg)
