@@ -5868,15 +5868,21 @@ def render_widget_chat_flotante_zentix(pagina, nombre, total_ingresos, total_gas
 
     if pagina_actual != "Zentix IA":
         st.session_state["zentix_ia_return_page"] = pagina_actual
-        destino = "Zentix IA"
         trigger_label = "__ZENTIX_GO_IA__"
+        destino = "Zentix IA"
     else:
         destino = pagina_retorno if pagina_retorno != "Zentix IA" else "Inicio"
         trigger_label = "__ZENTIX_BACK_PREV__"
 
+    widget_payload = {
+        "asset": asset_uri,
+        "trigger": trigger_label,
+    }
+
     widget_html = f"""
     <script>
     (function() {{
+      const data = {json.dumps(widget_payload, ensure_ascii=False)};
       const doc = window.parent.document;
       const rootId = "zentix-fab-avatar-root";
       const prev = doc.getElementById(rootId);
@@ -5915,13 +5921,13 @@ def render_widget_chat_flotante_zentix(pagina, nombre, total_ingresos, total_gas
           }}
         </style>
         <button id="zentix-fab-avatar-btn" aria-label="Abrir Zentix IA">
-          <img src="{asset_uri}" alt="Zentix IA" />
+          <img src="${{data.asset}}" alt="Zentix IA" />
         </button>
       `;
       doc.body.appendChild(root);
 
-      function normalize(txt) {{
-        return String(txt || "").replace(/\s+/g, " ").trim();
+      function normalize(value) {{
+        return String(value || "").replace(/\s+/g, " ").trim();
       }}
 
       function clickHiddenStreamlit(label) {{
@@ -5942,11 +5948,11 @@ def render_widget_chat_flotante_zentix(pagina, nombre, total_ingresos, total_gas
       fab.addEventListener("click", function(ev) {{
         ev.preventDefault();
         ev.stopPropagation();
-        clickHiddenStreamlit("%s");
+        clickHiddenStreamlit(data.trigger);
       }});
     }})();
     </script>
-    """ % trigger_label
+    """
     components.html(widget_html, height=0)
 
     st.markdown("""
