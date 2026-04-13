@@ -5863,19 +5863,29 @@ def render_widget_chat_flotante_zentix(pagina, nombre, total_ingresos, total_gas
     asset_path = zentix_floating_path if zentix_floating_path.exists() else avatar_path
     asset_uri = obtener_data_uri_imagen(asset_path)
 
+    pagina_actual = str(pagina or "Inicio")
+    pagina_retorno = str(st.session_state.get("zentix_ia_return_page", "Inicio") or "Inicio")
+
+    if pagina_actual == "Zentix IA":
+        destino = pagina_retorno if pagina_retorno != "Zentix IA" else "Inicio"
+    else:
+        st.session_state["zentix_ia_return_page"] = pagina_actual
+        destino = "Zentix IA"
+
     st.markdown(f"""
     <style>
       div[data-testid="stVerticalBlock"]:has(#zentix-avatar-fab-anchor) {{
         position: fixed !important;
-        right: 14px !important;
-        bottom: calc(10px + env(safe-area-inset-bottom)) !important;
+        right: 26px !important;
+        bottom: calc(84px + env(safe-area-inset-bottom)) !important;
         width: 108px !important;
         height: 124px !important;
-        z-index: 1000000 !important;
+        z-index: 1000002 !important;
         background: transparent !important;
         border: none !important;
         box-shadow: none !important;
         padding: 0 !important;
+        pointer-events: auto !important;
       }}
       div[data-testid="stVerticalBlock"]:has(#zentix-avatar-fab-anchor) [data-testid="stButton"] {{
         width: 100% !important;
@@ -5891,6 +5901,7 @@ def render_widget_chat_flotante_zentix(pagina, nombre, total_ingresos, total_gas
         color: transparent !important;
         font-size: 0 !important;
         padding: 0 !important;
+        pointer-events: auto !important;
       }}
       div[data-testid="stVerticalBlock"]:has(#zentix-avatar-fab-anchor) .stButton > button:hover {{
         transform: none !important;
@@ -5898,8 +5909,8 @@ def render_widget_chat_flotante_zentix(pagina, nombre, total_ingresos, total_gas
       }}
       @media (max-width: 900px) {{
         div[data-testid="stVerticalBlock"]:has(#zentix-avatar-fab-anchor) {{
-          right: 8px !important;
-          bottom: calc(8px + env(safe-area-inset-bottom)) !important;
+          right: 14px !important;
+          bottom: calc(110px + env(safe-area-inset-bottom)) !important;
           width: 96px !important;
           height: 110px !important;
         }}
@@ -5909,17 +5920,15 @@ def render_widget_chat_flotante_zentix(pagina, nombre, total_ingresos, total_gas
 
     with st.container():
         st.markdown("<div id='zentix-avatar-fab-anchor'></div>", unsafe_allow_html=True)
-        tocar_avatar = st.button("Abrir Zentix IA", key=f"zentix_avatar_fab_{pagina}", use_container_width=True)
+        tocar_avatar = st.button(
+            "Abrir Zentix IA",
+            key=f"zentix_avatar_fab_{pagina_actual}",
+            use_container_width=True,
+            type="secondary"
+        )
 
     if tocar_avatar:
-        if pagina == "Zentix IA":
-            destino = st.session_state.get("zentix_ia_return_page", "Inicio")
-            if destino == "Zentix IA":
-                destino = "Inicio"
-            ir_a_pagina(destino)
-        else:
-            st.session_state["zentix_ia_return_page"] = pagina
-            ir_a_pagina("Zentix IA")
+        ir_a_pagina(destino)
 
 
 def render_pagina_zentix_ia(nombre, total_ingresos, total_gastos, ahorro_actual, ultimo_tipo, pagina_origen=None):
