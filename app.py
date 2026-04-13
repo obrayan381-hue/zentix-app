@@ -270,7 +270,7 @@ def aplicar_estilo_zentix():
     }
 
     .zentix-brand-title {
-        font-size: 1.6rem;
+        font-size: 2.05rem;
         font-weight: 900;
         line-height: 1;
         margin: 0;
@@ -280,8 +280,8 @@ def aplicar_estilo_zentix():
 
     .zentix-brand-sub {
         color: var(--muted);
-        margin-top: 5px;
-        font-size: 0.94rem;
+        margin-top: 6px;
+        font-size: 1rem;
     }
 
     .hero-card {
@@ -1460,7 +1460,7 @@ def render_transition_overlay():
     if icono_path.exists():
         try:
             logo_b64 = base64.b64encode(Path(icono_path).read_bytes()).decode()
-            logo_html = f"<img src='data:image/png;base64,{logo_b64}' style='width:88px;height:88px;object-fit:contain;margin-bottom:16px;'/>"
+            logo_html = f"<img src='data:image/png;base64,{logo_b64}' style='width:110px;height:110px;object-fit:contain;margin-bottom:16px;'/>"
         except Exception:
             logo_html = ""
     splash = f"""
@@ -1674,10 +1674,10 @@ def inyectar_sidebar_drawer(nombre_usuario, plan_actual, consultas_usadas, consu
 
 def zentix_brand_header():
     st.markdown("<div class='zentix-brand-shell fade-up'>", unsafe_allow_html=True)
-    col_logo, col_title, col_side = st.columns([0.9, 6.2, 2.4])
+    col_logo, col_title, col_side = st.columns([1.25, 5.95, 2.2])
     with col_logo:
         if icono_path.exists():
-            st.image(str(icono_path), width=66)
+            st.image(str(icono_path), width=102)
     with col_title:
         st.markdown('<div class="zentix-brand-title">Zentix</div>', unsafe_allow_html=True)
         st.markdown('<div class="zentix-brand-sub">Controla ingresos, gastos, metas y deuda desde una experiencia clara en móvil, tablet y PC.</div>', unsafe_allow_html=True)
