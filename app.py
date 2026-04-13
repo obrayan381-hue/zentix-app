@@ -5872,43 +5872,60 @@ def render_widget_chat_flotante_zentix(pagina, nombre, total_ingresos, total_gas
     else:
         destino = pagina_retorno if pagina_retorno != "Zentix IA" else "Inicio"
 
-    destino_href = f"?nav={urllib.parse.quote(destino)}"
-
     st.markdown(f"""
     <style>
-      .zentix-avatar-fab-link {{
-        position: fixed;
-        right: 14px;
-        bottom: calc(10px + env(safe-area-inset-bottom));
-        width: 108px;
-        height: 124px;
-        z-index: 1000000;
-        display: block;
-        background: transparent;
-        border: none;
-        box-shadow: none;
-        text-decoration: none;
+      div[data-testid="stVerticalBlock"]:has(#zentix-avatar-fab-anchor) {{
+        position: fixed !important;
+        right: 14px !important;
+        bottom: calc(10px + env(safe-area-inset-bottom)) !important;
+        width: 108px !important;
+        height: 124px !important;
+        z-index: 1000000 !important;
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
       }}
-      .zentix-avatar-fab-link img {{
-        width: 100%;
-        height: 100%;
-        object-fit: contain;
-        display: block;
-        filter: drop-shadow(0 18px 28px rgba(15,23,42,.22));
+      div[data-testid="stVerticalBlock"]:has(#zentix-avatar-fab-anchor) [data-testid="stButton"] {{
+        width: 100% !important;
+        height: 100% !important;
+      }}
+      div[data-testid="stVerticalBlock"]:has(#zentix-avatar-fab-anchor) .stButton > button {{
+        width: 100% !important;
+        height: 100% !important;
+        min-height: 0 !important;
+        border: none !important;
+        background: transparent url('{asset_uri}') center center / contain no-repeat !important;
+        box-shadow: none !important;
+        color: transparent !important;
+        font-size: 0 !important;
+        padding: 0 !important;
+      }}
+      div[data-testid="stVerticalBlock"]:has(#zentix-avatar-fab-anchor) .stButton > button:hover {{
+        transform: none !important;
+        filter: brightness(1.03) !important;
       }}
       @media (max-width: 900px) {{
-        .zentix-avatar-fab-link {{
-          right: 8px;
-          bottom: calc(8px + env(safe-area-inset-bottom));
-          width: 96px;
-          height: 110px;
+        div[data-testid="stVerticalBlock"]:has(#zentix-avatar-fab-anchor) {{
+          right: 8px !important;
+          bottom: calc(8px + env(safe-area-inset-bottom)) !important;
+          width: 96px !important;
+          height: 110px !important;
         }}
       }}
     </style>
-    <a class="zentix-avatar-fab-link" href="{destino_href}" aria-label="Abrir Zentix IA">
-      <img src="{asset_uri}" alt="Zentix IA" />
-    </a>
     """, unsafe_allow_html=True)
+
+    with st.container():
+        st.markdown("<div id='zentix-avatar-fab-anchor'></div>", unsafe_allow_html=True)
+        tocar_avatar = st.button(
+            "Abrir Zentix IA",
+            key=f"zentix_avatar_fab_{pagina_actual}",
+            use_container_width=True
+        )
+
+    if tocar_avatar:
+        ir_a_pagina(destino)
 
 
 def render_pagina_zentix_ia(nombre, total_ingresos, total_gastos, ahorro_actual, ultimo_tipo, pagina_origen=None):
@@ -7198,18 +7215,6 @@ _, consultas_usadas_hoy, consultas_limite_hoy, consultas_restantes_hoy, plan_usu
 
 render_bienvenida_flotante(nombre_usuario, pagina, total_ingresos, total_gastos, saldo_disponible, ultimo_tipo)
 
-if pagina == "Zentix IA":
-    render_pagina_zentix_ia(
-        nombre=nombre_usuario,
-        total_ingresos=total_ingresos,
-        total_gastos=total_gastos,
-        ahorro_actual=saldo_disponible,
-        ultimo_tipo=ultimo_tipo,
-        pagina_origen=st.session_state.get("zentix_ia_return_page", "Inicio"),
-    )
-    render_footer_producto(launch_cfg)
-    st.stop()
-
 if pagina == "Inicio":
     render_home_hub(
         nombre_usuario=nombre_usuario,
@@ -8075,5 +8080,16 @@ if pagina == "Perfil":
         )
         render_avatar(pagina, nombre_usuario, total_ingresos, total_gastos, saldo_disponible, ultimo_tipo)
 
+
+
+if pagina == "Zentix IA":
+    render_pagina_zentix_ia(
+        nombre=nombre_usuario,
+        total_ingresos=total_ingresos,
+        total_gastos=total_gastos,
+        ahorro_actual=saldo_disponible,
+        ultimo_tipo=ultimo_tipo,
+        pagina_origen=st.session_state.get("zentix_ia_return_page", "Inicio"),
+    )
 
 render_footer_producto(launch_cfg)
