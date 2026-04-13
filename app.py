@@ -205,14 +205,14 @@ def aplicar_estilo_zentix():
     .stButton > button[kind="primary"] {
         background:
             radial-gradient(circle at top left, rgba(255,255,255,0.22), transparent 30%),
-            linear-gradient(135deg, #5B5CF8 0%, #4F46E5 42%, #7C3AED 100%);
+            linear-gradient(135deg, #0F172A 0%, #172554 42%, #4F46E5 82%, #7C3AED 100%);
         border: none;
         color: #FFFFFF;
-        box-shadow: 0 18px 32px rgba(79,70,229,0.22);
+        box-shadow: 0 18px 32px rgba(15,23,42,0.24);
     }
 
     .stButton > button[kind="primary"]:hover {
-        box-shadow: 0 22px 38px rgba(79,70,229,0.28);
+        box-shadow: 0 22px 38px rgba(15,23,42,0.28);
         filter: brightness(1.02);
     }
 
@@ -288,11 +288,11 @@ def aplicar_estilo_zentix():
         background:
             radial-gradient(circle at top left, rgba(255,255,255,0.22), transparent 32%),
             radial-gradient(circle at bottom right, rgba(255,255,255,0.08), transparent 24%),
-            linear-gradient(135deg, #5B5CF8 0%, #4F46E5 42%, #7C3AED 100%);
+            linear-gradient(135deg, #0F172A 0%, #172554 42%, #4F46E5 82%, #7C3AED 100%);
         border: none;
         border-radius: 30px;
         padding: 1.3rem;
-        box-shadow: 0 28px 50px rgba(79,70,229,0.22);
+        box-shadow: 0 28px 50px rgba(15,23,42,0.24);
         margin-bottom: 1rem;
         color: #fff;
     }
@@ -616,7 +616,7 @@ def aplicar_estilo_zentix():
     .activity-feed-bullet {
         width:38px; height:38px; border-radius:999px; display:flex; align-items:center; justify-content:center;
         font-weight:800; font-size:0.95rem; color:#fff;
-        background: linear-gradient(135deg, #4F46E5, #2563EB);
+        background: linear-gradient(135deg, #172554 0%, #312E81 100%);
         flex: 0 0 38px;
     }
     .activity-feed-title { font-weight:800; color:#0F172A; line-height:1.3; }
@@ -715,10 +715,10 @@ def aplicar_estilo_zentix():
     }
 
     [data-testid="stSidebar"] .stButton > button[kind="primary"] {
-        background: linear-gradient(135deg, #5B5CF8 0%, #4F46E5 45%, #7C3AED 100%);
+        background: linear-gradient(135deg, #0F172A 0%, #172554 42%, #4F46E5 82%, #7C3AED 100%);
         color: #FFFFFF;
         border: none;
-        box-shadow: 0 14px 26px rgba(79,70,229,0.22);
+        box-shadow: 0 14px 26px rgba(15,23,42,0.24);
     }
 
     [data-testid="stSidebar"] .stButton > button[kind="secondary"]:hover,
@@ -752,9 +752,9 @@ def aplicar_estilo_zentix():
         border: 1px solid transparent;
     }
 
-    .auth-visible-chip.is-register { background: #EEF2FF; color: #4338CA; border-color: #C7D2FE; }
-    .auth-visible-chip.is-login { background: #ECFEFF; color: #0F766E; border-color: #A5F3FC; }
-    .auth-visible-chip.is-reset { background: #FFF7ED; color: #C2410C; border-color: #FED7AA; }
+    .auth-visible-chip.is-register { background: #E0E7FF; color: #172554; border-color: #A5B4FC; }
+    .auth-visible-chip.is-login { background: #DBEAFE; color: #172554; border-color: #93C5FD; }
+    .auth-visible-chip.is-reset { background: #EDE9FE; color: #312E81; border-color: #C4B5FD; }
 
     .stTabs [data-baseweb="tab-list"] {
         background: linear-gradient(180deg, rgba(255,255,255,0.85), rgba(241,245,249,0.9));
@@ -771,9 +771,9 @@ def aplicar_estilo_zentix():
     }
 
     .stTabs [aria-selected="true"] {
-        background: linear-gradient(135deg, #5B5CF8 0%, #4F46E5 45%, #7C3AED 100%) !important;
+        background: linear-gradient(135deg, #0F172A 0%, #172554 42%, #4F46E5 82%, #7C3AED 100%) !important;
         color: #FFFFFF !important;
-        box-shadow: 0 12px 24px rgba(79,70,229,0.18);
+        box-shadow: 0 12px 24px rgba(15,23,42,0.20);
     }
 
     .stRadio [role="radiogroup"] {
@@ -945,8 +945,8 @@ def aplicar_estilo_zentix():
     }
 
     [data-testid="stSidebar"] .stButton > button[kind="primary"] {
-        background: linear-gradient(135deg, #4F46E5 0%, #2563EB 55%, #06B6D4 100%) !important;
-        box-shadow: 0 16px 30px rgba(79,70,229,0.20) !important;
+        background: linear-gradient(135deg, #0F172A 0%, #172554 42%, #4F46E5 82%, #7C3AED 100%) !important;
+        box-shadow: 0 16px 30px rgba(15,23,42,0.22) !important;
     }
 
     .home-pie-card {
@@ -1528,8 +1528,8 @@ def inyectar_sidebar_drawer(nombre_usuario, plan_actual, consultas_usadas, consu
           #zentix-drawer-fab {{
             position: fixed; top: 14px; left: 14px; z-index: 1000000;
             width: 52px; height: 52px; border: none; border-radius: 18px; cursor: pointer;
-            background: linear-gradient(135deg, #4F46E5 0%, #2563EB 60%, #06B6D4 100%);
-            color: white; box-shadow: 0 18px 32px rgba(79,70,229,0.22);
+            background: linear-gradient(135deg, #0F172A 0%, #172554 42%, #4F46E5 82%, #7C3AED 100%);
+            color: white; box-shadow: 0 18px 32px rgba(15,23,42,0.24);
             display:flex; align-items:center; justify-content:center; font-size: 22px; font-weight: 900;
           }}
           #zentix-drawer-overlay {{ position: fixed; inset: 0; z-index: 999999; pointer-events: none; }}
@@ -1570,7 +1570,7 @@ def inyectar_sidebar_drawer(nombre_usuario, plan_actual, consultas_usadas, consu
             box-shadow: 0 10px 20px rgba(15,23,42,0.04);
           }}
           .zentix-drawer-link.active {{
-            background: linear-gradient(135deg, #4F46E5 0%, #2563EB 60%, #06B6D4 100%);
+            background: linear-gradient(135deg, #0F172A 0%, #172554 42%, #4F46E5 82%, #7C3AED 100%);
             color: white; border-color: transparent; box-shadow: 0 16px 30px rgba(79,70,229,0.20);
           }}
           .zentix-drawer-link .icon {{ width: 24px; text-align: center; font-size: 1rem; }}
