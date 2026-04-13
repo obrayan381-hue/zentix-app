@@ -5869,62 +5869,123 @@ def render_widget_chat_flotante_zentix(pagina, nombre, total_ingresos, total_gas
     if pagina_actual != "Zentix IA":
         st.session_state["zentix_ia_return_page"] = pagina_actual
         destino = "Zentix IA"
+        trigger_label = "__ZENTIX_GO_IA__"
     else:
         destino = pagina_retorno if pagina_retorno != "Zentix IA" else "Inicio"
+        trigger_label = "__ZENTIX_BACK_PREV__"
 
-    st.markdown(f"""
-    <style>
-      div[data-testid="stVerticalBlock"]:has(#zentix-avatar-fab-anchor) {{
-        position: fixed !important;
-        right: 14px !important;
-        bottom: calc(10px + env(safe-area-inset-bottom)) !important;
-        width: 108px !important;
-        height: 124px !important;
-        z-index: 1000000 !important;
-        background: transparent !important;
-        border: none !important;
-        box-shadow: none !important;
-        padding: 0 !important;
+    widget_html = f"""
+    <script>
+    (function() {{
+      const doc = window.parent.document;
+      const rootId = "zentix-fab-avatar-root";
+      const prev = doc.getElementById(rootId);
+      if (prev) prev.remove();
+
+      const root = doc.createElement("div");
+      root.id = rootId;
+      root.innerHTML = `
+        <style>
+          #zentix-fab-avatar-btn {{
+            position: fixed;
+            right: 14px;
+            bottom: calc(10px + env(safe-area-inset-bottom));
+            width: 108px;
+            height: 124px;
+            z-index: 1000001;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            padding: 0;
+          }}
+          #zentix-fab-avatar-btn img {{
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+            filter: drop-shadow(0 18px 28px rgba(15,23,42,.22));
+          }}
+          @media (max-width: 900px) {{
+            #zentix-fab-avatar-btn {{
+              right: 8px;
+              bottom: calc(8px + env(safe-area-inset-bottom));
+              width: 96px;
+              height: 110px;
+            }}
+          }}
+        </style>
+        <button id="zentix-fab-avatar-btn" aria-label="Abrir Zentix IA">
+          <img src="{asset_uri}" alt="Zentix IA" />
+        </button>
+      `;
+      doc.body.appendChild(root);
+
+      function normalize(txt) {{
+        return String(txt || "").replace(/\s+/g, " ").trim();
       }}
-      div[data-testid="stVerticalBlock"]:has(#zentix-avatar-fab-anchor) [data-testid="stButton"] {{
-        width: 100% !important;
-        height: 100% !important;
-      }}
-      div[data-testid="stVerticalBlock"]:has(#zentix-avatar-fab-anchor) .stButton > button {{
-        width: 100% !important;
-        height: 100% !important;
-        min-height: 0 !important;
-        border: none !important;
-        background: transparent url('{asset_uri}') center center / contain no-repeat !important;
-        box-shadow: none !important;
-        color: transparent !important;
-        font-size: 0 !important;
-        padding: 0 !important;
-      }}
-      div[data-testid="stVerticalBlock"]:has(#zentix-avatar-fab-anchor) .stButton > button:hover {{
-        transform: none !important;
-        filter: brightness(1.03) !important;
-      }}
-      @media (max-width: 900px) {{
-        div[data-testid="stVerticalBlock"]:has(#zentix-avatar-fab-anchor) {{
-          right: 8px !important;
-          bottom: calc(8px + env(safe-area-inset-bottom)) !important;
-          width: 96px !important;
-          height: 110px !important;
+
+      function clickHiddenStreamlit(label) {{
+        const wanted = normalize(label);
+        const buttons = Array.from(doc.querySelectorAll("button"));
+        for (const btn of buttons) {{
+          const txt = normalize(btn.innerText || btn.textContent || "");
+          const aria = normalize(btn.getAttribute("aria-label") || "");
+          if (txt === wanted || aria === wanted || txt.includes(wanted) || aria.includes(wanted)) {{
+            btn.click();
+            return true;
+          }}
         }}
+        return false;
       }}
+
+      const fab = doc.getElementById("zentix-fab-avatar-btn");
+      fab.addEventListener("click", function(ev) {{
+        ev.preventDefault();
+        ev.stopPropagation();
+        clickHiddenStreamlit("%s");
+      }});
+    }})();
+    </script>
+    """ % trigger_label
+    components.html(widget_html, height=0)
+
+    st.markdown("""
+    <style>
+      div[data-testid="stVerticalBlock"]:has(#zentix-avatar-hidden-nav-anchor) {
+        position: fixed !important;
+        left: -10000px !important;
+        top: -10000px !important;
+        width: 1px !important;
+        height: 1px !important;
+        overflow: hidden !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+        z-index: -1 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+      }
+      div[data-testid="stVerticalBlock"]:has(#zentix-avatar-hidden-nav-anchor) .stButton > button {
+        min-height: 1px !important;
+        height: 1px !important;
+        font-size: 0 !important;
+        color: transparent !important;
+        padding: 0 !important;
+        border: 0 !important;
+        background: transparent !important;
+        box-shadow: none !important;
+      }
     </style>
     """, unsafe_allow_html=True)
 
     with st.container():
-        st.markdown("<div id='zentix-avatar-fab-anchor'></div>", unsafe_allow_html=True)
-        tocar_avatar = st.button(
-            "Abrir Zentix IA",
-            key=f"zentix_avatar_fab_{pagina_actual}",
-            use_container_width=True
-        )
+        st.markdown("<div id='zentix-avatar-hidden-nav-anchor'></div>", unsafe_allow_html=True)
+        go_ia = st.button("__ZENTIX_GO_IA__", key=f"zentix_go_ia_hidden_{pagina_actual}")
+        back_prev = st.button("__ZENTIX_BACK_PREV__", key=f"zentix_back_prev_hidden_{pagina_actual}")
 
-    if tocar_avatar:
+    if go_ia:
+        ir_a_pagina("Zentix IA")
+
+    if back_prev:
         ir_a_pagina(destino)
 
 
@@ -7215,6 +7276,18 @@ _, consultas_usadas_hoy, consultas_limite_hoy, consultas_restantes_hoy, plan_usu
 
 render_bienvenida_flotante(nombre_usuario, pagina, total_ingresos, total_gastos, saldo_disponible, ultimo_tipo)
 
+if pagina == "Zentix IA":
+    render_pagina_zentix_ia(
+        nombre=nombre_usuario,
+        total_ingresos=total_ingresos,
+        total_gastos=total_gastos,
+        ahorro_actual=saldo_disponible,
+        ultimo_tipo=ultimo_tipo,
+        pagina_origen=st.session_state.get("zentix_ia_return_page", "Inicio"),
+    )
+    render_footer_producto(launch_cfg)
+    st.stop()
+
 if pagina == "Inicio":
     render_home_hub(
         nombre_usuario=nombre_usuario,
@@ -8080,16 +8153,5 @@ if pagina == "Perfil":
         )
         render_avatar(pagina, nombre_usuario, total_ingresos, total_gastos, saldo_disponible, ultimo_tipo)
 
-
-
-if pagina == "Zentix IA":
-    render_pagina_zentix_ia(
-        nombre=nombre_usuario,
-        total_ingresos=total_ingresos,
-        total_gastos=total_gastos,
-        ahorro_actual=saldo_disponible,
-        ultimo_tipo=ultimo_tipo,
-        pagina_origen=st.session_state.get("zentix_ia_return_page", "Inicio"),
-    )
 
 render_footer_producto(launch_cfg)
