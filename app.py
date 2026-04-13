@@ -5892,6 +5892,7 @@ def render_widget_chat_flotante_zentix(pagina, nombre, total_ingresos, total_gas
       root.id = rootId;
       root.innerHTML = `
         <style>
+          #zentix-fab-avatar-root * {{ box-sizing:border-box; }}
           #zentix-fab-avatar-btn {{
             position: fixed;
             right: 14px;
