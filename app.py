@@ -6568,6 +6568,36 @@ def guardar_onboarding(user_id, nombre_mostrado, categorias_gasto, categorias_in
         supabase.table("categorias_usuario").insert(registros).execute()
 
 
+def limpiar_cache_datos_usuario():
+    for fn_name in [
+        "obtener_perfil",
+        "obtener_movimientos",
+        "obtener_meta",
+        "obtener_deudas_usuario",
+        "obtener_cuentas_por_cobrar_usuario",
+        "obtener_preferencias_usuario",
+        "obtener_categorias_usuario",
+    ]:
+        try:
+            globals()[fn_name].clear()
+        except Exception:
+            pass
+
+
+def usuario_ya_tiene_historial(user_id):
+    try:
+        result = (
+            supabase.table("movimientos")
+            .select("id", count="exact")
+            .eq("usuario_id", user_id)
+            .limit(1)
+            .execute()
+        )
+        return int(getattr(result, "count", 0) or 0) > 0
+    except Exception:
+        return False
+
+
 @st.cache_data(ttl=90, show_spinner=False)
 def obtener_categorias_usuario(user_id, tipo):
     result = (
@@ -7205,7 +7235,39 @@ pagina = st.session_state.pagina
 track_page_view_once(user_id, pagina)
 
 
-if not perfil or not perfil.get("onboarding_completo", False):
+nombre_guardado = str((perfil or {}).get("nombre_mostrado") or "").strip()
+categorias_gasto_guardadas = obtener_categorias_usuario(user_id, "Gasto")
+categorias_ingreso_guardadas = obtener_categorias_usuario(user_id, "Ingreso")
+tiene_historial = usuario_ya_tiene_historial(user_id)
+onboarding_completo_flag = bool((perfil or {}).get("onboarding_completo", False))
+
+onboarding_necesario = (
+    not onboarding_completo_flag
+    and not nombre_guardado
+    and not categorias_gasto_guardadas
+    and not categorias_ingreso_guardadas
+    and not tiene_historial
+)
+
+if not onboarding_necesario and not onboarding_completo_flag:
+    try:
+        if perfil:
+            supabase.table("perfiles_usuario").update({
+                "onboarding_completo": True
+            }).eq("id", user_id).execute()
+        else:
+            supabase.table("perfiles_usuario").insert({
+                "id": user_id,
+                "nombre_mostrado": nombre_guardado or nombre_usuario or "Usuario Zentix",
+                "onboarding_completo": True
+            }).execute()
+
+        limpiar_cache_datos_usuario()
+        perfil = obtener_perfil(user_id)
+    except Exception:
+        pass
+
+if onboarding_necesario:
     st.markdown(
         """
         <div class="hero-card">
@@ -7253,7 +7315,7 @@ if not perfil or not perfil.get("onboarding_completo", False):
                         categorias_gasto,
                         categorias_ingreso
                     )
-                    st.success("Tu configuración inicial quedó guardada.")
+                    limpiar_cache_datos_usuario()
                     st.rerun()
                 except Exception as e:
                     st.error(f"Error guardando onboarding: {e}")
