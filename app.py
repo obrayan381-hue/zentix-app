@@ -5945,7 +5945,7 @@ def render_pagina_zentix_ia(nombre, total_ingresos, total_gastos, ahorro_actual,
     consultas_limite = globals().get("consultas_limite_hoy", 10)
 
     zentix_hero(nombre, ahorro_actual, total_ingresos, total_gastos)
-    section_header("Zentix IA", "Tu chat vive aquí en un apartado propio, más limpio, estable y premium.")
+    section_header("Zentix IA", "Ahora el chat vive en un apartado propio, más limpio, estable y premium.")
     st.markdown(
         f"""
         <div class="soft-card" style="margin-bottom:1rem;">
@@ -5961,12 +5961,12 @@ def render_pagina_zentix_ia(nombre, total_ingresos, total_gastos, ahorro_actual,
         unsafe_allow_html=True
     )
 
-    col_chat, col_side = st.columns([1.2, 0.8])
+    col_chat, col_side = st.columns([1.25, 0.75])
 
     with col_chat:
         st.markdown("<div class='soft-card'>", unsafe_allow_html=True)
         st.markdown("<div class='section-title'>Conversación con Zentix</div>", unsafe_allow_html=True)
-        st.markdown("<div class='section-caption'>Haz tus preguntas aquí sin overlays ni recargas extrañas.</div>", unsafe_allow_html=True)
+        st.markdown("<div class='section-caption'>Haz tus preguntas aquí sin overlays, recargas raras ni saltos de página.</div>", unsafe_allow_html=True)
 
         if not historial:
             historial = [{"role": "assistant", "content": mensajes_iniciales.get("Zentix IA", "Hola. Soy Zentix IA.")}]
@@ -6042,7 +6042,7 @@ def render_pagina_zentix_ia(nombre, total_ingresos, total_gastos, ahorro_actual,
 
 def render_avatar(pagina, nombre, total_ingresos, total_gastos, ahorro_actual, ultimo_tipo):
     # El bloque antiguo de Avatar Zentix IA se desactiva para evitar duplicidad.
-    # Toda la conversación ahora vive en el widget flotante premium.
+    # Toda la conversación ahora vive en el apartado Zentix IA.
     return
 def render_avatar(pagina, nombre, total_ingresos, total_gastos, ahorro_actual, ultimo_tipo):
     # El bloque antiguo de Avatar Zentix IA se desactiva para evitar duplicidad.
@@ -8073,6 +8073,7 @@ if pagina == "Perfil":
             unsafe_allow_html=True
         )
         render_avatar(pagina, nombre_usuario, total_ingresos, total_gastos, saldo_disponible, ultimo_tipo)
+
 
 
 if pagina == "Zentix IA":
