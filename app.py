@@ -5918,6 +5918,13 @@ def render_pagina_zentix_ia(nombre, total_ingresos, total_gastos, ahorro_actual,
     )
 
     chat_key, input_key, clear_key, mensajes_iniciales = asegurar_estado_chat_zentix("Zentix IA", nombre)
+
+    if clear_key not in st.session_state:
+        st.session_state[clear_key] = False
+    if st.session_state.get(clear_key):
+        st.session_state[input_key] = ""
+        st.session_state[clear_key] = False
+
     historial = st.session_state.get(chat_key, [])
 
     if not historial:
@@ -6113,7 +6120,6 @@ def render_pagina_zentix_ia(nombre, total_ingresos, total_gastos, ahorro_actual,
             st.session_state[chat_key] = [
                 {"role": "assistant", "content": mensajes_iniciales.get("Zentix IA", "Hola. Soy Zentix IA.")}
             ]
-            st.session_state[input_key] = ""
             st.session_state[clear_key] = True
             st.rerun()
 
@@ -6134,7 +6140,6 @@ def render_pagina_zentix_ia(nombre, total_ingresos, total_gastos, ahorro_actual,
                     registrar_uso_ia(st.session_state.user.id)
 
                 st.session_state[chat_key].append({"role": "assistant", "content": respuesta})
-                st.session_state[input_key] = ""
                 st.session_state[clear_key] = True
                 st.rerun()
 
