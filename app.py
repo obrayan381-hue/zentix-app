@@ -1503,6 +1503,7 @@ def inyectar_sidebar_drawer(nombre_usuario, plan_actual, consultas_usadas, consu
             {"page": "Análisis", "label": "Análisis", "icon": "📈", "streamlit_label": "📈 Análisis"},
             {"page": "Ahorro", "label": "Ahorro", "icon": "🎯", "streamlit_label": "🎯 Ahorro"},
             {"page": "Perfil", "label": "Perfil", "icon": "⚙️", "streamlit_label": "⚙️ Perfil"},
+            {"page": "Zentix IA", "label": "Zentix IA", "icon": "🤖", "streamlit_label": "🤖 Zentix IA"},
         ]
     }
 
