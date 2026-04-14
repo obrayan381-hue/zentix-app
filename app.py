@@ -50,11 +50,6 @@ DEFAULT_INGRESOS = [
     "Salario", "Freelance", "Ventas", "Inversiones", "Regalos", "Otros"
 ]
 
-MODO_PERSONAL_INGRESOS = ["Salario", "Freelance", "Ventas personales", "Regalos", "Inversiones"]
-MODO_PERSONAL_GASTOS = ["Comida", "Transporte", "Arriendo", "Servicios", "Salud", "Educación", "Ocio", "Deudas", "Compras", "Otros"]
-MODO_NEGOCIO_INGRESOS = ["Ventas", "Servicios", "Ingresos recurrentes", "Ingresos extraordinarios", "Inversión de socios"]
-MODO_NEGOCIO_GASTOS = ["Nómina", "Arriendo local/oficina", "Servicios operativos", "Marketing", "Inventario", "Logística", "Software", "Impuestos", "Proveedores", "Otros operativos"]
-
 CHART_COLORS = ["#22C55E", "#EF4444", "#3B82F6", "#8B5CF6", "#06B6D4", "#F59E0B"]
 
 icono_path = Path("icono_zentix_v2.png")
@@ -779,6 +774,37 @@ def aplicar_estilo_zentix():
         background: linear-gradient(135deg, #0F172A 0%, #172554 42%, #4F46E5 82%, #7C3AED 100%) !important;
         color: #FFFFFF !important;
         box-shadow: 0 12px 24px rgba(15,23,42,0.20);
+    }
+
+    .stTabs [data-baseweb="tab"]:nth-child(4) {
+        position: relative;
+        border: 1px solid rgba(79,70,229,0.18) !important;
+        background: linear-gradient(180deg, #EEF2FF 0%, #FFFFFF 100%) !important;
+        color: #312E81 !important;
+        box-shadow: 0 10px 22px rgba(79,70,229,0.10);
+        overflow: hidden;
+    }
+
+    .stTabs [data-baseweb="tab"]:nth-child(4)::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: 999px;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.45), transparent);
+        transform: translateX(-120%);
+        animation: zentixTabGlow 3.4s linear infinite;
+        pointer-events: none;
+    }
+
+    .stTabs [data-baseweb="tab"]:nth-child(4)[aria-selected="true"] {
+        background: linear-gradient(135deg, #0F172A 0%, #172554 42%, #4F46E5 82%, #7C3AED 100%) !important;
+        color: #FFFFFF !important;
+        box-shadow: 0 16px 30px rgba(79,70,229,0.18), 0 0 0 1px rgba(255,255,255,0.08) inset;
+    }
+
+    @keyframes zentixTabGlow {
+        0% { transform: translateX(-120%); }
+        100% { transform: translateX(120%); }
     }
 
     .stRadio [role="radiogroup"] {
@@ -1888,7 +1914,6 @@ def insertar_movimiento_seguro(payload):
             "es_recurrente", "frecuencia_recurrencia", "proxima_fecha_recurrencia",
             "fecha_fin_recurrencia", "recurrente_activo"
         }},
-        {k: v for k, v in payload.items() if k != "contexto"},
     ]
 
     last_error = None
@@ -2975,7 +3000,6 @@ def actualizar_movimiento_seguro(movimiento_id, payload):
             "es_recurrente", "frecuencia_recurrencia", "proxima_fecha_recurrencia",
             "fecha_fin_recurrencia", "recurrente_activo"
         }},
-        {k: v for k, v in base.items() if k != "contexto"},
     ]
 
     last_error = None
@@ -3675,195 +3699,11 @@ def resumir_periodo_movimientos(df_periodo):
 
 
 
-def obtener_modo_dashboard(user_id=None, perfil=None):
+def obtener_modo_dashboard():
     key = "zentix_dashboard_mode"
-
     if key not in st.session_state:
-        valor = None
-        if isinstance(perfil, dict):
-            valor = perfil.get("modo_dashboard_preferido")
-        if not valor and user_id:
-            try:
-                perfil_db = obtener_perfil(user_id)
-                if isinstance(perfil_db, dict):
-                    valor = perfil_db.get("modo_dashboard_preferido")
-            except Exception:
-                valor = None
-        st.session_state[key] = valor if valor in {"Personal", "Negocio"} else "Personal"
-
+        st.session_state[key] = "Personal"
     return st.session_state[key]
-
-
-def guardar_modo_dashboard_preferido(user_id, modo):
-    modo = str(modo or "Personal").title()
-    if modo not in {"Personal", "Negocio"}:
-        modo = "Personal"
-
-    try:
-        perfil = obtener_perfil(user_id)
-    except Exception:
-        perfil = None
-
-    payload = {
-        "modo_dashboard_preferido": modo,
-        "usa_personal": True,
-        "usa_negocio": True
-    }
-
-    try:
-        if perfil:
-            supabase.table("perfiles_usuario").update(payload).eq("id", user_id).execute()
-        else:
-            supabase.table("perfiles_usuario").insert({
-                "id": user_id,
-                **payload
-            }).execute()
-    except Exception:
-        pass
-
-    try:
-        obtener_perfil.clear()
-    except Exception:
-        pass
-
-
-def obtener_catalogo_modo_dashboard(modo):
-    modo = str(modo or "Personal").title()
-    if modo == "Negocio":
-        return {
-            "modo": "Negocio",
-            "slug": "negocio",
-            "titulo_dashboard": "Dashboard pro negocio",
-            "subtitulo_dashboard": "Caja, utilidad, cartera, presión operativa y lectura ejecutiva en una sola vista.",
-            "kpis": {
-                "k1": ("Caja disponible", "Caja real después de egresos y pagos"),
-                "k2": ("Cuentas por cobrar", "Cartera activa y vencida del negocio"),
-                "k3": ("Cuentas por pagar", "Compromisos y deuda pendiente"),
-                "k4": ("Utilidad operativa", "Ventas reales menos gastos operativos"),
-            },
-            "metricas": {
-                "m1": "Cobros completos",
-                "m2": "Cobros parciales",
-                "m3": "Cartera vencida",
-                "m4": "Modo ejecutivo",
-            },
-            "titulos": {
-                "alertas": "Alertas ejecutivas",
-                "alertas_sub": "Zentix te habla como copiloto de caja y operación.",
-                "timeline": "Timeline operativo",
-                "timeline_sub": "Últimos movimientos con lectura gerencial.",
-                "asesor": "Zentix copiloto de negocio",
-                "asesor_sub": "Lectura de caja, margen, cartera y siguiente paso.",
-                "tabla": "Salud de cartera",
-                "tabla_sub": "Verde = cobrada, amarillo = parcial, rojo = vencida.",
-                "register_title": "Registrar movimiento negocio",
-                "register_sub": "Registra ventas, egresos operativos, cartera y compromisos sin mezclar la lectura ejecutiva del negocio.",
-                "ia_title": "Tu copiloto ejecutivo del negocio.",
-                "ia_sub": "Zentix IA te responde como panel gerencial: caja, utilidad, rentabilidad, cartera y siguiente mejor decisión.",
-            },
-            "insights": [
-                "Flujo de caja",
-                "Salud operativa",
-                "Rentabilidad",
-                "Crecimiento",
-                "Expansión",
-                "Control de gastos fijos",
-            ],
-            "ingresos": MODO_NEGOCIO_INGRESOS,
-            "gastos": MODO_NEGOCIO_GASTOS,
-            "registro_chip": "Estás registrando en modo negocio. Zentix prioriza ventas, caja, cartera y operación.",
-            "ingreso_label": "Monto ingresado al negocio",
-            "gasto_label": "Monto egresado del negocio",
-            "gasto_emocion_label": "Contexto operativo (opcional)",
-            "gasto_emociones": ["", "Reposición", "Urgencia", "Crecimiento", "Operación", "Cliente", "Optimización"],
-            "credito_caption": "Se registra como entrada de caja por financiamiento, pero Zentix lo separa de las ventas reales.",
-            "cxc_caption": "Se registra como cartera por cobrar del negocio. Aún no entra como caja real hasta que el cliente pague.",
-            "ia_prompts": [
-                "¿Cómo va la caja del negocio este mes?",
-                "Dame 3 alertas ejecutivas del negocio.",
-                "¿Qué decisión concreta mejora más mi utilidad?",
-                "Resume mi panorama del negocio como gerente."
-            ],
-            "ia_badge": "🤖 Zentix IA · Executive copilot",
-            "modo_badge": "Tablero gerencial activo",
-            "balance_pos": "Pulso de crecimiento",
-            "balance_neg": "Pulso bajo presión",
-            "extra_contexto": "Modo negocio: responde como copiloto ejecutivo. Prioriza caja real, utilidad, margen, cartera por cobrar y control operativo.",
-        }
-
-    return {
-        "modo": "Personal",
-        "slug": "personal",
-        "titulo_dashboard": "Dashboard pro personal",
-        "subtitulo_dashboard": "Dinero real, hábitos, alertas, metas y lectura clara de tu vida financiera en una sola vista.",
-        "kpis": {
-            "k1": ("Disponible real", "Ingreso real - gasto - pagos a crédito"),
-            "k2": ("Por cobrar", "Dinero que aún no se ha materializado"),
-            "k3": ("Deuda pendiente", "Compromisos que siguen vivos"),
-            "k4": ("Flujo neto personal", "Ingresos reales menos gastos del periodo"),
-        },
-        "metricas": {
-            "m1": "Cobros completos",
-            "m2": "Cobros parciales",
-            "m3": "Vencidas",
-            "m4": "Modo de lectura",
-        },
-        "titulos": {
-            "alertas": "Alertas inteligentes",
-            "alertas_sub": "Zentix te habla como asesor de hábitos, metas y caja real.",
-            "timeline": "Timeline premium",
-            "timeline_sub": "Historial reciente con lectura natural, tipo banco.",
-            "asesor": "Zentix asesor personal",
-            "asesor_sub": "Lectura breve, accionable y con criterio de bienestar financiero.",
-            "tabla": "Estados de cuentas por cobrar",
-            "tabla_sub": "Verde = cobrada, amarillo = pendiente/parcial, rojo = vencida.",
-            "register_title": "Registrar movimiento personal",
-            "register_sub": "Agrega ingresos, gastos, deudas, cuentas por cobrar y recurrencias desde un flujo claro y visual.",
-            "ia_title": "Tu copiloto financiero más claro y ejecutivo.",
-            "ia_sub": "Zentix IA te responde como asesor de vida financiera: hábitos, metas, deuda, ahorro y balance personal.",
-        },
-        "insights": [
-            "Regla 50/30/20",
-            "Ahorro progresivo",
-            "Fondo de emergencia",
-            "Control del estilo de vida",
-            "Reducción de deuda",
-        ],
-        "ingresos": MODO_PERSONAL_INGRESOS,
-        "gastos": MODO_PERSONAL_GASTOS,
-        "registro_chip": "Estás registrando en modo personal. Zentix prioriza orden, claridad, meta y bienestar financiero.",
-        "ingreso_label": "Monto recibido",
-        "gasto_label": "Monto gastado",
-        "gasto_emocion_label": "¿Cómo te sentías al hacer este gasto?",
-        "gasto_emociones": ["", "Tranquilidad", "Impulso", "Estrés", "Recompensa", "Urgencia", "Antojo"],
-        "credito_caption": "Este movimiento entra a caja como crédito solicitado, pero no contaminará tus KPIs de ingresos reales.",
-        "cxc_caption": "Se registra como dinero que prestaste. No entra aún como ingreso real hasta que te paguen.",
-        "ia_prompts": [
-            "¿Cómo voy este mes y qué debería ajustar primero?",
-            "Dame 3 patrones claros de mis gastos.",
-            "¿Qué acción concreta me acerca más a mi meta?",
-            "Resume mi panorama en lenguaje ejecutivo."
-        ],
-        "ia_badge": "🤖 Zentix IA · Premium advisor",
-        "modo_badge": "Bienestar financiero activo",
-        "balance_pos": "Pulso positivo",
-        "balance_neg": "Pulso ajustado",
-        "extra_contexto": "Modo personal: responde como asesor de finanzas personales. Prioriza hábitos, metas, deuda, ahorro y balance de vida.",
-    }
-
-
-def obtener_categorias_modo(user_id, tipo, modo):
-    propias = []
-    try:
-        propias = obtener_categorias_usuario(user_id, tipo)
-    except Exception:
-        propias = []
-
-    if propias:
-        return propias
-
-    catalogo = obtener_catalogo_modo_dashboard(modo)
-    return catalogo["ingresos"] if tipo == "Ingreso" else catalogo["gastos"]
 
 
 def clasificar_estado_cxc_fila(row):
@@ -4039,82 +3879,45 @@ def construir_timeline_bancario(df_base, limite=12):
     return agrupado
 
 
-
 def construir_asesor_dashboard(nombre, modo_dashboard, total_ingresos_local, total_gastos_local, saldo_caja_real, saldo_cxc_pendiente, saldo_deuda_pendiente, df_mes_actual, df_cxc_local):
-    catalogo = obtener_catalogo_modo_dashboard(modo_dashboard)
     mensajes = []
 
-    if modo_dashboard == "Negocio":
-        if saldo_cxc_pendiente > max(float(total_ingresos_local or 0) * 0.30, 1):
-            mensajes.append(f"{nombre}, tienes una parte importante de tus ventas atrapada en cartera. Cobrar primero te mejora caja sin frenar operación.")
-        if float(total_gastos_local or 0) > float(total_ingresos_local or 0) and float(total_ingresos_local or 0) > 0:
-            mensajes.append("Tus egresos operativos ya están presionando la utilidad del periodo. La prioridad es proteger margen y caja.")
-        elif float(total_ingresos_local or 0) > 0:
-            mensajes.append("Tus ingresos del periodo ya sostienen operación. El siguiente nivel es mejorar calidad de caja y velocidad de cobro.")
-        if saldo_deuda_pendiente > 0:
-            mensajes.append(f"Todavía cargas {money(saldo_deuda_pendiente)} en compromisos pendientes. Mantenerlos visibles evita sobreestimar liquidez.")
-    else:
-        if saldo_cxc_pendiente > max(float(total_ingresos_local or 0) * 0.35, 1):
-            mensajes.append(f"{nombre}, tienes una porción importante de tu dinero atrapada en cuentas por cobrar. Conviene cobrar antes de asumir que esa plata ya está disponible.")
-        if float(total_gastos_local or 0) > float(total_ingresos_local or 0) and float(total_ingresos_local or 0) > 0:
-            mensajes.append("Tus gastos del mes están por encima de tus ingresos reales. La prioridad es frenar fuga antes de expandir metas.")
-        elif float(total_ingresos_local or 0) > 0:
-            mensajes.append("Tus ingresos reales ya sostienen el mes. El foco ahora es mejorar calidad de caja y no mezclar cobros pendientes con dinero disponible.")
-        if saldo_deuda_pendiente > 0:
-            mensajes.append(f"Todavía cargas {money(saldo_deuda_pendiente)} en deuda pendiente. Mantenerla visible evita sobreestimar tu caja real.")
+    if saldo_cxc_pendiente > max(float(total_ingresos_local or 0) * 0.35, 1):
+        mensajes.append(f"{nombre}, tienes una porción importante de tu flujo atrapada en cuentas por cobrar. Conviene cobrar antes de asumir que esa plata ya está disponible.")
+
+    if float(total_gastos_local or 0) > float(total_ingresos_local or 0) and float(total_ingresos_local or 0) > 0:
+        mensajes.append("Tus gastos del mes están por encima de tus ingresos reales. La prioridad es frenar fuga antes de expandir metas.")
+    elif float(total_ingresos_local or 0) > 0:
+        mensajes.append("Tus ingresos reales ya sostienen el mes. El foco ahora es mejorar calidad de caja y no mezclar cobros pendientes con dinero disponible.")
+
+    if saldo_deuda_pendiente > 0:
+        mensajes.append(f"Todavía cargas {money(saldo_deuda_pendiente)} en deuda pendiente. Mantenerla visible evita sobreestimar tu caja real.")
 
     if df_mes_actual is not None and not df_mes_actual.empty:
         gastos_mes = df_mes_actual[df_mes_actual["tipo"] == "Gasto"].copy()
         if not gastos_mes.empty:
             top = gastos_mes.groupby("categoria", dropna=False)["monto"].sum().sort_values(ascending=False)
             if not top.empty:
-                if modo_dashboard == "Negocio":
-                    mensajes.append(f"Tu egreso dominante del periodo está en {top.index[0]}. Esa categoría es la primera palanca para mejorar rentabilidad.")
-                else:
-                    mensajes.append(f"Este mes estás gastando más en {top.index[0]} que en otras categorías. Ahí está tu principal palanca de ajuste.")
+                mensajes.append(f"Este mes estás gastando más en {top.index[0]} que en otras categorías. Ahí está tu principal palanca de ajuste.")
 
     resumen_cxc = construir_resumen_cxc_dashboard(df_cxc_local)
     if resumen_cxc["vencidas"] > 0:
-        if modo_dashboard == "Negocio":
-            mensajes.append(f"Te conviene cobrar primero las {resumen_cxc['vencidas']} cuenta(s) vencida(s); esa acción mejora caja operativa sin recortar crecimiento.")
-        else:
-            mensajes.append(f"Te conviene cobrar primero las {resumen_cxc['vencidas']} cuenta(s) vencida(s); esa acción mejora caja sin recortar operación.")
+        mensajes.append(f"Te conviene cobrar primero las {resumen_cxc['vencidas']} cuenta(s) vencida(s); esa acción mejora caja sin recortar operación.")
     elif resumen_cxc["activas"] > 0:
-        if modo_dashboard == "Negocio":
-            mensajes.append(f"Tienes {resumen_cxc['activas']} cuenta(s) por cobrar activas. Buenas ventas, pero todavía no son caja disponible.")
-        else:
-            mensajes.append(f"Tienes {resumen_cxc['activas']} cuenta(s) por cobrar activas. Buenas ventas, pero aún no son caja real.")
+        mensajes.append(f"Tienes {resumen_cxc['activas']} cuenta(s) por cobrar activas. Buenas ventas, pero aún no son caja real.")
 
-    mensajes.append(catalogo["extra_contexto"])
+    if modo_dashboard == "Negocio":
+        mensajes.append("Modo negocio activo: aquí importa más flujo real, cartera por cobrar y presión operativa que solo el ahorro personal.")
+    else:
+        mensajes.append("Modo personal activo: Zentix prioriza claridad de caja, control de gasto y avance hacia tus metas.")
 
     mensajes = [m for m in mensajes if m]
     return mensajes[:4]
 
 
 def render_dashboard_pro(nombre, df_base, df_mes_actual, df_cxc_local, total_ingresos_local, total_gastos_local,
-                         entradas_deuda_local, pagos_deuda_local, saldo_deuda_pendiente, meta_objetivo, ahorro_actual,
-                         user_id=None, perfil=None):
-    modo_inicial = obtener_modo_dashboard(user_id=user_id, perfil=perfil)
-    catalogo = obtener_catalogo_modo_dashboard(modo_inicial)
-
-    section_header(catalogo["titulo_dashboard"], catalogo["subtitulo_dashboard"])
-
-    modo = st.radio(
-        "Modo del dashboard",
-        ["Personal", "Negocio"],
-        horizontal=True,
-        key="zentix_dashboard_mode",
-        label_visibility="visible"
-    )
-
-    if modo != modo_inicial:
-        st.session_state["zentix_dashboard_mode"] = modo
-        if user_id:
-            guardar_modo_dashboard_preferido(user_id, modo)
-        catalogo = obtener_catalogo_modo_dashboard(modo)
-    else:
-        catalogo = obtener_catalogo_modo_dashboard(modo)
-
+                         entradas_deuda_local, pagos_deuda_local, saldo_deuda_pendiente, meta_objetivo, ahorro_actual):
+    modo = obtener_modo_dashboard()
     resumen_cxc = construir_resumen_cxc_dashboard(df_cxc_local)
     saldo_caja_real = float(total_ingresos_local or 0) - float(total_gastos_local or 0) - float(pagos_deuda_local or 0)
     flujo_neto_real = float(total_ingresos_local or 0) - float(total_gastos_local or 0)
@@ -4125,67 +3928,55 @@ def render_dashboard_pro(nombre, df_base, df_mes_actual, df_cxc_local, total_ing
         resumen_cxc["pendiente_total"], saldo_deuda_pendiente, df_mes_actual, df_cxc_local
     )
 
-    if modo == "Negocio":
-        k1_value = money(saldo_caja_real)
-        k2_value = money(resumen_cxc["pendiente_total"])
-        k3_value = money(saldo_deuda_pendiente)
-        margen = (flujo_neto_real / float(total_ingresos_local)) * 100 if float(total_ingresos_local or 0) > 0 else 0.0
-        k4_value = f"{margen:.1f}%"
-        k4_foot = f"Utilidad operativa {money(flujo_neto_real)}"
-    else:
-        k1_value = money(saldo_caja_real)
-        k2_value = money(resumen_cxc["pendiente_total"])
-        k3_value = money(saldo_deuda_pendiente)
-        k4_value = money(flujo_neto_real)
-        k4_foot = catalogo["kpis"]["k4"][1]
+    section_header("Dashboard pro", "Dinero real vs dinero proyectado, alertas, cartera y lectura ejecutiva en una sola vista.")
+
+    st.radio(
+        "Modo del dashboard",
+        ["Personal", "Negocio"],
+        horizontal=True,
+        key="zentix_dashboard_mode",
+        label_visibility="visible"
+    )
 
     p1, p2, p3, p4 = st.columns(4)
     with p1:
-        kpi_card(catalogo["kpis"]["k1"][0], k1_value, catalogo["kpis"]["k1"][1], "balance")
+        kpi_card("Dinero en caja real", money(saldo_caja_real), "Ingreso real - gasto - pagos de deuda", "balance")
     with p2:
-        kpi_card(catalogo["kpis"]["k2"][0], k2_value, catalogo["kpis"]["k2"][1], "saving")
+        kpi_card("Por cobrar", money(resumen_cxc["pendiente_total"]), f"Activas: {resumen_cxc['activas']} · Vencidas: {resumen_cxc['vencidas']}", "saving")
     with p3:
-        kpi_card(catalogo["kpis"]["k3"][0], k3_value, catalogo["kpis"]["k3"][1], "balance")
+        kpi_card("Deuda pendiente", money(saldo_deuda_pendiente), f"Entradas por deuda: {money(entradas_deuda_local)}", "balance")
     with p4:
-        kpi_card(catalogo["kpis"]["k4"][0], k4_value, k4_foot, "income" if flujo_neto_real >= 0 else "expense")
+        kpi_card("Flujo neto real", money(flujo_neto_real), "Ingresos reales - gastos operativos", "income" if flujo_neto_real >= 0 else "expense")
 
     q1, q2, q3, q4 = st.columns(4)
     with q1:
-        render_spotlight_metric(catalogo["metricas"]["m1"], str(resumen_cxc["cobradas_total"]), "Resueltas")
+        render_spotlight_metric("Cobradas total", str(resumen_cxc["cobradas_total"]), "Cuentas totalmente resueltas")
     with q2:
-        render_spotlight_metric(catalogo["metricas"]["m2"], str(resumen_cxc["cobradas_parcial"]), "En progreso")
+        render_spotlight_metric("Cobradas parcial", str(resumen_cxc["cobradas_parcial"]), "Abonos ya realizados")
     with q3:
-        render_spotlight_metric(catalogo["metricas"]["m3"], str(resumen_cxc["vencidas"]), "Requieren seguimiento")
+        render_spotlight_metric("Vencidas", str(resumen_cxc["vencidas"]), "Requieren seguimiento")
     with q4:
-        render_spotlight_metric(catalogo["metricas"]["m4"], modo, catalogo["modo_badge"])
-
-    st.markdown(
-        "<div class='soft-card'><div class='section-title'>Playbook del modo activo</div>"
-        f"<div class='section-caption'>{'Cómo piensa Zentix en modo negocio.' if modo == 'Negocio' else 'Cómo piensa Zentix en modo personal.'}</div>"
-        + "".join([f"<span class='hero-pill' style='background:#EEF2FF !important;color:#312E81 !important;border-color:rgba(99,102,241,.14) !important;margin-right:.45rem;margin-top:.55rem;'>{html.escape(x)}</span>" for x in catalogo["insights"]]) +
-        "</div>",
-        unsafe_allow_html=True
-    )
+        render_spotlight_metric("Modo activo", modo, "Personal o negocio")
 
     col_left, col_right = st.columns([1.12, 0.88])
 
     with col_left:
         st.markdown(
-            f"""
+            """
             <div class="soft-card">
-                <div class="section-title">{catalogo['titulos']['alertas']}</div>
-                <div class="section-caption">{catalogo['titulos']['alertas_sub']}</div>
+                <div class="section-title">Alertas inteligentes</div>
+                <div class="section-caption">Zentix te habla como asesor, no solo como registro.</div>
             </div>
             """,
             unsafe_allow_html=True
         )
-        render_list_card("Alertas del momento", alertas_dashboard, "Acciones concretas para cuidar caja, cartera, margen y meta.")
+        render_list_card("Alertas del momento", alertas_dashboard, "Acciones concretas para cuidar caja, cartera y meta.")
 
         st.markdown(
-            f"""
+            """
             <div class="soft-card">
-                <div class="section-title">{catalogo['titulos']['timeline']}</div>
-                <div class="section-caption">{catalogo['titulos']['timeline_sub']}</div>
+                <div class="section-title">Timeline premium</div>
+                <div class="section-caption">Historial reciente con lectura natural, tipo banco.</div>
             </div>
             """,
             unsafe_allow_html=True
@@ -4202,7 +3993,7 @@ def render_dashboard_pro(nombre, df_base, df_mes_actual, df_cxc_local, total_ing
                     actual = item["grupo"]
                 grupos.append(
                     f"<div style='display:flex;justify-content:space-between;gap:1rem;padding:0.55rem 0;border-bottom:1px solid rgba(148,163,184,0.10);'>"
-                    f"<div><div style='font-weight:800;color:#0F172A;'>{item['titulo']}</div><div class='tiny-muted'>{item['subtitulo']} · {item['tipo']}</div></div>"
+                    f"<div><div style='font-weight:800;color:#F8FAFC;'>{item['titulo']}</div><div class='tiny-muted'>{item['subtitulo']} · {item['tipo']}</div></div>"
                     f"<div style='font-weight:900;color:{item['color']};white-space:nowrap;'>{item['monto_txt']}</div></div>"
                 )
             grupos.append("</div>")
@@ -4212,10 +4003,10 @@ def render_dashboard_pro(nombre, df_base, df_mes_actual, df_cxc_local, total_ing
 
     with col_right:
         st.markdown(
-            f"""
+            """
             <div class="assistant-card">
-                <div class="assistant-title">{catalogo['titulos']['asesor']}</div>
-                <div class="assistant-text">{catalogo['titulos']['asesor_sub']}</div>
+                <div class="assistant-title">Zentix asesor</div>
+                <div class="assistant-text">Lectura breve, accionable y con criterio de caja real.</div>
             </div>
             """,
             unsafe_allow_html=True
@@ -4224,10 +4015,10 @@ def render_dashboard_pro(nombre, df_base, df_mes_actual, df_cxc_local, total_ing
 
         tabla = resumen_cxc["tabla"]
         st.markdown(
-            f"""
+            """
             <div class="soft-card">
-                <div class="section-title">{catalogo['titulos']['tabla']}</div>
-                <div class="section-caption">{catalogo['titulos']['tabla_sub']}</div>
+                <div class="section-title">Estados de cuentas por cobrar</div>
+                <div class="section-caption">Verde = cobrada, amarillo = pendiente/parcial, rojo = vencida.</div>
             </div>
             """,
             unsafe_allow_html=True
@@ -5830,8 +5621,6 @@ def obtener_movimientos_recientes_para_ia(df_mes_actual, limite=8):
 
 
 def construir_contexto_zentix(pagina, nombre, total_ingresos, total_gastos, ahorro_actual, ultimo_tipo):
-    modo_dashboard = obtener_modo_dashboard()
-    catalogo_modo = obtener_catalogo_modo_dashboard(modo_dashboard)
     df_mes_actual = globals().get("df_mes", pd.DataFrame())
     meta_actual = float(globals().get("meta_guardada_global", 0.0) or 0.0)
     categoria_top_actual = globals().get("categoria_top", None)
@@ -5872,7 +5661,6 @@ def construir_contexto_zentix(pagina, nombre, total_ingresos, total_gastos, ahor
     return f"""
 CONTEXTO DE ZENTIX
 - Página actual: {pagina}
-- Modo del dashboard: {modo_dashboard}
 - Usuario: {nombre}
 - Plan actual: {plan_actual.get('plan', 'free')}
 - Consultas IA restantes hoy: {consultas_restantes}
@@ -5919,9 +5707,6 @@ SUGERENCIAS DE CATEGORÍAS
 
 MOVIMIENTOS RECIENTES DEL MES
 {movimientos_texto}
-
-INSTRUCCIÓN DE ENFOQUE
-- {catalogo_modo.get("extra_contexto", "")}
 """.strip()
 
 
@@ -5945,7 +5730,7 @@ def consultar_ia_zentix(pregunta, contexto):
                 "Cuando convenga, usa viñetas cortas. "
                 "Da recomendaciones aterrizadas, accionables y humanas. "
                 "Si detectas oportunidad de mejora, exprésala con tacto. "
-                "Adapta tu voz al perfil financiero del usuario. Si el contexto indica modo negocio, responde como copiloto ejecutivo del negocio. Si indica modo personal, responde como asesor de finanzas personales."
+                "Adapta tu voz al perfil financiero del usuario."
             )
         },
         {
@@ -6179,14 +5964,10 @@ def render_widget_chat_flotante_zentix(pagina, nombre, total_ingresos, total_gas
     """, unsafe_allow_html=True)
 
 
-
 def render_pagina_zentix_ia(nombre, total_ingresos, total_gastos, ahorro_actual, ultimo_tipo, pagina_origen=None):
     pagina_base = str(pagina_origen or "Inicio")
     if pagina_base == "Zentix IA":
         pagina_base = "Inicio"
-
-    modo_dashboard = obtener_modo_dashboard()
-    catalogo = obtener_catalogo_modo_dashboard(modo_dashboard)
 
     contexto_ia = construir_contexto_zentix(
         pagina=pagina_base,
@@ -6206,6 +5987,7 @@ def render_pagina_zentix_ia(nombre, total_ingresos, total_gastos, ahorro_actual,
         st.session_state[clear_key] = False
 
     historial = st.session_state.get(chat_key, [])
+
     if not historial:
         historial = [{"role": "assistant", "content": mensajes_iniciales.get("Zentix IA", "Hola. Soy Zentix IA.")}]
         st.session_state[chat_key] = historial
@@ -6215,8 +5997,13 @@ def render_pagina_zentix_ia(nombre, total_ingresos, total_gastos, ahorro_actual,
     consultas_usadas = globals().get("consultas_usadas_hoy", 0)
     consultas_limite = globals().get("consultas_limite_hoy", 10)
     balance = float(total_ingresos or 0) - float(total_gastos or 0)
-    balance_label = catalogo["balance_pos"] if balance >= 0 else catalogo["balance_neg"]
-    prompts_sugeridos = catalogo["ia_prompts"]
+    balance_label = "Pulso positivo" if balance >= 0 else "Pulso ajustado"
+    prompts_sugeridos = [
+        "¿Cómo voy este mes y qué debería ajustar primero?",
+        "Dame 3 patrones claros de mis gastos.",
+        "¿Qué acción concreta me acerca más a mi meta?",
+        "Resume mi panorama en lenguaje ejecutivo."
+    ]
 
     st.markdown("""
     <style>
@@ -6233,34 +6020,86 @@ def render_pagina_zentix_ia(nombre, total_ingresos, total_gastos, ahorro_actual,
         border: 1px solid rgba(255,255,255,0.08);
         overflow: hidden;
       }
-      .zentix-ia-badge { display:inline-flex; align-items:center; gap:.45rem; padding:.42rem .8rem; border-radius:999px; background: rgba(255,255,255,0.14); border:1px solid rgba(255,255,255,0.18); font-size:.78rem; font-weight:800; margin-bottom:.9rem; }
+      .zentix-ia-badge {
+        display:inline-flex; align-items:center; gap:.45rem;
+        padding:.42rem .8rem; border-radius:999px;
+        background: rgba(255,255,255,0.14);
+        border:1px solid rgba(255,255,255,0.18);
+        font-size:.78rem; font-weight:800; margin-bottom:.9rem;
+      }
       .zentix-ia-title { font-size:2.08rem; line-height:1.02; font-weight:900; letter-spacing:-.04em; margin:0 0 .35rem 0; color:#FFFFFF !important; }
       .zentix-ia-sub { font-size:1rem; line-height:1.62; color:rgba(255,255,255,.9) !important; margin:0; }
       .zentix-ia-pills { display:flex; flex-wrap:wrap; gap:.6rem; margin-top:1rem; }
-      .zentix-ia-pill { padding:.48rem .84rem; border-radius:999px; background: rgba(255,255,255,0.14); border:1px solid rgba(255,255,255,0.16); color:#FFFFFF !important; font-size:.82rem; font-weight:700; }
-      .zentix-ia-card { background: linear-gradient(180deg, rgba(255,255,255,1), rgba(248,250,252,1)); border:1px solid rgba(99,102,241,.10); box-shadow: 0 16px 30px rgba(15,23,42,.06); border-radius: 26px; padding: 1rem 1.05rem; }
+      .zentix-ia-pill {
+        padding:.48rem .84rem; border-radius:999px;
+        background: rgba(255,255,255,0.14);
+        border:1px solid rgba(255,255,255,0.16);
+        color:#FFFFFF !important; font-size:.82rem; font-weight:700;
+      }
+      .zentix-ia-grid { display:grid; grid-template-columns: minmax(0, 1.4fr) minmax(320px, .8fr); gap:1rem; align-items:start; }
+      .zentix-ia-card {
+        background: linear-gradient(180deg, rgba(255,255,255,1), rgba(248,250,252,1));
+        border:1px solid rgba(99,102,241,.10);
+        box-shadow: 0 16px 30px rgba(15,23,42,.06);
+        border-radius: 26px;
+        padding: 1rem 1.05rem;
+      }
       .zentix-ia-card-title { font-size:1.14rem; font-weight:900; color:#0F172A; letter-spacing:-.03em; margin-bottom:.2rem; }
       .zentix-ia-card-sub { color:#64748B !important; font-size:.92rem; line-height:1.55; margin-bottom:.9rem; }
       .zentix-ia-kpi-row { display:grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap:.75rem; margin-top:.95rem; }
-      .zentix-ia-kpi { border-radius:20px; padding:.9rem; background: linear-gradient(180deg,#FFFFFF 0%,#F8FBFF 100%); border:1px solid rgba(148,163,184,.18); }
+      .zentix-ia-kpi {
+        border-radius:20px; padding:.9rem;
+        background: linear-gradient(180deg,#FFFFFF 0%,#F8FBFF 100%);
+        border:1px solid rgba(148,163,184,.18);
+      }
       .zentix-ia-kpi-label { font-size:.78rem; color:#64748B; font-weight:700; margin-bottom:.35rem; }
       .zentix-ia-kpi-value { font-size:1.25rem; font-weight:900; color:#0F172A; letter-spacing:-.03em; }
       .zentix-ia-prompt-grid { display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap:.7rem; margin-top:.95rem; }
-      .zentix-ia-prompt { border-radius:18px; padding:.82rem .9rem; background: linear-gradient(180deg, #EEF2FF 0%, #F8FAFF 100%); border:1px solid rgba(99,102,241,.14); color:#312E81; font-size:.88rem; line-height:1.45; font-weight:700; }
-      .zentix-ia-chat-history { background: linear-gradient(180deg,#F8FAFC 0%,#FFFFFF 100%); border:1px solid rgba(148,163,184,.18); border-radius:22px; padding:.85rem; min-height:320px; max-height:540px; overflow:auto; }
-      .zentix-ia-chat-history .zentix-chat-msg { border-radius:18px; padding:12px 13px; margin-bottom:10px; line-height:1.55; font-size:.94rem; box-shadow:0 8px 18px rgba(15,23,42,.04); }
-      .zentix-ia-chat-history .zentix-chat-msg.assistant { background:#FFFFFF; border:1px solid rgba(148,163,184,.22); color:#0F172A; }
-      .zentix-ia-chat-history .zentix-chat-msg.user { background:#EEF2FF; border:1px solid rgba(129,140,248,.18); color:#0F172A; }
-      .zentix-ia-chat-history .role { font-size:.72rem; font-weight:900; text-transform:uppercase; letter-spacing:.06em; margin-bottom:4px; color:#475569; }
+      .zentix-ia-prompt {
+        border-radius:18px; padding:.82rem .9rem;
+        background: linear-gradient(180deg, #EEF2FF 0%, #F8FAFF 100%);
+        border:1px solid rgba(99,102,241,.14);
+        color:#312E81; font-size:.88rem; line-height:1.45; font-weight:700;
+      }
+      .zentix-ia-chat-wrap {
+        display:flex; flex-direction:column; gap:.9rem;
+      }
+      .zentix-ia-chat-history {
+        background: linear-gradient(180deg,#F8FAFC 0%,#FFFFFF 100%);
+        border:1px solid rgba(148,163,184,.18);
+        border-radius:22px;
+        padding:.85rem;
+        min-height:320px;
+        max-height:540px;
+        overflow:auto;
+      }
+      .zentix-ia-chat-history .zentix-chat-msg {
+        border-radius:18px; padding:12px 13px; margin-bottom:10px;
+        line-height:1.55; font-size:.94rem; box-shadow:0 8px 18px rgba(15,23,42,.04);
+      }
+      .zentix-ia-chat-history .zentix-chat-msg.assistant {
+        background:#FFFFFF; border:1px solid rgba(148,163,184,.22); color:#0F172A;
+      }
+      .zentix-ia-chat-history .zentix-chat-msg.user {
+        background:#EEF2FF; border:1px solid rgba(129,140,248,.18); color:#0F172A;
+      }
+      .zentix-ia-chat-history .role {
+        font-size:.72rem; font-weight:900; text-transform:uppercase; letter-spacing:.06em; margin-bottom:4px; color:#475569;
+      }
       .zentix-ia-chat-history .zentix-chat-msg.user .role { color:#4338CA; }
       .zentix-ia-chat-history .copy { color:#0F172A !important; }
       .zentix-ia-side-stack { display:grid; gap:1rem; }
       .zentix-ia-mini-list { display:grid; gap:.65rem; }
-      .zentix-ia-mini-item { border-radius:18px; padding:.84rem .9rem; background: linear-gradient(180deg,#FFFFFF 0%,#F8FAFC 100%); border:1px solid rgba(148,163,184,.18); }
+      .zentix-ia-mini-item {
+        border-radius:18px; padding:.84rem .9rem;
+        background: linear-gradient(180deg,#FFFFFF 0%,#F8FAFC 100%);
+        border:1px solid rgba(148,163,184,.18);
+      }
       .zentix-ia-mini-label { font-size:.76rem; color:#64748B; font-weight:800; margin-bottom:.25rem; text-transform:uppercase; letter-spacing:.05em; }
       .zentix-ia-mini-value { font-size:1.04rem; color:#0F172A; font-weight:900; }
       .zentix-ia-mini-copy { font-size:.9rem; color:#475569 !important; line-height:1.5; }
       @media (max-width: 980px) {
+        .zentix-ia-grid { grid-template-columns: 1fr; }
         .zentix-ia-kpi-row { grid-template-columns: 1fr; }
         .zentix-ia-prompt-grid { grid-template-columns: 1fr; }
       }
@@ -6271,14 +6110,13 @@ def render_pagina_zentix_ia(nombre, total_ingresos, total_gastos, ahorro_actual,
         f"""
         <div class="zentix-ia-shell">
           <div class="zentix-ia-hero">
-            <div class="zentix-ia-badge">{catalogo['ia_badge']}</div>
-            <div class="zentix-ia-title">{catalogo['titulos']['ia_title']}</div>
+            <div class="zentix-ia-badge">🤖 Zentix IA · Premium advisor</div>
+            <div class="zentix-ia-title">Tu copiloto financiero más claro y ejecutivo.</div>
             <p class="zentix-ia-sub">
-              {catalogo['titulos']['ia_sub']}
+              Aquí puedes conversar con Zentix IA con una vista dedicada, elegante y más útil.
               Entraste desde <strong>{pagina_base}</strong> y el contexto ya viene preparado para darte respuestas accionables.
             </p>
             <div class="zentix-ia-pills">
-              <span class="zentix-ia-pill">Modo: {modo_dashboard}</span>
               <span class="zentix-ia-pill">Último movimiento: {ultimo}</span>
               <span class="zentix-ia-pill">Plan {plan_actual.get('plan', 'free').upper()}</span>
               <span class="zentix-ia-pill">IA hoy: {consultas_usadas}/{consultas_limite}</span>
@@ -6294,22 +6132,22 @@ def render_pagina_zentix_ia(nombre, total_ingresos, total_gastos, ahorro_actual,
 
     with col_chat:
         st.markdown("<div class='zentix-ia-card'>", unsafe_allow_html=True)
-        st.markdown(f"<div class='zentix-ia-card-title'>Conversación {modo_dashboard.lower()} con Zentix</div>", unsafe_allow_html=True)
-        st.markdown("<div class='zentix-ia-card-sub'>Haz preguntas seguidas sin overlays ni saltos raros. El chat te responde con el contexto del apartado desde el que entraste y el modo activo del dashboard.</div>", unsafe_allow_html=True)
+        st.markdown("<div class='zentix-ia-card-title'>Conversación premium con Zentix</div>", unsafe_allow_html=True)
+        st.markdown("<div class='zentix-ia-card-sub'>Haz preguntas seguidas sin overlays ni saltos raros. El chat te responde con el contexto del apartado desde el que entraste.</div>", unsafe_allow_html=True)
 
         st.markdown(
             f"""
             <div class="zentix-ia-kpi-row">
               <div class="zentix-ia-kpi">
-                <div class="zentix-ia-kpi-label">{'Caja / disponible actual' if modo_dashboard == 'Negocio' else 'Disponible / ahorro actual'}</div>
+                <div class="zentix-ia-kpi-label">Disponible / ahorro actual</div>
                 <div class="zentix-ia-kpi-value">{money(ahorro_actual)}</div>
               </div>
               <div class="zentix-ia-kpi">
-                <div class="zentix-ia-kpi-label">{'Ingresos / ventas visibles' if modo_dashboard == 'Negocio' else 'Ingresos visibles'}</div>
+                <div class="zentix-ia-kpi-label">Ingresos visibles</div>
                 <div class="zentix-ia-kpi-value">{money(total_ingresos)}</div>
               </div>
               <div class="zentix-ia-kpi">
-                <div class="zentix-ia-kpi-label">{'Egresos / costos visibles' if modo_dashboard == 'Negocio' else 'Gastos visibles'}</div>
+                <div class="zentix-ia-kpi-label">Gastos visibles</div>
                 <div class="zentix-ia-kpi-value">{money(total_gastos)}</div>
               </div>
             </div>
@@ -6328,7 +6166,7 @@ def render_pagina_zentix_ia(nombre, total_ingresos, total_gastos, ahorro_actual,
                 "Pregúntale a Zentix IA",
                 key=input_key,
                 label_visibility="collapsed",
-                placeholder=prompts_sugeridos[0],
+                placeholder="Ej: Resume mi mes en lenguaje ejecutivo y dime la acción más importante para mejorar.",
                 height=118,
             )
             c1, c2 = st.columns([1.2, 0.9])
@@ -6372,21 +6210,20 @@ def render_pagina_zentix_ia(nombre, total_ingresos, total_gastos, ahorro_actual,
             f"""
             <div class="zentix-ia-card">
               <div class="zentix-ia-card-title">Contexto que estoy leyendo</div>
-              <div class="zentix-ia-card-sub">Zentix responde con el marco del apartado desde el que entraste y con la mentalidad del modo activo para no mezclar señales.</div>
+              <div class="zentix-ia-card-sub">Zentix responde con el marco del apartado desde el que entraste, para no mezclar señales ni inventar panorama.</div>
               <div class="zentix-ia-mini-list">
                 <div class="zentix-ia-mini-item">
                   <div class="zentix-ia-mini-label">Apartado origen</div>
                   <div class="zentix-ia-mini-value">{pagina_base}</div>
                 </div>
                 <div class="zentix-ia-mini-item">
-                  <div class="zentix-ia-mini-label">Modo activo</div>
-                  <div class="zentix-ia-mini-value">{modo_dashboard}</div>
-                  <div class="zentix-ia-mini-copy">{catalogo['modo_badge']}</div>
-                </div>
-                <div class="zentix-ia-mini-item">
-                  <div class="zentix-ia-mini-label">Pulso del periodo</div>
+                  <div class="zentix-ia-mini-label">Pulso del mes</div>
                   <div class="zentix-ia-mini-value">{balance_label}</div>
                   <div class="zentix-ia-mini-copy">Balance visible: {money(balance)} · Disponible actual: {money(ahorro_actual)}</div>
+                </div>
+                <div class="zentix-ia-mini-item">
+                  <div class="zentix-ia-mini-label">Lectura rápida</div>
+                  <div class="zentix-ia-mini-copy">Ingreso visible {money(total_ingresos)} frente a gasto visible {money(total_gastos)}. Zentix prioriza claridad, no ruido.</div>
                 </div>
               </div>
             </div>
@@ -6394,21 +6231,29 @@ def render_pagina_zentix_ia(nombre, total_ingresos, total_gastos, ahorro_actual,
             unsafe_allow_html=True
         )
 
-        bullets = "".join([
-            f"<div class='zentix-ia-mini-item'><div class='zentix-ia-mini-label'>{i+1} · En este modo</div><div class='zentix-ia-mini-copy'>{html.escape(item)}</div></div>"
-            for i, item in enumerate(catalogo["insights"][:3])
-        ])
         st.markdown(
-            f"""
+            """
             <div class="zentix-ia-card">
-              <div class="zentix-ia-card-title">Cómo piensa Zentix aquí</div>
+              <div class="zentix-ia-card-title">Cómo aprovechar mejor esta vista</div>
               <div class="zentix-ia-mini-list">
-                {bullets}
+                <div class="zentix-ia-mini-item">
+                  <div class="zentix-ia-mini-label">1 · Pide resumen ejecutivo</div>
+                  <div class="zentix-ia-mini-copy">Te lo devuelve corto, claro y accionable.</div>
+                </div>
+                <div class="zentix-ia-mini-item">
+                  <div class="zentix-ia-mini-label">2 · Pide patrones</div>
+                  <div class="zentix-ia-mini-copy">Úsalo para descubrir qué categoría pesa más y dónde estás perdiendo margen.</div>
+                </div>
+                <div class="zentix-ia-mini-item">
+                  <div class="zentix-ia-mini-label">3 · Pide siguiente paso</div>
+                  <div class="zentix-ia-mini-copy">Zentix te aterriza la acción más útil según tu panorama actual.</div>
+                </div>
               </div>
             </div>
             """,
             unsafe_allow_html=True
         )
+
         st.markdown("</div>", unsafe_allow_html=True)
 
 
@@ -6609,7 +6454,7 @@ def render_home_hub(nombre_usuario, user_id, df, df_mes, df_deudas, df_cxc, tota
     render_tutorial_zentix("Inicio", nombre_usuario, user_id, df, meta_guardada_global, preferencias_usuario_actual)
     render_home_action_tiles()
 
-    tabs = st.tabs(["Resumen", "Actividad", "Planificación", "Profundo"])
+    tabs = st.tabs(["Resumen", "Actividad", "Planificación", "Modo Pro ✦"])
 
     with tabs[0]:
         k1, k2, k3, k4 = st.columns(4)
@@ -6702,8 +6547,6 @@ def render_home_hub(nombre_usuario, user_id, df, df_mes, df_deudas, df_cxc, tota
             saldo_deuda_pendiente=saldo_pendiente_deudas_global,
             meta_objetivo=meta_guardada_global,
             ahorro_actual=ahorro_actual,
-            user_id=user_id,
-            perfil=perfil,
         )
         render_avatar("Inicio", nombre_usuario, total_ingresos, total_gastos, saldo_disponible, ultimo_tipo)
 
@@ -6770,18 +6613,13 @@ def guardar_onboarding(user_id, nombre_mostrado, categorias_gasto, categorias_in
     if perfil:
         supabase.table("perfiles_usuario").update({
             "nombre_mostrado": nombre_mostrado,
-            "onboarding_completo": True,
-            "usa_personal": True,
-            "usa_negocio": True
+            "onboarding_completo": True
         }).eq("id", user_id).execute()
     else:
         supabase.table("perfiles_usuario").insert({
             "id": user_id,
             "nombre_mostrado": nombre_mostrado,
-            "onboarding_completo": True,
-            "modo_dashboard_preferido": "Personal",
-            "usa_personal": True,
-            "usa_negocio": True
+            "onboarding_completo": True
         }).execute()
 
     supabase.table("categorias_usuario").delete().eq("usuario_id", user_id).execute()
@@ -7707,12 +7545,10 @@ if pagina == "Inicio":
     )
 
 if pagina == "Registrar":
-    modo_dashboard = obtener_modo_dashboard(user_id=user_id, perfil=perfil)
-    catalogo_modo = obtener_catalogo_modo_dashboard(modo_dashboard)
     zentix_hero(nombre_usuario, saldo_disponible, total_ingresos, total_gastos)
     render_contexto_descubrimiento("Registrar")
     render_tutorial_zentix("Registrar", nombre_usuario, user_id, df, meta_guardada_global, preferencias_usuario_actual)
-    section_header(catalogo_modo["titulos"]["register_title"], catalogo_modo["titulos"]["register_sub"])
+    section_header("Registrar movimiento", "Agrega ingresos, gastos, deuda, cuentas por cobrar y recurrencias desde un flujo claro y visual.")
     ejecutar_reset_registrar_si_aplica()
 
     col_form, col_side = st.columns([1.15, 0.85])
@@ -7732,7 +7568,7 @@ if pagina == "Registrar":
             horizontal=True,
             format_func=lambda x: tipo_labels.get(x, x)
         )
-        st.markdown(f"<div class='register-chip-note'>{catalogo_modo['registro_chip']}</div>", unsafe_allow_html=True)
+        st.markdown("<div class='register-chip-note'>Selecciona el tipo de movimiento y el formulario se ajusta automáticamente.</div>", unsafe_allow_html=True)
 
         if tipo == "Ingreso":
             st.markdown('<div class="pill-ingreso">Ingreso real seleccionado</div>', unsafe_allow_html=True)
@@ -7793,26 +7629,26 @@ if pagina == "Registrar":
         saldo_cxc_actual = 0.0
 
         if tipo == "Ingreso":
-            categorias_disponibles = obtener_categorias_modo(user_id, "Ingreso", modo_dashboard)
+            categorias_disponibles = obtener_categorias_usuario(user_id, "Ingreso")
             if not categorias_disponibles:
-                st.warning("No tienes categorías de ingreso configuradas. Zentix usará el catálogo sugerido del modo activo.")
-                categorias_disponibles = catalogo_modo["ingresos"]
+                st.warning("No tienes categorías de ingreso configuradas. Completa tu onboarding o agrega categorías para registrar mejor.")
+                categorias_disponibles = ["Sin categorías"]
             categoria = st.selectbox("Categoría", categorias_disponibles, key="registrar_categoria_ingreso")
-            monto = st.number_input(catalogo_modo["ingreso_label"], min_value=0.0, step=1000.0, key="registrar_monto_ingreso")
+            monto = st.number_input("Monto recibido", min_value=0.0, step=1000.0, key="registrar_monto_ingreso")
 
         elif tipo == "Gasto":
-            categorias_disponibles = obtener_categorias_modo(user_id, "Gasto", modo_dashboard)
+            categorias_disponibles = obtener_categorias_usuario(user_id, "Gasto")
             if not categorias_disponibles:
-                st.warning("No tienes categorías de gasto configuradas. Zentix usará el catálogo sugerido del modo activo.")
-                categorias_disponibles = catalogo_modo["gastos"]
+                st.warning("No tienes categorías de gasto configuradas. Completa tu onboarding o agrega categorías para registrar mejor.")
+                categorias_disponibles = ["Sin categorías"]
             categoria = st.selectbox("Categoría", categorias_disponibles, key="registrar_categoria_gasto")
-            monto = st.number_input(catalogo_modo["gasto_label"], min_value=0.0, step=1000.0, key="registrar_monto_gasto")
+            monto = st.number_input("Monto gastado", min_value=0.0, step=1000.0, key="registrar_monto_gasto")
 
-            with st.expander("Contexto asociado (opcional)", expanded=False):
+            with st.expander("Emoción asociada (opcional)", expanded=False):
                 emocion = st.selectbox(
-                    catalogo_modo["gasto_emocion_label"],
-                    catalogo_modo["gasto_emociones"],
-                    format_func=lambda x: "No registrar contexto" if x == "" else x,
+                    "¿Cómo te sentías al hacer este gasto?",
+                    ["", "Tranquilidad", "Impulso", "Estrés", "Recompensa", "Urgencia", "Antojo"],
+                    format_func=lambda x: "No registrar emoción" if x == "" else x,
                     key="registrar_emocion"
                 )
 
@@ -7837,7 +7673,7 @@ if pagina == "Registrar":
                         value=fecha_mov + timedelta(days=30),
                         key="registrar_deuda_limite"
                     )
-                st.caption(catalogo_modo["credito_caption"])
+                st.caption("Este movimiento entra a caja como crédito solicitado, pero no contaminará tus KPIs de ingresos reales.")
 
         elif tipo == "Cuenta por cobrar":
             categoria = "Cuenta por cobrar"
@@ -7863,7 +7699,7 @@ if pagina == "Registrar":
                 deuda_nombre = cuenta_cobrar_nombre
                 prestamista = cliente_cxc
                 fecha_limite_deuda = fecha_limite_cxc
-                st.caption(catalogo_modo["cxc_caption"])
+                st.caption("Se registra como dinero que prestaste. No entra aún como ingreso real hasta que te paguen.")
 
         elif tipo == "Cobro cuenta por cobrar":
             categoria = "Cobro cuenta por cobrar"
@@ -8036,8 +7872,7 @@ if pagina == "Registrar":
                             "frecuencia_recurrencia": frecuencia_recurrencia if es_recurrente else None,
                             "proxima_fecha_recurrencia": datetime.combine(proxima_fecha_recurrencia, datetime.min.time()).isoformat() if es_recurrente and proxima_fecha_recurrencia else None,
                             "fecha_fin_recurrencia": datetime.combine(fecha_fin_recurrencia, datetime.min.time()).isoformat() if es_recurrente and fecha_fin_recurrencia else None,
-                            "recurrente_activo": bool(recurrente_activo) if es_recurrente else False,
-                            "contexto": modo_dashboard.lower()
+                            "recurrente_activo": bool(recurrente_activo) if es_recurrente else False
                         }
 
                         insertar_movimiento_seguro(payload)
@@ -8091,8 +7926,8 @@ if pagina == "Registrar":
         st.markdown(
             f"""
             <div class="soft-card">
-                <div class="section-title">Vista previa contextual · {modo_dashboard}</div>
-                <div class="section-caption">Aparece solo lo necesario según el tipo de movimiento y el modo activo.</div>
+                <div class="section-title">Vista previa contextual</div>
+                <div class="section-caption">Aparece solo lo necesario según el tipo de movimiento.</div>
                 <div class="tiny-muted">Tipo</div>
                 <div class="form-preview-value" style="color:{color_valor};">{tipo}</div>
                 <div class="tiny-muted" style="margin-top:0.7rem;">Categoría / naturaleza</div>
