@@ -859,6 +859,37 @@ def aplicar_estilo_zentix():
         box-shadow: 0 12px 24px rgba(15,23,42,0.20);
     }
 
+    .stTabs [data-baseweb="tab"]:nth-child(4) {
+        position: relative;
+        border: 1px solid rgba(79,70,229,0.18) !important;
+        background: linear-gradient(180deg, #EEF2FF 0%, #FFFFFF 100%) !important;
+        color: #312E81 !important;
+        box-shadow: 0 10px 22px rgba(79,70,229,0.10);
+        overflow: hidden;
+    }
+
+    .stTabs [data-baseweb="tab"]:nth-child(4)::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: 999px;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.45), transparent);
+        transform: translateX(-120%);
+        animation: zentixTabGlow 3.4s linear infinite;
+        pointer-events: none;
+    }
+
+    .stTabs [data-baseweb="tab"]:nth-child(4)[aria-selected="true"] {
+        background: linear-gradient(135deg, #0F172A 0%, #172554 42%, #4F46E5 82%, #7C3AED 100%) !important;
+        color: #FFFFFF !important;
+        box-shadow: 0 16px 30px rgba(79,70,229,0.18), 0 0 0 1px rgba(255,255,255,0.08) inset;
+    }
+
+    @keyframes zentixTabGlow {
+        0% { transform: translateX(-120%); }
+        100% { transform: translateX(120%); }
+    }
+
     .stRadio [role="radiogroup"] {
         display: flex;
         gap: 0.7rem;
@@ -6509,7 +6540,7 @@ def render_home_hub(nombre_usuario, user_id, df, df_mes, df_deudas, df_cxc, tota
     render_tutorial_zentix("Inicio", nombre_usuario, user_id, df, meta_guardada_global, preferencias_usuario_actual)
     render_home_action_tiles()
 
-    tabs = st.tabs(["Resumen", "Actividad", "Planificación", "Profundo"])
+    tabs = st.tabs(["Resumen", "Actividad", "Planificación", "Modo Pro ✦"])
 
     with tabs[0]:
         k1, k2, k3, k4 = st.columns(4)
@@ -6589,7 +6620,18 @@ def render_home_hub(nombre_usuario, user_id, df, df_mes, df_deudas, df_cxc, tota
             render_list_card("Patrones detectados", patrones_comportamiento + [f"Plan: {plan_usuario_actual.get('plan', 'free').upper()} · IA {consultas_usadas_hoy}/{consultas_limite_hoy}"], "Lo importante resumido, no repartido en diez cajas.")
 
     with tabs[3]:
-        st.markdown("<div class='soft-card'><div class='section-title'>Panel ejecutivo profundo</div><div class='section-caption'>Toda la potencia sigue viva, pero ahora en una capa aparte para que Inicio se sienta premium y respirable.</div></div>", unsafe_allow_html=True)
+        st.markdown("<div class='soft-card'><div class='section-title'>Modo Pro · Personal o Negocio</div><div class='section-caption'>Aquí eliges cómo quieres leer tu dinero: vida personal o tablero ejecutivo. Es tu capa más estratégica y premium.</div></div>", unsafe_allow_html=True)
+        st.markdown("<div class='tiny-muted' style='margin-top:0.55rem;'>Selecciona el enfoque que quieres activar: <strong>Personal</strong> para hábitos, metas y bienestar financiero, o <strong>Negocio</strong> para caja, utilidad y crecimiento.</div>", unsafe_allow_html=True)
+        st.markdown(
+            """
+            <div class='mini-soft-card' style='margin-top:0.85rem; margin-bottom:0.9rem; background:linear-gradient(135deg,#0F172A 0%, #172554 42%, #4F46E5 82%, #7C3AED 100%) !important; border:none !important; box-shadow:0 18px 34px rgba(15,23,42,0.18) !important;'>
+                <div style='font-size:0.82rem;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.75) !important;margin-bottom:.35rem;'>Zentix Pro Switch</div>
+                <div style='font-size:1.18rem;font-weight:900;color:#FFFFFF !important;margin-bottom:.2rem;'>Activa el modo que mejor explica tu dinero.</div>
+                <div style='font-size:.94rem;line-height:1.6;color:rgba(255,255,255,.88) !important;'>Personal te habla de estabilidad, metas y hábitos. Negocio te habla de caja, margen, rentabilidad y crecimiento.</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
         render_dashboard_pro(
             nombre=nombre_usuario,
             df_base=df if df is not None else pd.DataFrame(),
