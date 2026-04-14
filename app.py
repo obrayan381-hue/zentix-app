@@ -560,6 +560,89 @@ def aplicar_estilo_zentix():
         color: #0F172A !important;
     }
 
+    .premium-list-card,
+    .premium-list-card *,
+    .premium-list-head,
+    .premium-list-title,
+    .premium-list-badge,
+    .premium-list-copy,
+    .spotlight-list,
+    .spotlight-list li,
+    .spotlight-item,
+    .spotlight-item *,
+    .report-preview-shell,
+    .report-preview-shell *,
+    .spotlight-shell,
+    .spotlight-shell * {
+        color: #0F172A !important;
+        text-shadow: none !important;
+    }
+
+    .premium-list-card {
+        background: linear-gradient(180deg, #FFFFFF 0%, #F8FBFF 100%) !important;
+        border: 1px solid rgba(148,163,184,0.20) !important;
+        box-shadow: 0 14px 28px rgba(15,23,42,0.05) !important;
+    }
+
+    .premium-list-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        margin-bottom: 0.42rem;
+    }
+
+    .premium-list-title {
+        color: #0F172A !important;
+        font-weight: 900 !important;
+    }
+
+    .premium-list-badge {
+        color: #4338CA !important;
+        background: #EEF2FF !important;
+        border: 1px solid #C7D2FE !important;
+        box-shadow: none !important;
+    }
+
+    .premium-list-copy {
+        color: #64748B !important;
+        font-weight: 600 !important;
+        margin-bottom: 0.62rem;
+    }
+
+    .spotlight-list {
+        margin: 0.2rem 0 0 0 !important;
+        padding-left: 1.15rem !important;
+        color: #0F172A !important;
+    }
+
+    .spotlight-list li,
+    .spotlight-item {
+        color: #0F172A !important;
+        font-weight: 600 !important;
+        line-height: 1.7 !important;
+        margin-bottom: 0.42rem !important;
+        opacity: 1 !important;
+    }
+
+    .spotlight-list li::marker {
+        color: #334155 !important;
+    }
+
+    .report-preview-shell,
+    .spotlight-shell,
+    .soft-card,
+    .mini-soft-card {
+        color: #0F172A !important;
+    }
+
+    .report-preview-shell .section-caption,
+    .spotlight-shell .section-caption,
+    .soft-card .section-caption,
+    .mini-soft-card .section-caption {
+        color: #64748B !important;
+    }
+
     .sidebar-brand-title { font-size: 1.1rem; font-weight: 900; line-height: 1.1; }
     .sidebar-user-card { border-radius: 20px; }
 
@@ -774,37 +857,6 @@ def aplicar_estilo_zentix():
         background: linear-gradient(135deg, #0F172A 0%, #172554 42%, #4F46E5 82%, #7C3AED 100%) !important;
         color: #FFFFFF !important;
         box-shadow: 0 12px 24px rgba(15,23,42,0.20);
-    }
-
-    .stTabs [data-baseweb="tab"]:nth-child(4) {
-        position: relative;
-        border: 1px solid rgba(79,70,229,0.18) !important;
-        background: linear-gradient(180deg, #EEF2FF 0%, #FFFFFF 100%) !important;
-        color: #312E81 !important;
-        box-shadow: 0 10px 22px rgba(79,70,229,0.10);
-        overflow: hidden;
-    }
-
-    .stTabs [data-baseweb="tab"]:nth-child(4)::after {
-        content: "";
-        position: absolute;
-        inset: 0;
-        border-radius: 999px;
-        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.45), transparent);
-        transform: translateX(-120%);
-        animation: zentixTabGlow 3.4s linear infinite;
-        pointer-events: none;
-    }
-
-    .stTabs [data-baseweb="tab"]:nth-child(4)[aria-selected="true"] {
-        background: linear-gradient(135deg, #0F172A 0%, #172554 42%, #4F46E5 82%, #7C3AED 100%) !important;
-        color: #FFFFFF !important;
-        box-shadow: 0 16px 30px rgba(79,70,229,0.18), 0 0 0 1px rgba(255,255,255,0.08) inset;
-    }
-
-    @keyframes zentixTabGlow {
-        0% { transform: translateX(-120%); }
-        100% { transform: translateX(120%); }
     }
 
     .stRadio [role="radiogroup"] {
@@ -4839,15 +4891,18 @@ def money_delta(value):
 
 def render_list_card(title, items, foot=""):
     items = items or ["Sin hallazgos todavía."]
-    bullets = "".join([f"<li style='margin-bottom:0.38rem;'>{item}</li>" for item in items])
+    bullets = "".join([
+        f"<li class='spotlight-item'>{html.escape(str(item))}</li>"
+        for item in items
+    ])
     st.markdown(
         f"""
         <div class="premium-list-card">
             <div class="premium-list-head">
-                <div class="premium-list-title">{title}</div>
+                <div class="premium-list-title">{html.escape(str(title))}</div>
                 <div class="premium-list-badge">{len(items)} señal{'es' if len(items) != 1 else ''}</div>
             </div>
-            <div class="premium-list-copy">{foot}</div>
+            <div class="premium-list-copy">{html.escape(str(foot))}</div>
             <ul class="spotlight-list">{bullets}</ul>
         </div>
         """,
@@ -6454,7 +6509,7 @@ def render_home_hub(nombre_usuario, user_id, df, df_mes, df_deudas, df_cxc, tota
     render_tutorial_zentix("Inicio", nombre_usuario, user_id, df, meta_guardada_global, preferencias_usuario_actual)
     render_home_action_tiles()
 
-    tabs = st.tabs(["Resumen", "Actividad", "Planificación", "Modo Pro ✦"])
+    tabs = st.tabs(["Resumen", "Actividad", "Planificación", "Profundo"])
 
     with tabs[0]:
         k1, k2, k3, k4 = st.columns(4)
