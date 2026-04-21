@@ -15,6 +15,7 @@ import ssl
 import base64
 import urllib.parse
 import time
+import re
 from email.message import EmailMessage
 import streamlit.components.v1 as components
 
@@ -62,10 +63,28 @@ if not zentix_floating_path.exists():
     zentix_floating_path = Path("a_2d_digital_illustration_features_zentix_ia_a_fu.png")
 
 
+def _leer_timeout_ia_por_default():
+    raw = os.getenv("ZENTIX_IA_TIMEOUT", "18")
+    try:
+        return float(str(raw).strip())
+    except Exception:
+        return 18.0
+
+
 GEMINI_API_KEY = st.secrets.get("GEMINI_API_KEY") or os.getenv("GEMINI_API_KEY")
+ZENTIX_IA_TIMEOUT = _leer_timeout_ia_por_default()
+GEMINI_MODEL_CANDIDATES = [
+    model.strip() for model in [
+        os.getenv("GEMINI_MODEL_PRIMARY", "gemini-2.5-flash"),
+        os.getenv("GEMINI_MODEL_FALLBACK_1", "gemini-2.0-flash"),
+        os.getenv("GEMINI_MODEL_FALLBACK_2", "gemini-1.5-flash"),
+    ] if str(model).strip()
+]
 openai_client = OpenAI(
     api_key=GEMINI_API_KEY,
-    base_url="https://generativelanguage.googleapis.com/v1beta/openai/"
+    base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
+    timeout=ZENTIX_IA_TIMEOUT,
+    max_retries=0
 ) if GEMINI_API_KEY else None
 
 
@@ -2840,6 +2859,24 @@ def normalizar_estado_cxc(valor):
     return "activa"
 
 
+def es_error_tabla_cxc_faltante(error):
+    texto = str(error or "").lower()
+    return (
+        "cuentas_por_cobrar" in texto
+        and (
+            "could not find the table" in texto
+            or "schema cache" in texto
+            or "does not exist" in texto
+            or "relation" in texto
+        )
+    )
+
+
+def generar_cuenta_por_cobrar_virtual_id(nombre, cliente):
+    semilla = f"{str(nombre or '').strip().lower()}||{str(cliente or '').strip().lower()}"
+    return f"cxc_virtual_{uuid.uuid5(uuid.NAMESPACE_URL, semilla).hex}"
+
+
 @st.cache_data(ttl=45, show_spinner=False)
 def obtener_cuentas_por_cobrar_usuario(user_id):
     columnas = [
@@ -2892,13 +2929,26 @@ def crear_cuenta_por_cobrar_segura(payload):
         {k: v for k, v in base.items() if k in {"usuario_id", "nombre", "cliente", "monto_total", "saldo_pendiente", "fecha", "fecha_limite", "estado"}},
     ]
 
+    last_error = None
     for candidate in candidatos:
         try:
             result = supabase.table("cuentas_por_cobrar").insert(candidate).execute()
             if result.data:
                 return result.data[0]
-        except Exception:
+        except Exception as e:
+            last_error = e
+            if es_error_tabla_cxc_faltante(e):
+                virtual = dict(base)
+                virtual["id"] = generar_cuenta_por_cobrar_virtual_id(base.get("nombre"), base.get("cliente"))
+                virtual["_virtual"] = True
+                return virtual
             continue
+
+    if es_error_tabla_cxc_faltante(last_error):
+        virtual = dict(base)
+        virtual["id"] = generar_cuenta_por_cobrar_virtual_id(base.get("nombre"), base.get("cliente"))
+        virtual["_virtual"] = True
+        return virtual
 
     return None
 
@@ -2931,6 +2981,11 @@ def actualizar_cuenta_por_cobrar_cobro_seguro(cxc_id, nuevo_saldo):
 
 
 def recalcular_cuentas_por_cobrar_desde_movimientos(user_id, df_movs, df_cxc_actuales=None):
+    columnas = [
+        "id", "usuario_id", "nombre", "cliente", "monto_total",
+        "saldo_pendiente", "fecha", "fecha_limite", "descripcion",
+        "estado", "creado_en", "actualizado_en"
+    ]
     existentes = df_cxc_actuales.copy() if df_cxc_actuales is not None and not df_cxc_actuales.empty else obtener_cuentas_por_cobrar_usuario(user_id)
 
     if df_movs is None:
@@ -2978,9 +3033,12 @@ def recalcular_cuentas_por_cobrar_desde_movimientos(user_id, df_movs, df_cxc_act
             fechas_lim = pd.to_datetime(grupo["fecha_limite_cxc"], errors="coerce")
             fecha_limite_val = fechas_lim.dropna().max() if not fechas_lim.dropna().empty else None
             fecha_base = pd.to_datetime(primera.get("fecha"), errors="coerce")
+            nombre_base = (primera.get("cuenta_cobrar_nombre") or primera.get("descripcion") or "Cuenta por cobrar").strip()
+            cliente_base = (primera.get("cliente_cxc") or "Sin cliente").strip()
             summaries[cxc_key] = {
-                "nombre": (primera.get("cuenta_cobrar_nombre") or primera.get("descripcion") or "Cuenta por cobrar").strip(),
-                "cliente": (primera.get("cliente_cxc") or "Sin cliente").strip(),
+                "id": generar_cuenta_por_cobrar_virtual_id(nombre_base, cliente_base),
+                "nombre": nombre_base,
+                "cliente": cliente_base,
                 "monto_total": monto_total,
                 "saldo_pendiente": saldo_pendiente,
                 "fecha": fecha_base,
@@ -3005,6 +3063,9 @@ def recalcular_cuentas_por_cobrar_desde_movimientos(user_id, df_movs, df_cxc_act
         existente = existentes_map.get(cxc_key)
 
         if summary:
+            if existente is not None and existente.get("id"):
+                summary["id"] = existente.get("id")
+
             payload = {
                 "usuario_id": user_id,
                 "nombre": summary["nombre"],
@@ -3017,7 +3078,7 @@ def recalcular_cuentas_por_cobrar_desde_movimientos(user_id, df_movs, df_cxc_act
                 "estado": normalizar_estado_cxc(summary["estado"]),
                 "actualizado_en": datetime.now().isoformat()
             }
-            if existente is not None and existente.get("id") is not None:
+            if existente is not None and existente.get("id") and not str(existente.get("id")).startswith("cxc_virtual_"):
                 try:
                     (
                         supabase.table("cuentas_por_cobrar")
@@ -3036,9 +3097,11 @@ def recalcular_cuentas_por_cobrar_desde_movimientos(user_id, df_movs, df_cxc_act
                     except Exception:
                         pass
             else:
-                crear_cuenta_por_cobrar_segura(payload)
+                creado = crear_cuenta_por_cobrar_segura(payload)
+                if isinstance(creado, dict) and creado.get("id"):
+                    summary["id"] = creado.get("id")
         else:
-            if existente is not None and existente.get("id") is not None:
+            if existente is not None and existente.get("id") and not str(existente.get("id")).startswith("cxc_virtual_"):
                 payload = {
                     "saldo_pendiente": 0.0,
                     "estado": "cobrada",
@@ -3062,7 +3125,45 @@ def recalcular_cuentas_por_cobrar_desde_movimientos(user_id, df_movs, df_cxc_act
                     except Exception:
                         pass
 
-    return obtener_cuentas_por_cobrar_usuario(user_id)
+    rows = []
+    if summaries:
+        for cxc_key, summary in summaries.items():
+            existente = existentes_map.get(cxc_key)
+            row = {
+                "id": summary.get("id") or (existente.get("id") if existente is not None else generar_cuenta_por_cobrar_virtual_id(summary.get("nombre"), summary.get("cliente"))),
+                "usuario_id": user_id,
+                "nombre": summary.get("nombre"),
+                "cliente": summary.get("cliente"),
+                "monto_total": float(summary.get("monto_total", 0) or 0),
+                "saldo_pendiente": float(summary.get("saldo_pendiente", 0) or 0),
+                "fecha": summary.get("fecha"),
+                "fecha_limite": summary.get("fecha_limite"),
+                "descripcion": summary.get("descripcion") or "",
+                "estado": normalizar_estado_cxc(summary.get("estado")),
+                "creado_en": existente.get("creado_en") if existente is not None else None,
+                "actualizado_en": datetime.now().isoformat(),
+            }
+            rows.append(row)
+    elif existentes is not None and not existentes.empty:
+        return existentes[columnas] if all(col in existentes.columns for col in columnas) else existentes
+
+    df_resultado = pd.DataFrame(rows)
+    for col in columnas:
+        if col not in df_resultado.columns:
+            df_resultado[col] = None
+
+    if not df_resultado.empty:
+        for date_col in ["fecha", "fecha_limite", "creado_en", "actualizado_en"]:
+            df_resultado[date_col] = pd.to_datetime(df_resultado[date_col], errors="coerce")
+        for num_col in ["monto_total", "saldo_pendiente"]:
+            df_resultado[num_col] = pd.to_numeric(df_resultado[num_col], errors="coerce").fillna(0)
+        df_resultado["nombre"] = df_resultado["nombre"].fillna("Cuenta por cobrar")
+        df_resultado["cliente"] = df_resultado["cliente"].fillna("Sin cliente")
+        df_resultado["estado"] = df_resultado["estado"].apply(normalizar_estado_cxc)
+    else:
+        df_resultado = pd.DataFrame(columns=columnas)
+
+    return df_resultado[columnas]
 
 
 def actualizar_movimiento_seguro(movimiento_id, payload):
@@ -5796,9 +5897,85 @@ MOVIMIENTOS RECIENTES DEL MES
 """.strip()
 
 
+def extraer_valor_contexto_zentix(contexto, etiqueta, default=""):
+    for linea in str(contexto or "").splitlines():
+        linea_strip = linea.strip()
+        if linea_strip.startswith(etiqueta):
+            return linea_strip.split(":", 1)[1].strip() if ":" in linea_strip else linea_strip.replace(etiqueta, "").strip()
+    return default
+
+
+def extraer_bloque_contexto_zentix(contexto, titulo_inicio, titulo_fin=None, limite=2):
+    lineas = str(contexto or "").splitlines()
+    capturando = False
+    items = []
+    for linea in lineas:
+        linea_strip = linea.strip()
+        if linea_strip == titulo_inicio:
+            capturando = True
+            continue
+        if capturando and titulo_fin and linea_strip == titulo_fin:
+            break
+        if capturando and linea_strip.startswith("-"):
+            texto = linea_strip.lstrip("-").strip()
+            if texto:
+                items.append(texto)
+    return items[:limite]
+
+
+def generar_respuesta_zentix_local(pregunta, contexto):
+    pregunta_txt = str(pregunta or "").strip()
+    pregunta_norm = pregunta_txt.lower()
+
+    ingresos = extraer_valor_contexto_zentix(contexto, "- Ingresos reales del mes", "Sin dato")
+    gastos = extraer_valor_contexto_zentix(contexto, "- Gastos operativos del mes", "Sin dato")
+    disponible = extraer_valor_contexto_zentix(contexto, "- Saldo disponible actual", "Sin dato")
+    saldo_deuda = extraer_valor_contexto_zentix(contexto, "- Saldo pendiente de deudas", "Sin dato")
+    meta = extraer_valor_contexto_zentix(contexto, "- Meta de ahorro actual", "Sin dato")
+    proyeccion = extraer_valor_contexto_zentix(contexto, "- Proyección de meta", "Sin proyección")
+    categoria_top = extraer_valor_contexto_zentix(contexto, "- Categoría con mayor peso", "Sin datos")
+    recomendacion = extraer_valor_contexto_zentix(contexto, "- Recomendación accionable", "Sigue registrando para afinar la lectura.")
+
+    alertas = extraer_bloque_contexto_zentix(contexto, "ALERTAS PROACTIVAS", "PATRONES DE COMPORTAMIENTO", limite=2)
+    patrones = extraer_bloque_contexto_zentix(contexto, "PATRONES DE COMPORTAMIENTO", "SUGERENCIAS DE CATEGORÍAS", limite=2)
+
+    bullets = []
+    encabezado = "Te dejo una lectura rápida y accionable:"
+
+    if any(token in pregunta_norm for token in ["deuda", "crédito", "credito", "préstamo", "prestamo"]):
+        bullets.append(f"Saldo pendiente actual de deudas: {saldo_deuda}.")
+        bullets.append(f"Disponible actual: {disponible}.")
+        bullets.append(recomendacion)
+    elif any(token in pregunta_norm for token in ["meta", "ahorro", "ahorrar"]):
+        bullets.append(f"Meta actual: {meta}.")
+        bullets.append(f"Disponible / ahorro actual: {disponible}.")
+        bullets.append(proyeccion)
+    elif any(token in pregunta_norm for token in ["gasto", "gastos", "categoría", "categoria"]):
+        bullets.append(f"Gastos operativos del mes: {gastos}.")
+        bullets.append(f"La categoría con mayor peso ahora es: {categoria_top}.")
+        bullets.append(recomendacion)
+    else:
+        bullets.append(f"Ingresos reales del mes: {ingresos}.")
+        bullets.append(f"Gastos operativos del mes: {gastos}.")
+        bullets.append(f"Disponible actual: {disponible}.")
+        bullets.append(recomendacion)
+
+    if alertas:
+        bullets.append(f"Alerta clave: {alertas[0]}")
+    elif patrones:
+        bullets.append(f"Patrón observado: {patrones[0]}")
+
+    bullets = bullets[:4]
+    return encabezado + "\n- " + "\n- ".join([b for b in bullets if b])
+
+
 def consultar_ia_zentix(pregunta, contexto):
     if not openai_client:
         return "La IA todavía no está activa. Agrega GEMINI_API_KEY en los secrets de Streamlit Cloud para habilitar al avatar."
+
+    contexto = str(contexto or "").strip()
+    if len(contexto) > 9000:
+        contexto = contexto[:9000]
 
     mensajes = [
         {
@@ -5826,58 +6003,47 @@ def consultar_ia_zentix(pregunta, contexto):
     ]
 
     ultimo_error = ""
-    for intento in range(3):
-        try:
-            response = openai_client.chat.completions.create(
-                model="gemini-2.5-flash",
-                messages=mensajes
-            )
+    fragmentos_reintentables = [
+        "503", "429", "500", "502", "504", "timeout", "timed out", "deadline",
+        "unavailable", "high demand", "resource_exhausted", "temporarily unavailable",
+        "overloaded", "rate limit"
+    ]
 
-            texto = response.choices[0].message.content
-
-            if isinstance(texto, list):
-                partes = []
-                for item in texto:
-                    if isinstance(item, dict) and item.get("type") == "text":
-                        partes.append(item.get("text", ""))
-                texto = "".join(partes)
-
-            texto = (texto or "").strip()
-
-            if not texto:
-                return "No pude generar una respuesta útil en este momento."
-
-            return texto
-
-        except Exception as e:
-            ultimo_error = str(e)
-            error_normalizado = ultimo_error.lower()
-            es_reintentable = any(fragmento in error_normalizado for fragmento in [
-                "503",
-                "429",
-                "unavailable",
-                "high demand",
-                "resource_exhausted",
-                "temporarily unavailable",
-                "overloaded"
-            ])
-
-            if es_reintentable and intento < 2:
-                time.sleep(1.2 * (intento + 1))
-                continue
-
-            if es_reintentable:
-                return (
-                    "Zentix IA está con mucha demanda en este momento. "
-                    "Intenta de nuevo en unos segundos."
+    for model_name in GEMINI_MODEL_CANDIDATES:
+        for intento in range(2):
+            try:
+                response = openai_client.chat.completions.create(
+                    model=model_name,
+                    messages=mensajes,
+                    temperature=0.35,
+                    max_tokens=380,
                 )
 
-            return "No pude responder en este momento. Intenta otra vez en un momento."
+                texto = response.choices[0].message.content if response and response.choices else ""
 
-    return (
-        "Zentix IA no pudo responder por alta demanda temporal. "
-        "Vuelve a intentarlo en unos segundos."
-    )
+                if isinstance(texto, list):
+                    partes = []
+                    for item in texto:
+                        if isinstance(item, dict) and item.get("type") == "text":
+                            partes.append(item.get("text", ""))
+                    texto = "".join(partes)
+
+                texto = (texto or "").strip()
+                if texto:
+                    return texto
+
+                ultimo_error = f"Respuesta vacía desde {model_name}"
+            except Exception as e:
+                ultimo_error = str(e)
+                error_normalizado = ultimo_error.lower()
+                es_reintentable = any(fragmento in error_normalizado for fragmento in fragmentos_reintentables)
+                if es_reintentable and intento < 1:
+                    time.sleep(0.8 + (0.7 * intento))
+                    continue
+                break
+
+    return generar_respuesta_zentix_local(pregunta, contexto)
+
 
 def obtener_mensajes_iniciales_zentix(nombre):
     return {
@@ -6927,17 +7093,167 @@ def maybe_handle_public_automation_job():
     return True
 
 
+def construir_redirect_recuperacion_supabase():
+    base_redirect = _leer_secret_texto("RESET_PASSWORD_REDIRECT", _leer_secret_texto("APP_BASE_URL", "")).strip()
+    if not base_redirect:
+        return None
+    try:
+        parsed = urllib.parse.urlparse(base_redirect)
+        query = urllib.parse.parse_qs(parsed.query)
+        query["recovery"] = ["1"]
+        return urllib.parse.urlunparse(parsed._replace(query=urllib.parse.urlencode(query, doseq=True), fragment=""))
+    except Exception:
+        separador = "&" if "?" in base_redirect else "?"
+        return f"{base_redirect}{separador}recovery=1"
+
+
+def inyectar_captura_callback_recuperacion():
+    components.html(
+        """
+        <script>
+        (function () {
+          try {
+            const parentWindow = window.parent;
+            const currentUrl = new URL(parentWindow.location.href);
+            const hash = (parentWindow.location.hash || '').replace(/^#/, '');
+            if (!hash) return;
+            const hashParams = new URLSearchParams(hash);
+            const accessToken = hashParams.get('access_token');
+            const refreshToken = hashParams.get('refresh_token');
+            const recoveryType = hashParams.get('type') || hashParams.get('mode');
+            if (!accessToken || !refreshToken) return;
+            currentUrl.searchParams.set('__zentix_recovery', '1');
+            currentUrl.searchParams.set('__zentix_access_token', accessToken);
+            currentUrl.searchParams.set('__zentix_refresh_token', refreshToken);
+            if (recoveryType) currentUrl.searchParams.set('__zentix_recovery_type', recoveryType);
+            parentWindow.location.replace(currentUrl.toString().split('#')[0]);
+          } catch (e) {
+            console.error('Zentix recovery hash error', e);
+          }
+        })();
+        </script>
+        """,
+        height=0,
+    )
+
+
+def limpiar_query_params_recuperacion():
+    for clave in ["recovery", "__zentix_recovery", "__zentix_access_token", "__zentix_refresh_token", "__zentix_recovery_type"]:
+        try:
+            if clave in st.query_params:
+                del st.query_params[clave]
+        except Exception:
+            pass
+
+
+def maybe_handle_password_recovery_tokens():
+    recovery_flag = str(obtener_query_param("recovery", "") or obtener_query_param("__zentix_recovery", "")).strip().lower() in {"1", "true", "yes", "si", "sí"}
+    access_token = str(obtener_query_param("__zentix_access_token", "")).strip()
+    refresh_token = str(obtener_query_param("__zentix_refresh_token", "")).strip()
+    recovery_type = str(obtener_query_param("__zentix_recovery_type", "")).strip().lower()
+
+    if not access_token or not refresh_token:
+        return
+    if not recovery_flag and recovery_type != "recovery":
+        return
+
+    if st.session_state.get("zentix_password_recovery_ready") and st.session_state.get("zentix_access_token") == access_token:
+        limpiar_query_params_recuperacion()
+        return
+
+    try:
+        supabase.auth.set_session(access_token, refresh_token)
+        user_res = supabase.auth.get_user()
+        if getattr(user_res, "user", None):
+            st.session_state.user = user_res.user
+            st.session_state["zentix_password_recovery_email"] = getattr(user_res.user, "email", "") or ""
+        st.session_state["zentix_access_token"] = access_token
+        st.session_state["zentix_refresh_token"] = refresh_token
+        st.session_state["zentix_password_recovery_ready"] = True
+        st.session_state["zentix_password_recovery_error"] = ""
+    except Exception as e:
+        st.session_state["zentix_password_recovery_ready"] = False
+        st.session_state["zentix_password_recovery_error"] = str(e)
+    finally:
+        limpiar_query_params_recuperacion()
+
+
+def render_pantalla_recuperacion_contrasena():
+    correo = st.session_state.get("zentix_password_recovery_email") or getattr(st.session_state.get("user"), "email", "") or "tu cuenta"
+
+    st.markdown(
+        f"""
+        <div class="hero-card">
+            <div class="hero-badge">Recuperación segura</div>
+            <div class="hero-title">Define tu nueva contraseña</div>
+            <div class="hero-subtitle">
+                Ya validamos tu enlace de recuperación para <strong>{html.escape(str(correo))}</strong>. Ahora solo falta guardar tu nueva clave.
+            </div>
+            <div class="hero-pills">
+                <span class="hero-pill">Acceso validado</span>
+                <span class="hero-pill">Cambio inmediato</span>
+                <span class="hero-pill">Sin salir de Zentix</span>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    st.markdown("<div class='soft-card'>", unsafe_allow_html=True)
+    section_header("Actualiza tu contraseña", "Pon una clave nueva y continúa normalmente dentro de la app.")
+    nueva = st.text_input("Nueva contraseña", type="password", key="recovery_new_password")
+    nueva_2 = st.text_input("Confirmar nueva contraseña", type="password", key="recovery_new_password_2")
+    c1, c2 = st.columns(2)
+    with c1:
+        if st.button("Guardar nueva contraseña", key="btn_guardar_nueva_password", use_container_width=True, type="primary"):
+            if len(str(nueva or "")) < 6:
+                st.error("La nueva contraseña debe tener al menos 6 caracteres.")
+            elif nueva != nueva_2:
+                st.error("Las contraseñas no coinciden.")
+            else:
+                try:
+                    supabase.auth.update_user({"password": nueva})
+                    st.session_state["zentix_password_recovery_ready"] = False
+                    st.session_state["zentix_password_recovery_error"] = ""
+                    st.success("Contraseña actualizada correctamente. Ya puedes seguir usando Zentix.")
+                    time.sleep(1.0)
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"No pude actualizar la contraseña: {e}")
+    with c2:
+        if st.button("Cancelar", key="btn_cancelar_recovery", use_container_width=True):
+            try:
+                supabase.auth.sign_out()
+            except Exception:
+                pass
+            st.session_state["zentix_password_recovery_ready"] = False
+            st.session_state["zentix_password_recovery_error"] = ""
+            st.session_state["zentix_password_recovery_email"] = ""
+            st.session_state.user = None
+            st.session_state["zentix_access_token"] = None
+            st.session_state["zentix_refresh_token"] = None
+            st.rerun()
+    st.markdown("</div>", unsafe_allow_html=True)
+
+
 def resetear_contrasena_supabase(email):
     email = str(email or "").strip()
     if not email:
         return False, "Escribe tu correo para enviarte el enlace de recuperación."
     try:
-        redirect_to = _leer_secret_texto("RESET_PASSWORD_REDIRECT", _leer_secret_texto("APP_BASE_URL", "")) or None
-        kwargs = {"email": email}
-        if redirect_to:
-            kwargs["options"] = {"redirect_to": redirect_to}
-        supabase.auth.reset_password_email(**kwargs)
-        return True, "Te enviamos un enlace para cambiar tu contraseña. Revisa tu correo."
+        redirect_to = construir_redirect_recuperacion_supabase()
+        options = {"redirect_to": redirect_to} if redirect_to else None
+        try:
+            if options:
+                supabase.auth.reset_password_for_email(email, options)
+            else:
+                supabase.auth.reset_password_for_email(email)
+        except AttributeError:
+            if options:
+                supabase.auth.reset_password_email(email, options)
+            else:
+                supabase.auth.reset_password_email(email)
+        return True, "Te enviamos un enlace para cambiar tu contraseña. Revisa tu correo y abre el link completo."
     except Exception as e:
         return False, f"No pude enviar el correo de recuperación: {e}"
 
@@ -7202,11 +7518,19 @@ if "zentix_access_token" not in st.session_state:
     st.session_state["zentix_access_token"] = None
 if "zentix_refresh_token" not in st.session_state:
     st.session_state["zentix_refresh_token"] = None
+if "zentix_password_recovery_ready" not in st.session_state:
+    st.session_state["zentix_password_recovery_ready"] = False
+if "zentix_password_recovery_email" not in st.session_state:
+    st.session_state["zentix_password_recovery_email"] = ""
+if "zentix_password_recovery_error" not in st.session_state:
+    st.session_state["zentix_password_recovery_error"] = ""
 
 maybe_handle_public_automation_job()
 launch_cfg = obtener_config_lanzamiento()
 
 maybe_handle_special_nav_actions()
+inyectar_captura_callback_recuperacion()
+maybe_handle_password_recovery_tokens()
 
 if st.session_state.user is None and st.session_state.get("zentix_access_token") and st.session_state.get("zentix_refresh_token"):
     try:
@@ -7219,6 +7543,10 @@ if st.session_state.user is None and st.session_state.get("zentix_access_token")
         st.session_state["zentix_access_token"] = None
         st.session_state["zentix_refresh_token"] = None
 
+if st.session_state.get("zentix_password_recovery_ready"):
+    render_pantalla_recuperacion_contrasena()
+    st.stop()
+
 if st.session_state.user is None:
     with st.sidebar:
         col_sb_icon, col_sb_text = st.columns([1, 3])
@@ -7229,6 +7557,9 @@ if st.session_state.user is None:
             st.markdown('<div class="sidebar-brand-title">ZENTIX</div>', unsafe_allow_html=True)
             st.markdown('<div class="sidebar-brand-sub">Registro primero · login después</div>', unsafe_allow_html=True)
         st.markdown("<div class='sidebar-nav-note'>Si eres nuevo, crea tu cuenta. Si ya tienes una, entra con login. Recuperación de contraseña disponible en la misma pantalla.</div>", unsafe_allow_html=True)
+
+    if st.session_state.get("zentix_password_recovery_error"):
+        st.error(f"No pude validar el enlace de recuperación: {st.session_state.get('zentix_password_recovery_error')}")
 
     col_hero, col_form = st.columns([1.1, 1.0])
     with col_hero:
