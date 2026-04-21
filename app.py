@@ -8132,24 +8132,48 @@ if pagina == "Registrar":
         elif tipo == "Cobro cuenta por cobrar":
             categoria = "Cobro cuenta por cobrar"
             cxc_activas_df = df_cxc[df_cxc["saldo_pendiente"] > 0].copy() if not df_cxc.empty else pd.DataFrame()
+
             if cxc_activas_df.empty:
                 st.info("Aún no tienes registros activos de 'Prestaste Dinero'. Primero crea uno.")
+                monto = st.number_input(
+                    "Monto que te pagaron",
+                    min_value=0.0,
+                    step=1000.0,
+                    key="registrar_cobro_cxc_monto"
+                )
             else:
                 cxc_activas_df["label"] = cxc_activas_df.apply(
                     lambda row: f"{row['nombre']} · {row['cliente']} · pendiente {money(row['saldo_pendiente'])}",
                     axis=1
                 )
+
+                opciones_cxc = cxc_activas_df["label"].tolist()
+                cxc_label_actual = st.session_state.get("registrar_cobro_cxc_select")
+                if cxc_label_actual not in opciones_cxc:
+                    st.session_state["registrar_cobro_cxc_select"] = opciones_cxc[0]
+
                 cxc_label = st.selectbox(
                     "Selecciona un registro de dinero prestado",
-                    cxc_activas_df["label"].tolist(),
+                    opciones_cxc,
                     key="registrar_cobro_cxc_select"
                 )
-                cxc_row = cxc_activas_df[cxc_activas_df["label"] == cxc_label].iloc[0]
-                cuenta_cobrar_id = cxc_row["id"]
-                cuenta_cobrar_nombre = cxc_row["nombre"]
-                cliente_cxc = cxc_row["cliente"]
-                saldo_cxc_actual = float(cxc_row["saldo_pendiente"] or 0)
-                fecha_limite_cxc = cxc_row["fecha_limite"].date() if pd.notna(cxc_row["fecha_limite"]) else None
+
+                cxc_filtrada = cxc_activas_df[cxc_activas_df["label"] == cxc_label]
+
+                if cxc_filtrada.empty:
+                    st.warning("No pude encontrar el registro seleccionado. Vuelve a elegirlo.")
+                else:
+                    cxc_row = cxc_filtrada.iloc[0]
+                    cuenta_cobrar_id = cxc_row["id"]
+                    cuenta_cobrar_nombre = cxc_row["nombre"]
+                    cliente_cxc = cxc_row["cliente"]
+                    saldo_cxc_actual = float(cxc_row["saldo_pendiente"] or 0)
+                    fecha_limite_cxc = cxc_row["fecha_limite"].date() if pd.notna(cxc_row["fecha_limite"]) else None
+                    deuda_nombre = cuenta_cobrar_nombre
+                    prestamista = cliente_cxc
+                    fecha_limite_deuda = fecha_limite_cxc
+                    st.caption(f"Pendiente actual por recibir: {money(saldo_cxc_actual)}")
+
                 monto = st.number_input(
                     "Monto que te pagaron",
                     min_value=0.0,
@@ -8157,32 +8181,49 @@ if pagina == "Registrar":
                     step=1000.0,
                     key="registrar_cobro_cxc_monto"
                 )
-                deuda_nombre = cuenta_cobrar_nombre
-                prestamista = cliente_cxc
-                fecha_limite_deuda = fecha_limite_cxc
-                st.caption(f"Pendiente actual por recibir: {money(saldo_cxc_actual)}")
 
         else:
             categoria = "Pago de deuda"
             deudas_activas_df = df_deudas[df_deudas["saldo_pendiente"] > 0].copy() if not df_deudas.empty else pd.DataFrame()
+
             if deudas_activas_df.empty:
                 st.info("Aún no tienes créditos activos registrados. Primero crea un 'Crédito solicitado'.")
+                monto = st.number_input(
+                    "Monto pagado al crédito",
+                    min_value=0.0,
+                    step=1000.0,
+                    key="registrar_pago_deuda_monto"
+                )
             else:
                 deudas_activas_df["label"] = deudas_activas_df.apply(
                     lambda row: f"{row['nombre']} · {row['prestamista']} · pendiente {money(row['saldo_pendiente'])}",
                     axis=1
                 )
+
+                opciones_deuda = deudas_activas_df["label"].tolist()
+                deuda_label_actual = st.session_state.get("registrar_pago_deuda_select")
+                if deuda_label_actual not in opciones_deuda:
+                    st.session_state["registrar_pago_deuda_select"] = opciones_deuda[0]
+
                 deuda_label = st.selectbox(
                     "Selecciona un crédito",
-                    deudas_activas_df["label"].tolist(),
+                    opciones_deuda,
                     key="registrar_pago_deuda_select"
                 )
-                deuda_row = deudas_activas_df[deudas_activas_df["label"] == deuda_label].iloc[0]
-                deuda_id = deuda_row["id"]
-                deuda_nombre = deuda_row["nombre"]
-                prestamista = deuda_row["prestamista"]
-                saldo_deuda_actual = float(deuda_row["saldo_pendiente"] or 0)
-                fecha_limite_deuda = deuda_row["fecha_limite"].date() if pd.notna(deuda_row["fecha_limite"]) else None
+
+                deuda_filtrada = deudas_activas_df[deudas_activas_df["label"] == deuda_label]
+
+                if deuda_filtrada.empty:
+                    st.warning("No pude encontrar el crédito seleccionado. Vuelve a elegirlo.")
+                else:
+                    deuda_row = deuda_filtrada.iloc[0]
+                    deuda_id = deuda_row["id"]
+                    deuda_nombre = deuda_row["nombre"]
+                    prestamista = deuda_row["prestamista"]
+                    saldo_deuda_actual = float(deuda_row["saldo_pendiente"] or 0)
+                    fecha_limite_deuda = deuda_row["fecha_limite"].date() if pd.notna(deuda_row["fecha_limite"]) else None
+                    st.caption(f"Pendiente actual del crédito: {money(saldo_deuda_actual)}")
+
                 monto = st.number_input(
                     "Monto pagado al crédito",
                     min_value=0.0,
@@ -8190,7 +8231,6 @@ if pagina == "Registrar":
                     step=1000.0,
                     key="registrar_pago_deuda_monto"
                 )
-                st.caption(f"Pendiente actual del crédito: {money(saldo_deuda_actual)}")
 
         col_btn_1, col_btn_2 = st.columns(2)
         with col_btn_1:
