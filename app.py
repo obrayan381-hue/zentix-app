@@ -323,7 +323,19 @@ def normalizar_fecha_col(df):
     if df is None or df.empty or "fecha" not in df.columns:
         return df_vacio_movimientos()
     df = df.copy()
-    df["fecha"] = pd.to_datetime(df["fecha"], errors="coerce")
+
+    # Supabase puede devolver fechas con zona horaria. Pandas no permite comparar
+    # datetime64[ns, UTC] con Timestamp sin zona horaria, por eso normalizamos todo
+    # a fechas naive locales antes de filtrar por semana o mes.
+    df["fecha"] = pd.to_datetime(df["fecha"], errors="coerce", utc=True)
+    try:
+        df["fecha"] = df["fecha"].dt.tz_convert(None)
+    except Exception:
+        try:
+            df["fecha"] = df["fecha"].dt.tz_localize(None)
+        except Exception:
+            pass
+
     df["monto"] = pd.to_numeric(df.get("monto", 0), errors="coerce").fillna(0)
     for col in ["tipo", "categoria", "descripcion", "emocion"]:
         if col not in df.columns:
@@ -351,7 +363,7 @@ def filtrar_semana_actual(df):
     df = filtrar_personal(df)
     if df.empty:
         return df
-    hoy = pd.Timestamp.today().normalize()
+    hoy = pd.Timestamp.now(tz=None).normalize()
     inicio = hoy - pd.Timedelta(days=hoy.weekday())
     fin = inicio + pd.Timedelta(days=7)
     return df[(df["fecha"] >= inicio) & (df["fecha"] < fin)].copy()
@@ -361,7 +373,7 @@ def filtrar_semana_anterior(df):
     df = filtrar_personal(df)
     if df.empty:
         return df
-    hoy = pd.Timestamp.today().normalize()
+    hoy = pd.Timestamp.now(tz=None).normalize()
     inicio_actual = hoy - pd.Timedelta(days=hoy.weekday())
     inicio_ant = inicio_actual - pd.Timedelta(days=7)
     return df[(df["fecha"] >= inicio_ant) & (df["fecha"] < inicio_actual)].copy()
