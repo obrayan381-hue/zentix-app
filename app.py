@@ -1479,43 +1479,482 @@ def construir_reporte_semanal(df, meta_row=None):
 
 
 def generar_pdf_reporte(nombre, df, meta_row=None):
+    """
+    Genera un PDF premium de una página con diseño visual, métricas claras,
+    resumen accionable y tabla de movimientos recientes.
+    """
     if not REPORTLAB_AVAILABLE:
         return None
+
+    from reportlab.lib.units import mm
+    from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
+    from reportlab.platypus import Image, KeepTogether
+
     buffer = io.BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=36, leftMargin=36, topMargin=38, bottomMargin=36)
+
+    PAGE_W, PAGE_H = A4
+    MARGIN_X = 22 * mm
+    MARGIN_TOP = 20 * mm
+    MARGIN_BOTTOM = 18 * mm
+
+    # Paleta premium de Zentix
+    COLOR_BG = colors.HexColor("#F7FAFF")
+    COLOR_INK = colors.HexColor("#101828")
+    COLOR_MUTED = colors.HexColor("#667085")
+    COLOR_SOFT = colors.HexColor("#F8FAFC")
+    COLOR_LINE = colors.HexColor("#E2E8F0")
+    COLOR_NAVY = colors.HexColor("#101828")
+    COLOR_PURPLE = colors.HexColor("#4C1D95")
+    COLOR_VIOLET = colors.HexColor("#7C3AED")
+    COLOR_LILAC = colors.HexColor("#F5F3FF")
+    COLOR_GOLD = colors.HexColor("#F59E0B")
+    COLOR_GREEN = colors.HexColor("#16A34A")
+    COLOR_RED = colors.HexColor("#DC2626")
+    COLOR_BLUE_SOFT = colors.HexColor("#EEF2FF")
+    COLOR_GREEN_SOFT = colors.HexColor("#ECFDF5")
+    COLOR_RED_SOFT = colors.HexColor("#FEF2F2")
+    COLOR_AMBER_SOFT = colors.HexColor("#FFFBEB")
+
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        rightMargin=MARGIN_X,
+        leftMargin=MARGIN_X,
+        topMargin=MARGIN_TOP,
+        bottomMargin=MARGIN_BOTTOM,
+        title="Zentix - Reporte semanal",
+        author="Zentix",
+    )
+
     styles = getSampleStyleSheet()
-    title_style = ParagraphStyle("ZentixTitle", parent=styles["Title"], textColor=colors.HexColor("#0F172A"), fontSize=22, leading=26)
-    h_style = ParagraphStyle("ZentixH", parent=styles["Heading2"], textColor=colors.HexColor("#172554"), fontSize=14, leading=18)
-    p_style = ParagraphStyle("ZentixP", parent=styles["BodyText"], fontSize=10, leading=15)
-    story = []
-    story.append(Paragraph("Zentix · Reporte semanal sencillo", title_style))
-    story.append(Paragraph(f"Usuario: {safe_text(nombre)} · Fecha: {date.today().isoformat()}", p_style))
-    story.append(Spacer(1, 12))
-    story.append(Paragraph("Resumen", h_style))
-    for punto in construir_reporte_semanal(df, meta_row):
-        story.append(Paragraph(f"• {safe_text(punto)}", p_style))
-    story.append(Spacer(1, 12))
-    df_rep = filtrar_semana_actual(df).sort_values("fecha", ascending=False).head(20)
-    if not df_rep.empty:
-        story.append(Paragraph("Movimientos recientes", h_style))
-        data = [["Fecha", "Tipo", "Categoría", "Monto", "Descripción"]]
-        for r in df_rep.itertuples():
-            data.append([str(r.fecha.date()), r.tipo, r.categoria, money(r.monto), str(r.descripcion)[:34]])
-        table = Table(data, colWidths=[62, 58, 84, 74, 190])
-        table.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#172554")),
-            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-            ("GRID", (0, 0), (-1, -1), .25, colors.HexColor("#CBD5E1")),
-            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-            ("FONTSIZE", (0, 0), (-1, -1), 8),
+
+    title_style = ParagraphStyle(
+        "ZentixPremiumTitle",
+        parent=styles["Title"],
+        textColor=colors.white,
+        fontSize=24,
+        leading=28,
+        alignment=TA_LEFT,
+        spaceAfter=4,
+    )
+    subtitle_style = ParagraphStyle(
+        "ZentixPremiumSubtitle",
+        parent=styles["BodyText"],
+        textColor=colors.HexColor("#F8FAFC"),
+        fontSize=9.5,
+        leading=13,
+        alignment=TA_LEFT,
+    )
+    small_white_style = ParagraphStyle(
+        "ZentixSmallWhite",
+        parent=styles["BodyText"],
+        textColor=colors.white,
+        fontSize=8.5,
+        leading=11,
+        alignment=TA_RIGHT,
+    )
+    badge_style = ParagraphStyle(
+        "ZentixBadge",
+        parent=styles["BodyText"],
+        textColor=colors.HexColor("#FEF3C7"),
+        fontSize=8.5,
+        leading=10,
+        alignment=TA_LEFT,
+    )
+    h_style = ParagraphStyle(
+        "ZentixPremiumH",
+        parent=styles["Heading2"],
+        textColor=COLOR_INK,
+        fontSize=14,
+        leading=18,
+        spaceBefore=2,
+        spaceAfter=6,
+    )
+    p_style = ParagraphStyle(
+        "ZentixPremiumP",
+        parent=styles["BodyText"],
+        textColor=COLOR_INK,
+        fontSize=9.5,
+        leading=14,
+    )
+    muted_style = ParagraphStyle(
+        "ZentixMuted",
+        parent=styles["BodyText"],
+        textColor=COLOR_MUTED,
+        fontSize=8.5,
+        leading=12,
+    )
+    card_label_style = ParagraphStyle(
+        "ZentixCardLabel",
+        parent=styles["BodyText"],
+        textColor=COLOR_MUTED,
+        fontSize=7.5,
+        leading=9,
+        spaceAfter=2,
+    )
+    card_value_style = ParagraphStyle(
+        "ZentixCardValue",
+        parent=styles["BodyText"],
+        textColor=COLOR_INK,
+        fontSize=13.5,
+        leading=16,
+        spaceAfter=2,
+    )
+    card_caption_style = ParagraphStyle(
+        "ZentixCardCaption",
+        parent=styles["BodyText"],
+        textColor=COLOR_MUTED,
+        fontSize=7.8,
+        leading=10,
+    )
+    bullet_style = ParagraphStyle(
+        "ZentixBullet",
+        parent=styles["BodyText"],
+        textColor=COLOR_INK,
+        fontSize=9.2,
+        leading=13,
+        leftIndent=8,
+        firstLineIndent=-8,
+    )
+    table_header_style = ParagraphStyle(
+        "ZentixTableHeader",
+        parent=styles["BodyText"],
+        textColor=colors.white,
+        fontSize=8.2,
+        leading=10,
+    )
+    table_cell_style = ParagraphStyle(
+        "ZentixTableCell",
+        parent=styles["BodyText"],
+        textColor=COLOR_INK,
+        fontSize=8.0,
+        leading=10,
+    )
+    table_cell_muted_style = ParagraphStyle(
+        "ZentixTableCellMuted",
+        parent=styles["BodyText"],
+        textColor=COLOR_MUTED,
+        fontSize=7.8,
+        leading=10,
+    )
+
+    df_semana = filtrar_semana_actual(df)
+    df_semana_ant = filtrar_semana_anterior(df)
+    df_mes = filtrar_mes(df)
+
+    ing_sem, gas_sem, saldo_sem = resumen_movimientos(df_semana)
+    _, gas_ant, _ = resumen_movimientos(df_semana_ant)
+    ing_mes, gas_mes, saldo_mes = resumen_movimientos(df_mes)
+    top_cat, top_monto, top_share = top_categoria_gasto(df_semana if not df_semana.empty else df_mes)
+
+    meta = float((meta_row or {}).get("meta", 0) or 0)
+    nombre_meta = str((meta_row or {}).get("nombre_meta", "") or "").strip()
+    progreso_meta = max(0, min(saldo_mes / meta, 1)) if meta > 0 else 0
+
+    if gas_ant > 0:
+        diferencia = gas_sem - gas_ant
+        if diferencia > 0:
+            tendencia = f"Subiste {money(diferencia)} frente a la semana anterior."
+        elif diferencia < 0:
+            tendencia = f"Bajaste {money(abs(diferencia))} frente a la semana anterior."
+        else:
+            tendencia = "Gastaste lo mismo que la semana anterior."
+    else:
+        tendencia = "Aún no hay suficiente historial para comparar semanas."
+
+    if saldo_mes < 0:
+        accion = "Prioridad: reduce gastos variables hasta volver a saldo positivo."
+        accion_color = COLOR_RED_SOFT
+    elif top_cat and top_share >= 0.40:
+        accion = f"Enfócate en {top_cat}: concentra {fmt_pct(top_share)} del gasto revisado."
+        accion_color = COLOR_AMBER_SOFT
+    elif meta > 0 and progreso_meta < 0.50:
+        accion = "Reserva un monto fijo esta semana para avanzar hacia tu meta."
+        accion_color = COLOR_BLUE_SOFT
+    else:
+        accion = "Mantén el hábito: registra a diario y protege el saldo positivo."
+        accion_color = COLOR_GREEN_SOFT
+
+    def _page_background(canvas, document):
+        canvas.saveState()
+        canvas.setFillColor(COLOR_BG)
+        canvas.rect(0, 0, PAGE_W, PAGE_H, stroke=0, fill=1)
+
+        # Acentos suaves superiores
+        canvas.setFillColor(colors.HexColor("#EEF2FF"))
+        canvas.circle(PAGE_W - 28 * mm, PAGE_H - 22 * mm, 36 * mm, stroke=0, fill=1)
+        canvas.setFillColor(colors.HexColor("#F5F3FF"))
+        canvas.circle(22 * mm, PAGE_H - 18 * mm, 28 * mm, stroke=0, fill=1)
+
+        # Footer
+        canvas.setStrokeColor(colors.HexColor("#E2E8F0"))
+        canvas.setLineWidth(0.6)
+        canvas.line(MARGIN_X, 14 * mm, PAGE_W - MARGIN_X, 14 * mm)
+        canvas.setFillColor(COLOR_MUTED)
+        canvas.setFont("Helvetica", 7.5)
+        canvas.drawString(MARGIN_X, 9 * mm, "Zentix · Finanzas personales simples")
+        canvas.drawRightString(PAGE_W - MARGIN_X, 9 * mm, f"Página {document.page}")
+        canvas.restoreState()
+
+    def _spacer(h=8):
+        return Spacer(1, h)
+
+    def _money_colored(value, tipo="neutral"):
+        color = "#16A34A" if tipo == "income" else "#DC2626" if tipo == "expense" else "#101828"
+        return f'<font color="{color}">{safe_text(money(value))}</font>'
+
+    def _metric_card(label, value, caption, tint="#FFFFFF", accent="#7C3AED"):
+        card = Table(
+            [
+                [Paragraph(safe_text(label).upper(), card_label_style)],
+                [Paragraph(safe_text(value), card_value_style)],
+                [Paragraph(safe_text(caption), card_caption_style)],
+            ],
+            colWidths=[(PAGE_W - 2 * MARGIN_X - 18) / 4],
+        )
+        card.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor(tint)),
+            ("BOX", (0, 0), (-1, -1), 0.75, colors.HexColor("#E2E8F0")),
+            ("LINEABOVE", (0, 0), (-1, 0), 3, colors.HexColor(accent)),
+            ("LEFTPADDING", (0, 0), (-1, -1), 9),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 9),
+            ("TOPPADDING", (0, 0), (-1, -1), 7),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
             ("VALIGN", (0, 0), (-1, -1), "TOP"),
         ]))
+        return card
+
+    story = []
+
+    # Header premium
+    logo_cell = Paragraph("<b>Z</b>", ParagraphStyle(
+        "LogoFallback",
+        parent=styles["BodyText"],
+        textColor=colors.white,
+        fontSize=24,
+        leading=26,
+        alignment=TA_CENTER,
+    ))
+    try:
+        if ICON_PATH and Path(ICON_PATH).exists():
+            logo_cell = Image(str(ICON_PATH), width=15 * mm, height=15 * mm)
+    except Exception:
+        pass
+
+    header_title = Paragraph("Zentix · Reporte semanal", title_style)
+    header_sub = Paragraph(
+        f"Usuario: <b>{safe_text(nombre)}</b><br/>Fecha: {date.today().strftime('%Y-%m-%d')} · Finanzas personales simples",
+        subtitle_style,
+    )
+    header_right = Paragraph("✨ Control<br/>Claridad<br/>Hábito", small_white_style)
+
+    header = Table(
+        [
+            [logo_cell, [Paragraph("INFORME PREMIUM", badge_style), header_title, header_sub], header_right]
+        ],
+        colWidths=[21 * mm, PAGE_W - 2 * MARGIN_X - 56 * mm, 35 * mm],
+    )
+    header.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), COLOR_NAVY),
+        ("BACKGROUND", (1, 0), (2, 0), COLOR_PURPLE),
+        ("BOX", (0, 0), (-1, -1), 0, COLOR_NAVY),
+        ("LEFTPADDING", (0, 0), (-1, -1), 12),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 12),
+        ("TOPPADDING", (0, 0), (-1, -1), 13),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 13),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+    ]))
+    story.append(header)
+    story.append(_spacer(12))
+
+    # Métricas
+    metric_table = Table(
+        [[
+            _metric_card("Ingresos semana", money(ing_sem), "Entradas registradas", "#ECFDF5", "#16A34A"),
+            _metric_card("Gastos semana", money(gas_sem), "Salidas registradas", "#FEF2F2", "#DC2626"),
+            _metric_card("Disponible", money(saldo_sem), "Balance semanal", "#EEF2FF", "#4C1D95"),
+            _metric_card("Meta", fmt_pct(progreso_meta) if meta > 0 else "Sin meta", money(meta) if meta > 0 else "Configúrala", "#F5F3FF", "#A855F7"),
+        ]],
+        colWidths=[(PAGE_W - 2 * MARGIN_X) / 4] * 4,
+        hAlign="LEFT",
+    )
+    metric_table.setStyle(TableStyle([
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 0),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+        ("TOPPADDING", (0, 0), (-1, -1), 0),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+    ]))
+    story.append(metric_table)
+    story.append(_spacer(10))
+
+    # Acción recomendada + lectura rápida
+    insight_left = [
+        Paragraph("Lectura rápida", h_style),
+        Paragraph(f"• Ingresos del mes: <b>{safe_text(money(ing_mes))}</b>", bullet_style),
+        Paragraph(f"• Gastos del mes: <b>{safe_text(money(gas_mes))}</b>", bullet_style),
+        Paragraph(f"• Disponible del mes: <b>{safe_text(money(saldo_mes))}</b>", bullet_style),
+        Paragraph(f"• {safe_text(tendencia)}", bullet_style),
+    ]
+
+    if top_cat:
+        insight_left.append(Paragraph(
+            f"• Categoría más alta: <b>{safe_text(top_cat)}</b> con <b>{safe_text(money(top_monto))}</b>.",
+            bullet_style,
+        ))
+    if meta > 0:
+        meta_nombre = f" · {safe_text(nombre_meta)}" if nombre_meta else ""
+        insight_left.append(Paragraph(
+            f"• Meta activa{meta_nombre}: <b>{safe_text(money(meta))}</b>.",
+            bullet_style,
+        ))
+
+    action_box = Table(
+        [
+            [Paragraph("Siguiente mejor acción", ParagraphStyle(
+                "ActionTitle",
+                parent=styles["BodyText"],
+                textColor=COLOR_PURPLE,
+                fontSize=11,
+                leading=14,
+                spaceAfter=4,
+            ))],
+            [Paragraph(safe_text(accion), ParagraphStyle(
+                "ActionBody",
+                parent=styles["BodyText"],
+                textColor=COLOR_INK,
+                fontSize=10,
+                leading=14,
+            ))],
+            [Paragraph("Consejo Zentix: mejora una sola categoría por semana. Lo simple se mantiene.", muted_style)],
+        ],
+        colWidths=[(PAGE_W - 2 * MARGIN_X) * 0.36],
+    )
+    action_box.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), accion_color),
+        ("BOX", (0, 0), (-1, -1), 0.75, colors.HexColor("#E2E8F0")),
+        ("LEFTPADDING", (0, 0), (-1, -1), 11),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 11),
+        ("TOPPADDING", (0, 0), (-1, -1), 9),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 9),
+    ]))
+
+    insight_table = Table(
+        [[insight_left, action_box]],
+        colWidths=[(PAGE_W - 2 * MARGIN_X) * 0.60, (PAGE_W - 2 * MARGIN_X) * 0.40],
+    )
+    insight_table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (0, 0), colors.white),
+        ("BOX", (0, 0), (0, 0), 0.75, COLOR_LINE),
+        ("LEFTPADDING", (0, 0), (0, 0), 12),
+        ("RIGHTPADDING", (0, 0), (0, 0), 10),
+        ("TOPPADDING", (0, 0), (0, 0), 10),
+        ("BOTTOMPADDING", (0, 0), (0, 0), 10),
+        ("LEFTPADDING", (1, 0), (1, 0), 8),
+        ("RIGHTPADDING", (1, 0), (1, 0), 0),
+        ("TOPPADDING", (1, 0), (1, 0), 0),
+        ("BOTTOMPADDING", (1, 0), (1, 0), 0),
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+    ]))
+    story.append(insight_table)
+    story.append(_spacer(12))
+
+    # Movimientos recientes
+    df_rep = df_semana.sort_values("fecha", ascending=False).head(18)
+    story.append(Paragraph("Movimientos recientes", h_style))
+    story.append(Paragraph("Detalle de los movimientos registrados esta semana.", muted_style))
+    story.append(_spacer(5))
+
+    if not df_rep.empty:
+        data = [[
+            Paragraph("Fecha", table_header_style),
+            Paragraph("Tipo", table_header_style),
+            Paragraph("Categoría", table_header_style),
+            Paragraph("Monto", table_header_style),
+            Paragraph("Descripción", table_header_style),
+        ]]
+
+        for r in df_rep.itertuples():
+            tipo = str(getattr(r, "tipo", "") or "")
+            monto = float(getattr(r, "monto", 0) or 0)
+            tipo_color = "#16A34A" if tipo == "Ingreso" else "#DC2626"
+            monto_txt = f"+{money(monto)}" if tipo == "Ingreso" else f"-{money(monto)}"
+            data.append([
+                Paragraph(str(r.fecha.date()), table_cell_muted_style),
+                Paragraph(f'<font color="{tipo_color}"><b>{safe_text(tipo)}</b></font>', table_cell_style),
+                Paragraph(safe_text(getattr(r, "categoria", "") or "Otros"), table_cell_style),
+                Paragraph(f'<font color="{tipo_color}"><b>{safe_text(monto_txt)}</b></font>', table_cell_style),
+                Paragraph(safe_text(str(getattr(r, "descripcion", "") or "")[:64]), table_cell_style),
+            ])
+
+        table = Table(
+            data,
+            colWidths=[26 * mm, 24 * mm, 34 * mm, 30 * mm, PAGE_W - 2 * MARGIN_X - 114 * mm],
+            repeatRows=1,
+        )
+        table_style = [
+            ("BACKGROUND", (0, 0), (-1, 0), COLOR_NAVY),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+            ("BOX", (0, 0), (-1, -1), 0.75, COLOR_LINE),
+            ("GRID", (0, 0), (-1, -1), 0.35, colors.HexColor("#E5E7EB")),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 7),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 7),
+            ("TOPPADDING", (0, 0), (-1, -1), 6),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ]
+        for row_idx in range(1, len(data)):
+            bg = colors.white if row_idx % 2 else colors.HexColor("#F8FAFC")
+            table_style.append(("BACKGROUND", (0, row_idx), (-1, row_idx), bg))
+        table.setStyle(TableStyle(table_style))
         story.append(table)
     else:
-        story.append(Paragraph("Aún no hay movimientos esta semana.", p_style))
-    doc.build(story)
+        empty_box = Table(
+            [[Paragraph("Aún no hay movimientos esta semana. Registra al menos 3 movimientos para activar un reporte más útil.", p_style)]],
+            colWidths=[PAGE_W - 2 * MARGIN_X],
+        )
+        empty_box.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, -1), COLOR_BLUE_SOFT),
+            ("BOX", (0, 0), (-1, -1), 0.75, COLOR_LINE),
+            ("LEFTPADDING", (0, 0), (-1, -1), 12),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 12),
+            ("TOPPADDING", (0, 0), (-1, -1), 12),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 12),
+        ]))
+        story.append(empty_box)
+
+    story.append(_spacer(10))
+
+    # Cierre
+    closing = Table(
+        [[Paragraph(
+            "Este reporte no busca mostrarlo todo: busca darte claridad para tomar una decisión financiera simple esta semana.",
+            ParagraphStyle(
+                "Closing",
+                parent=styles["BodyText"],
+                textColor=COLOR_MUTED,
+                fontSize=8.5,
+                leading=12,
+                alignment=TA_CENTER,
+            ),
+        )]],
+        colWidths=[PAGE_W - 2 * MARGIN_X],
+    )
+    closing.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#FFFFFF")),
+        ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#E2E8F0")),
+        ("LEFTPADDING", (0, 0), (-1, -1), 10),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 10),
+        ("TOPPADDING", (0, 0), (-1, -1), 8),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+    ]))
+    story.append(closing)
+
+    doc.build(story, onFirstPage=_page_background, onLaterPages=_page_background)
     buffer.seek(0)
     return buffer.getvalue()
+
 
 
 def exportar_excel(df):
