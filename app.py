@@ -1263,43 +1263,364 @@ def pagina_inicio(user_id, nombre, df, meta_row, presupuesto_total, limites_visi
     df_mes = filtrar_mes(df)
     ingresos, gastos, saldo = resumen_movimientos(df_mes)
     meta = float((meta_row or {}).get("meta", 0) or 0)
-    hero(nombre, ingresos, gastos, saldo, meta)
+    top_cat, top_monto, top_share = top_categoria_gasto(df_mes)
+    alertas = generar_alertas(df, meta_row, presupuesto_total, limites_visibles)
+    semana = filtrar_semana_actual(df)
+    semana_ant = filtrar_semana_anterior(df)
+    _, gasto_semana, _ = resumen_movimientos(semana)
+    _, gasto_semana_ant, _ = resumen_movimientos(semana_ant)
+
+    estado = "Vas bien" if saldo >= 0 else "Revisar gastos"
+    estado_sub = "Saldo positivo este mes" if saldo >= 0 else "Tu mes está en negativo"
+    presupuesto_restante = presupuesto_total - gastos if presupuesto_total > 0 else 0
+    progreso_presupuesto = gastos / presupuesto_total if presupuesto_total > 0 else 0
+    progreso_meta = saldo / meta if meta > 0 else 0
+
+    st.markdown(
+        f"""
+        <style>
+        .home-premium-hero {{
+            position: relative;
+            overflow: hidden;
+            border-radius: 34px;
+            padding: 1.45rem 1.55rem;
+            margin-bottom: 1rem;
+            color: #FFFFFF;
+            background:
+                radial-gradient(circle at 10% 10%, rgba(255,255,255,.25), transparent 22%),
+                radial-gradient(circle at 90% 20%, rgba(6,182,212,.22), transparent 26%),
+                linear-gradient(135deg, #0F172A 0%, #1D4ED8 45%, #4F46E5 74%, #7C3AED 100%);
+            box-shadow: 0 28px 60px rgba(30,64,175,.25);
+        }}
+        .home-premium-hero * {{ color: #FFFFFF !important; }}
+        .home-premium-badge {{
+            display:inline-flex;
+            align-items:center;
+            gap:.45rem;
+            padding:.42rem .82rem;
+            border-radius:999px;
+            background:rgba(255,255,255,.18);
+            border:1px solid rgba(255,255,255,.24);
+            font-weight:900;
+            font-size:.82rem;
+        }}
+        .home-premium-title {{
+            font-size:2.28rem;
+            line-height:1.02;
+            font-weight:950;
+            letter-spacing:-.05em;
+            margin:.95rem 0 .35rem 0;
+        }}
+        .home-premium-sub {{
+            max-width:820px;
+            font-size:1.02rem;
+            line-height:1.58;
+            color:rgba(255,255,255,.92) !important;
+        }}
+        .home-premium-strip {{
+            display:grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap:.7rem;
+            margin-top:1.05rem;
+        }}
+        .home-premium-mini {{
+            padding:.85rem .9rem;
+            border-radius:22px;
+            background:rgba(255,255,255,.16);
+            border:1px solid rgba(255,255,255,.20);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.12);
+        }}
+        .home-premium-mini-label {{
+            font-size:.74rem;
+            font-weight:800;
+            opacity:.85;
+            margin-bottom:.24rem;
+        }}
+        .home-premium-mini-value {{
+            font-size:1.08rem;
+            font-weight:950;
+            letter-spacing:-.03em;
+        }}
+        .home-action-card {{
+            border-radius:28px;
+            padding:1.05rem;
+            margin-bottom:.9rem;
+            background:linear-gradient(180deg, #FFFFFF 0%, #F8FBFF 100%);
+            border:1px solid rgba(79,70,229,.12);
+            box-shadow:0 16px 32px rgba(15,23,42,.06);
+        }}
+        .home-action-card * {{ color:#0F172A !important; }}
+        .home-color-title {{
+            display:flex;
+            align-items:center;
+            gap:.6rem;
+            font-weight:950;
+            font-size:1.14rem;
+            letter-spacing:-.03em;
+            margin-bottom:.18rem;
+            color:#0F172A !important;
+        }}
+        .home-color-icon {{
+            width:42px;
+            height:42px;
+            display:inline-flex;
+            align-items:center;
+            justify-content:center;
+            border-radius:16px;
+            color:#FFFFFF !important;
+            font-weight:950;
+            background:linear-gradient(135deg, #4F46E5, #7C3AED);
+            box-shadow:0 12px 22px rgba(79,70,229,.22);
+        }}
+        .home-caption {{ color:#475569 !important; font-size:.92rem; line-height:1.55; margin-bottom:.75rem; }}
+        .home-alert-box {{
+            padding:.8rem .9rem;
+            margin-bottom:.65rem;
+            border-radius:20px;
+            background:linear-gradient(135deg, #EEF2FF 0%, #ECFEFF 100%);
+            border:1px solid rgba(99,102,241,.18);
+            color:#1E293B !important;
+            font-weight:850;
+        }}
+        .home-alert-box strong {{ color:#3730A3 !important; }}
+        .home-register-shell {{
+            border-radius:30px;
+            padding:1.05rem;
+            background:linear-gradient(180deg, #111827 0%, #172554 58%, #312E81 100%);
+            box-shadow:0 24px 46px rgba(30,41,59,.18);
+            border:1px solid rgba(129,140,248,.24);
+        }}
+        .home-register-shell .home-color-title,
+        .home-register-shell .home-caption,
+        .home-register-shell .home-color-title span {{
+            color:#FFFFFF !important;
+        }}
+        .home-register-shell .home-caption {{ color:rgba(255,255,255,.82) !important; }}
+        .home-register-shell label,
+        .home-register-shell .stRadio label p,
+        .home-register-shell .stMarkdown,
+        .home-register-shell .stMarkdown p {{
+            color:#F8FAFC !important;
+            font-weight:800 !important;
+        }}
+        .home-register-shell input,
+        .home-register-shell textarea,
+        .home-register-shell div[data-baseweb="select"] > div {{
+            background:#FFFFFF !important;
+            color:#0F172A !important;
+            border:1px solid rgba(255,255,255,.28) !important;
+        }}
+        .home-register-shell .stButton > button[kind="primary"] {{
+            background:linear-gradient(135deg, #EF4444 0%, #F97316 100%) !important;
+            color:#FFFFFF !important;
+            border:none !important;
+            box-shadow:0 16px 28px rgba(239,68,68,.28);
+        }}
+        .home-movement-card {{
+            display:flex;
+            justify-content:space-between;
+            gap:.9rem;
+            align-items:center;
+            padding:.82rem 0;
+            border-bottom:1px solid rgba(15,23,42,.06);
+        }}
+        .home-movement-card:last-child {{ border-bottom:none; }}
+        .home-movement-left {{ display:flex; align-items:center; gap:.72rem; min-width:0; }}
+        .home-movement-dot {{
+            width:40px;
+            height:40px;
+            flex:0 0 40px;
+            border-radius:15px;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            font-weight:950;
+        }}
+        .home-movement-dot-income {{ background:#DCFCE7; color:#166534 !important; }}
+        .home-movement-dot-expense {{ background:#FEE2E2; color:#991B1B !important; }}
+        .home-movement-name {{
+            color:#0F172A !important;
+            font-size:.98rem;
+            font-weight:950;
+            line-height:1.2;
+            overflow:hidden;
+            text-overflow:ellipsis;
+            white-space:nowrap;
+            max-width:360px;
+        }}
+        .home-movement-meta {{ color:#64748B !important; font-size:.83rem; margin-top:.18rem; }}
+        .home-movement-amount-income {{ color:#16A34A !important; font-weight:950; white-space:nowrap; }}
+        .home-movement-amount-expense {{ color:#DC2626 !important; font-weight:950; white-space:nowrap; }}
+        .home-insight-grid {{
+            display:grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap:.75rem;
+            margin-top:.75rem;
+        }}
+        .home-insight-tile {{
+            padding:.85rem;
+            border-radius:22px;
+            background:linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%);
+            border:1px solid rgba(148,163,184,.20);
+        }}
+        .home-insight-label {{ color:#64748B !important; font-size:.78rem; font-weight:850; margin-bottom:.25rem; }}
+        .home-insight-value {{ color:#0F172A !important; font-size:1.05rem; font-weight:950; }}
+        @media (max-width: 900px) {{
+            .home-premium-strip {{ grid-template-columns: repeat(2, minmax(0, 1fr)); }}
+            .home-premium-title {{ font-size:1.8rem; }}
+            .home-movement-name {{ max-width:210px; }}
+        }}
+        </style>
+
+        <div class="home-premium-hero">
+            <div class="home-premium-badge">✨ Zentix personal · inicio inteligente</div>
+            <div class="home-premium-title">Hola, {safe_text(nombre)}. Tu dinero ya está más claro.</div>
+            <div class="home-premium-sub">Registra rápido, mira lo esencial y toma una decisión simple para esta semana. Zentix no te llena de módulos: te muestra lo que entra, lo que sale y lo que queda.</div>
+            <div class="home-premium-strip">
+                <div class="home-premium-mini">
+                    <div class="home-premium-mini-label">ENTRÓ ESTE MES</div>
+                    <div class="home-premium-mini-value">{money(ingresos)}</div>
+                </div>
+                <div class="home-premium-mini">
+                    <div class="home-premium-mini-label">SALIÓ ESTE MES</div>
+                    <div class="home-premium-mini-value">{money(gastos)}</div>
+                </div>
+                <div class="home-premium-mini">
+                    <div class="home-premium-mini-label">TE QUEDA</div>
+                    <div class="home-premium-mini-value">{money(saldo)}</div>
+                </div>
+                <div class="home-premium-mini">
+                    <div class="home-premium-mini-label">ESTADO</div>
+                    <div class="home-premium-mini-value">{safe_text(estado)}</div>
+                </div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
     c1, c2, c3, c4 = st.columns(4)
     with c1:
-        kpi_card("Entró este mes", money(ingresos), "Ingresos reales", "income")
+        kpi_card("Entró", money(ingresos), "Ingresos del mes", "income")
     with c2:
-        kpi_card("Salió este mes", money(gastos), "Gastos registrados", "expense")
+        kpi_card("Salió", money(gastos), "Gastos del mes", "expense")
     with c3:
-        kpi_card("Queda", money(saldo), "Disponible mensual", "balance")
+        kpi_card("Queda", money(saldo), estado_sub, "balance")
     with c4:
-        progreso = saldo / meta if meta > 0 else 0
-        kpi_card("Meta", fmt_pct(max(0, min(progreso, 1))), money(meta) if meta else "Define una meta", "saving")
+        if meta > 0:
+            kpi_card("Meta", fmt_pct(max(0, min(progreso_meta, 1))), f"Objetivo: {money(meta)}", "saving")
+        else:
+            kpi_card("Meta", "Pendiente", "Crea una meta de ahorro", "saving")
 
-    alertas = generar_alertas(df, meta_row, presupuesto_total, limites_visibles)
     col_left, col_right = st.columns([1.05, .95], gap="large")
-    with col_left:
-        st.markdown("<div class='soft-card'>", unsafe_allow_html=True)
-        section_header("Alerta principal", "Una señal simple para decidir mejor esta semana.")
-        for alerta in alertas[:3]:
-            st.markdown(f"<span class='pill pill-info'>⚡ {safe_text(alerta)}</span><br><br>", unsafe_allow_html=True)
+
+    with col_right:
+        st.markdown("<div class='home-register-shell'>", unsafe_allow_html=True)
+        st.markdown(
+            """
+            <div class="home-color-title"><span class="home-color-icon">＋</span><span>Registro rápido</span></div>
+            <div class="home-caption">Guarda ingresos o gastos sin salir del inicio.</div>
+            """,
+            unsafe_allow_html=True,
+        )
+        categorias_ingreso = obtener_categorias_usuario(user_id, "Ingreso")
+        categorias_gasto = obtener_categorias_usuario(user_id, "Gasto")
+        render_form_registro(user_id, categorias_ingreso, categorias_gasto, key_prefix="home")
         st.markdown("</div>", unsafe_allow_html=True)
 
-        st.markdown("<div class='soft-card'>", unsafe_allow_html=True)
-        section_header("Últimos movimientos", "Lo más reciente primero.")
+        st.markdown("<div class='home-action-card'>", unsafe_allow_html=True)
+        st.markdown(
+            """
+            <div class="home-color-title"><span class="home-color-icon">🎯</span><span>Progreso simple</span></div>
+            <div class="home-caption">Dos barras para saber si vas bien sin llenarte de gráficas.</div>
+            """,
+            unsafe_allow_html=True,
+        )
+        if presupuesto_total > 0:
+            st.markdown(f"**Presupuesto usado:** {money(gastos)} de {money(presupuesto_total)}")
+            st.progress(float(max(0, min(progreso_presupuesto, 1))))
+        else:
+            st.info("Crea un presupuesto mensual para activar esta barra.")
+        if meta > 0:
+            st.markdown(f"**Meta de ahorro:** avance estimado {fmt_pct(max(0, min(progreso_meta, 1)))}")
+            st.progress(float(max(0, min(progreso_meta, 1))))
+        else:
+            st.info("Crea una meta para medir tu avance.")
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    with col_left:
+        st.markdown("<div class='home-action-card'>", unsafe_allow_html=True)
+        st.markdown(
+            """
+            <div class="home-color-title"><span class="home-color-icon">⚡</span><span>Alerta principal</span></div>
+            <div class="home-caption">Una señal clara para decidir mejor esta semana.</div>
+            """,
+            unsafe_allow_html=True,
+        )
+        for alerta in alertas[:3]:
+            st.markdown(f"<div class='home-alert-box'><strong>•</strong> {safe_text(alerta)}</div>", unsafe_allow_html=True)
+
+        st.markdown("<div class='home-insight-grid'>", unsafe_allow_html=True)
+        st.markdown(
+            f"""
+            <div class="home-insight-tile">
+                <div class="home-insight-label">MAYOR CATEGORÍA</div>
+                <div class="home-insight-value">{safe_text(top_cat or 'Sin datos')}</div>
+            </div>
+            <div class="home-insight-tile">
+                <div class="home-insight-label">MONTO DESTACADO</div>
+                <div class="home-insight-value">{money(top_monto)}</div>
+            </div>
+            <div class="home-insight-tile">
+                <div class="home-insight-label">GASTO ESTA SEMANA</div>
+                <div class="home-insight-value">{money(gasto_semana)}</div>
+            </div>
+            <div class="home-insight-tile">
+                <div class="home-insight-label">SEMANA ANTERIOR</div>
+                <div class="home-insight-value">{money(gasto_semana_ant)}</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True)
+
+        st.markdown("<div class='home-action-card'>", unsafe_allow_html=True)
+        st.markdown(
+            """
+            <div class="home-color-title"><span class="home-color-icon">🧾</span><span>Últimos movimientos</span></div>
+            <div class="home-caption">Lo más reciente primero, con mejor lectura visual.</div>
+            """,
+            unsafe_allow_html=True,
+        )
         if df.empty:
             st.info("Aún no hay movimientos. Registra el primero desde el panel derecho.")
         else:
             for _, row in df.sort_values("fecha", ascending=False).head(8).iterrows():
-                render_movimiento_row(row)
-        st.markdown("</div>", unsafe_allow_html=True)
-
-    with col_right:
-        st.markdown("<div class='soft-card'>", unsafe_allow_html=True)
-        section_header("Registro rápido", "Menos de 5 segundos.")
-        categorias_ingreso = obtener_categorias_usuario(user_id, "Ingreso")
-        categorias_gasto = obtener_categorias_usuario(user_id, "Gasto")
-        render_form_registro(user_id, categorias_ingreso, categorias_gasto, key_prefix="home")
+                tipo = str(row.get("tipo", ""))
+                is_income = tipo == "Ingreso"
+                dot_cls = "home-movement-dot-income" if is_income else "home-movement-dot-expense"
+                amount_cls = "home-movement-amount-income" if is_income else "home-movement-amount-expense"
+                signo = "+" if is_income else "-"
+                icon = "↑" if is_income else "↓"
+                fecha = pd.to_datetime(row.get("fecha"), errors="coerce")
+                fecha_txt = fecha.strftime("%d %b") if pd.notna(fecha) else "Sin fecha"
+                titulo = row.get("descripcion") or row.get("categoria") or tipo
+                st.markdown(
+                    f"""
+                    <div class="home-movement-card">
+                        <div class="home-movement-left">
+                            <div class="home-movement-dot {dot_cls}">{icon}</div>
+                            <div>
+                                <div class="home-movement-name">{safe_text(titulo)}</div>
+                                <div class="home-movement-meta">{safe_text(fecha_txt)} · {safe_text(tipo)} · {safe_text(row.get('categoria'))}</div>
+                            </div>
+                        </div>
+                        <div class="{amount_cls}">{signo}{money(row.get('monto', 0))}</div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
         st.markdown("</div>", unsafe_allow_html=True)
 
     if not df_mes.empty:
@@ -1307,7 +1628,16 @@ def pagina_inicio(user_id, nombre, df, meta_row, presupuesto_total, limites_visi
         if not g.empty:
             resumen = g.groupby("categoria", dropna=False)["monto"].sum().reset_index().sort_values("monto", ascending=False)
             fig = px.bar(resumen, x="categoria", y="monto", title="Gastos por categoría")
-            fig.update_layout(height=360, margin=dict(l=20, r=20, t=55, b=40), paper_bgcolor="white", plot_bgcolor="white")
+            fig.update_layout(
+                height=360,
+                margin=dict(l=20, r=20, t=55, b=40),
+                paper_bgcolor="white",
+                plot_bgcolor="white",
+                font=dict(color="#0F172A"),
+                title_font=dict(color="#0F172A", size=20),
+            )
+            fig.update_xaxes(tickfont=dict(color="#334155"), title_font=dict(color="#334155"))
+            fig.update_yaxes(tickfont=dict(color="#334155"), title_font=dict(color="#334155"), gridcolor="rgba(148,163,184,.25)")
             st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
 
 
