@@ -30,7 +30,7 @@ st.set_page_config(
     page_title="Zentix",
     page_icon="icono_zentix_v2.png",
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="collapsed",
 )
 
 APP_NAME = "Zentix"
@@ -100,72 +100,235 @@ def aplicar_estilo_zentix():
         """
         <style>
         :root {
-            --bg: #F5F7FB;
+            --bg: #F3F6FB;
             --surface: #FFFFFF;
-            --surface-soft: #F8FAFC;
+            --surface-soft: #F8FBFF;
             --text: #0F172A;
-            --muted: #64748B;
+            --muted: #475569;
             --line: rgba(15,23,42,.08);
             --brand: #4F46E5;
             --brand2: #2563EB;
+            --brand3: #7C3AED;
             --green: #16A34A;
             --red: #DC2626;
             --amber: #D97706;
+            --cyan: #0891B2;
             --shadow: 0 18px 40px rgba(15,23,42,.08);
             --radius: 24px;
         }
-        html, body, [class*="css"] { color: var(--text); }
+
+        html, body, [class*="css"] {
+            color: var(--text) !important;
+        }
+
         .stApp {
             background:
                 radial-gradient(circle at top left, rgba(79,70,229,.10), transparent 25%),
-                radial-gradient(circle at top right, rgba(37,99,235,.08), transparent 22%),
-                linear-gradient(180deg, #F5F7FB 0%, #EEF3FA 100%);
+                radial-gradient(circle at top right, rgba(14,165,233,.10), transparent 22%),
+                linear-gradient(180deg, #F4F7FC 0%, #EEF3FA 100%);
         }
+
         header[data-testid="stHeader"] {
             background: rgba(255,255,255,.82);
             backdrop-filter: blur(14px);
             border-bottom: 1px solid rgba(15,23,42,.04);
         }
+
         .block-container {
             max-width: 1320px;
             padding-top: 1rem;
             padding-bottom: 4rem;
         }
+
         [data-testid="stSidebar"] {
-            background: linear-gradient(180deg, rgba(255,255,255,.96), rgba(248,250,252,.98));
+            background: linear-gradient(180deg, #F8FAFF 0%, #EEF2FF 100%);
             border-right: 1px solid rgba(15,23,42,.06);
+            box-shadow: 10px 0 28px rgba(15,23,42,.05);
         }
-        h1, h2, h3 { letter-spacing: -.04em; color: #0F172A !important; }
-        a { color: var(--brand); }
+
+        /* Boton nativo para abrir/cerrar el panel lateral */
+        [data-testid="collapsedControl"] {
+            position: fixed !important;
+            top: 0.85rem !important;
+            left: 0.85rem !important;
+            z-index: 999999 !important;
+            background: linear-gradient(135deg, #0F172A 0%, #312E81 55%, #4F46E5 100%) !important;
+            border-radius: 16px !important;
+            padding: 0.18rem !important;
+            box-shadow: 0 14px 26px rgba(15,23,42,.22) !important;
+            border: 1px solid rgba(255,255,255,.18) !important;
+        }
+
+        [data-testid="collapsedControl"] button {
+            min-width: 46px !important;
+            min-height: 46px !important;
+            color: #FFFFFF !important;
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+        }
+
+        [data-testid="collapsedControl"] svg,
+        [data-testid="collapsedControl"] path {
+            fill: #FFFFFF !important;
+            color: #FFFFFF !important;
+        }
+
+        section[data-testid="stSidebar"] button[kind="header"],
+        section[data-testid="stSidebar"] button[title="Close sidebar"] {
+            color: #0F172A !important;
+            background: #EEF2FF !important;
+            border-radius: 14px !important;
+        }
+
+        section[data-testid="stSidebar"] button[kind="header"] svg,
+        section[data-testid="stSidebar"] button[title="Close sidebar"] svg {
+            fill: #0F172A !important;
+            color: #0F172A !important;
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            color: #0F172A !important;
+            letter-spacing: -.04em;
+        }
+
+        p, span, div, label, small {
+            color: #0F172A !important;
+        }
+
+        .stMarkdown, .stMarkdown p, .stMarkdown span, .stMarkdown div {
+            color: #0F172A !important;
+        }
+
+        label,
+        .stSelectbox label,
+        .stTextInput label,
+        .stNumberInput label,
+        .stDateInput label,
+        .stTextArea label,
+        .stRadio label,
+        .stCheckbox label,
+        .stMultiSelect label {
+            color: #0F172A !important;
+            font-weight: 850 !important;
+        }
+
+        .stCaption,
+        .stCaption p,
+        [data-testid="stCaptionContainer"],
+        [data-testid="stCaptionContainer"] p {
+            color: #475569 !important;
+        }
+
+        [data-testid="stForm"] h1,
+        [data-testid="stForm"] h2,
+        [data-testid="stForm"] h3,
+        [data-testid="stForm"] p,
+        [data-testid="stForm"] div,
+        [data-testid="stForm"] label,
+        [data-testid="stForm"] span {
+            color: #0F172A !important;
+        }
+
+        /* Tabs */
+        .stTabs [data-baseweb="tab-list"] {
+            gap: .5rem;
+            background: #EAF0FA !important;
+            padding: .45rem !important;
+            border-radius: 18px !important;
+            border: 1px solid rgba(148,163,184,.20) !important;
+        }
+
+        .stTabs [data-baseweb="tab"] {
+            background: #FFFFFF !important;
+            color: #0F172A !important;
+            border-radius: 14px !important;
+            padding: .65rem 1rem !important;
+            font-weight: 900 !important;
+            border: 1px solid rgba(148,163,184,.18) !important;
+            box-shadow: 0 8px 16px rgba(15,23,42,.04) !important;
+        }
+
+        .stTabs [data-baseweb="tab"] p,
+        .stTabs [data-baseweb="tab"] span {
+            color: #0F172A !important;
+            font-weight: 900 !important;
+        }
+
+        .stTabs [aria-selected="true"] {
+            background: linear-gradient(135deg, #4F46E5, #7C3AED) !important;
+            color: #FFFFFF !important;
+            border-color: transparent !important;
+        }
+
+        .stTabs [aria-selected="true"] p,
+        .stTabs [aria-selected="true"] span {
+            color: #FFFFFF !important;
+        }
+
+        a {
+            color: var(--brand) !important;
+        }
+
         .hero-card {
             background:
-                radial-gradient(circle at top left, rgba(255,255,255,.20), transparent 30%),
-                linear-gradient(135deg, #0F172A 0%, #172554 44%, #4F46E5 82%, #7C3AED 100%);
-            color: white;
+                radial-gradient(circle at top left, rgba(255,255,255,.22), transparent 30%),
+                linear-gradient(135deg, #0F172A 0%, #1E3A8A 40%, #4F46E5 75%, #7C3AED 100%);
+            color: #FFFFFF !important;
             border-radius: 30px;
-            padding: 1.3rem 1.4rem;
+            padding: 1.35rem 1.45rem;
             box-shadow: 0 28px 50px rgba(15,23,42,.24);
             margin-bottom: 1rem;
         }
+
+        .hero-card * {
+            color: #FFFFFF !important;
+        }
+
         .hero-badge {
             display: inline-block;
-            padding: .35rem .72rem;
+            padding: .38rem .76rem;
             border-radius: 999px;
-            background: rgba(255,255,255,.16);
-            border: 1px solid rgba(255,255,255,.18);
-            color: #F8FAFC;
-            font-size: .76rem;
-            font-weight: 800;
+            background: rgba(255,255,255,.18);
+            border: 1px solid rgba(255,255,255,.20);
+            color: #F8FAFC !important;
+            font-size: .78rem;
+            font-weight: 850;
             margin-bottom: .85rem;
         }
-        .hero-title { color: white !important; font-size: 2.1rem; font-weight: 950; margin: 0 0 .3rem 0; }
-        .hero-sub { color: rgba(255,255,255,.90); font-size: 1rem; line-height: 1.55; max-width: 760px; }
-        .hero-pills { display: flex; flex-wrap: wrap; gap: .55rem; margin-top: 1rem; }
-        .hero-pill {
-            display: inline-block; padding: .42rem .82rem; border-radius: 999px;
-            background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.18);
-            color: white; font-weight: 750; font-size: .85rem;
+
+        .hero-title {
+            color: #FFFFFF !important;
+            font-size: 2.15rem;
+            font-weight: 950;
+            margin: 0 0 .3rem 0;
         }
+
+        .hero-sub {
+            color: rgba(255,255,255,.92) !important;
+            font-size: 1rem;
+            line-height: 1.55;
+            max-width: 760px;
+        }
+
+        .hero-pills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: .55rem;
+            margin-top: 1rem;
+        }
+
+        .hero-pill {
+            display: inline-block;
+            padding: .42rem .82rem;
+            border-radius: 999px;
+            background: rgba(255,255,255,.16);
+            border: 1px solid rgba(255,255,255,.20);
+            color: #FFFFFF !important;
+            font-weight: 850;
+            font-size: .85rem;
+        }
+
         .soft-card, .kpi-card, .simple-card, .movement-card {
             background: linear-gradient(180deg, #FFFFFF 0%, #F8FBFF 100%);
             border: 1px solid rgba(15,23,42,.07);
@@ -174,53 +337,290 @@ def aplicar_estilo_zentix():
             padding: 1rem 1.05rem;
             margin-bottom: .9rem;
         }
-        .section-title { font-size: 1.2rem; font-weight: 950; letter-spacing: -.03em; margin-bottom: .15rem; }
-        .section-caption, .muted { color: var(--muted) !important; font-size: .92rem; line-height: 1.55; }
-        .kpi-card { min-height: 128px; }
-        .kpi-label { color: #475569; font-size: .82rem; font-weight: 800; margin-bottom: .55rem; }
-        .kpi-value { color: #0F172A; font-size: 1.68rem; line-height: 1.05; font-weight: 950; letter-spacing: -.04em; }
-        .kpi-foot { color: #64748B; font-size: .82rem; margin-top: .3rem; }
-        .kpi-income { background: linear-gradient(180deg, #ECFDF5, #F0FDF4); border-color: rgba(34,197,94,.18); }
-        .kpi-expense { background: linear-gradient(180deg, #FEF2F2, #FFF1F2); border-color: rgba(239,68,68,.18); }
-        .kpi-balance { background: linear-gradient(180deg, #EFF6FF, #EEF2FF); border-color: rgba(37,99,235,.18); }
-        .kpi-saving { background: linear-gradient(180deg, #F5F3FF, #FAF5FF); border-color: rgba(124,58,237,.18); }
-        .pill {
-            display:inline-flex; align-items:center; gap:.35rem; padding:.42rem .76rem;
-            border-radius:999px; font-size:.82rem; font-weight:850;
-            border:1px solid rgba(148,163,184,.22); background:white;
+
+        .soft-card *, .kpi-card *, .simple-card *, .movement-card * {
+            color: #0F172A !important;
         }
-        .pill-income { background:#DCFCE7; border-color:#86EFAC; color:#166534; }
-        .pill-expense { background:#FEE2E2; border-color:#FCA5A5; color:#991B1B; }
-        .pill-info { background:#EEF2FF; border-color:#C7D2FE; color:#3730A3; }
-        .movement-row { display:flex; justify-content:space-between; gap:.9rem; align-items:flex-start; padding:.78rem 0; border-bottom:1px solid rgba(15,23,42,.06); }
-        .movement-row:last-child { border-bottom:none; }
-        .movement-title { font-weight:900; color:#0F172A; }
-        .movement-sub { color:#64748B; font-size:.84rem; margin-top:.15rem; }
-        .amount-income { color:#16A34A; font-weight:950; white-space:nowrap; }
-        .amount-expense { color:#DC2626; font-weight:950; white-space:nowrap; }
+
+        .section-title {
+            font-size: 1.2rem;
+            font-weight: 950;
+            letter-spacing: -.03em;
+            margin-bottom: .15rem;
+            color: #0F172A !important;
+        }
+
+        .section-caption, .muted {
+            color: #475569 !important;
+            font-size: .94rem;
+            line-height: 1.55;
+        }
+
+        .kpi-card {
+            min-height: 128px;
+        }
+
+        .kpi-label {
+            color: #334155 !important;
+            font-size: .84rem;
+            font-weight: 850;
+            margin-bottom: .55rem;
+        }
+
+        .kpi-value {
+            color: #0F172A !important;
+            font-size: 1.7rem;
+            line-height: 1.05;
+            font-weight: 950;
+            letter-spacing: -.04em;
+        }
+
+        .kpi-foot {
+            color: #475569 !important;
+            font-size: .83rem;
+            margin-top: .3rem;
+        }
+
+        .kpi-income {
+            background: linear-gradient(180deg, #ECFDF5, #F0FDF4);
+            border-color: rgba(34,197,94,.20);
+        }
+
+        .kpi-expense {
+            background: linear-gradient(180deg, #FEF2F2, #FFF1F2);
+            border-color: rgba(239,68,68,.20);
+        }
+
+        .kpi-balance {
+            background: linear-gradient(180deg, #EFF6FF, #EEF2FF);
+            border-color: rgba(37,99,235,.20);
+        }
+
+        .kpi-saving {
+            background: linear-gradient(180deg, #F5F3FF, #FAF5FF);
+            border-color: rgba(124,58,237,.20);
+        }
+
+        .pill {
+            display:inline-flex;
+            align-items:center;
+            gap:.35rem;
+            padding:.48rem .82rem;
+            border-radius:999px;
+            font-size:.84rem;
+            font-weight:850;
+            border:1px solid rgba(148,163,184,.22);
+            background:#FFFFFF;
+            color:#0F172A !important;
+        }
+
+        .pill-income {
+            background:#DCFCE7;
+            border-color:#86EFAC;
+            color:#166534 !important;
+        }
+
+        .pill-expense {
+            background:#FEE2E2;
+            border-color:#FCA5A5;
+            color:#991B1B !important;
+        }
+
+        .pill-info {
+            background:#EEF2FF;
+            border-color:#C7D2FE;
+            color:#3730A3 !important;
+        }
+
+        .movement-row {
+            display:flex;
+            justify-content:space-between;
+            gap:.9rem;
+            align-items:flex-start;
+            padding:.78rem 0;
+            border-bottom:1px solid rgba(15,23,42,.06);
+        }
+
+        .movement-row:last-child {
+            border-bottom:none;
+        }
+
+        .movement-title {
+            font-weight:900;
+            color:#0F172A !important;
+        }
+
+        .movement-sub {
+            color:#64748B !important;
+            font-size:.84rem;
+            margin-top:.15rem;
+        }
+
+        .amount-income {
+            color:#16A34A !important;
+            font-weight:950;
+            white-space:nowrap;
+        }
+
+        .amount-expense {
+            color:#DC2626 !important;
+            font-weight:950;
+            white-space:nowrap;
+        }
+
         .stButton > button {
             border-radius: 18px;
-            min-height: 48px;
-            font-weight: 850;
+            min-height: 50px;
+            font-weight: 900;
+            font-size: 1rem;
             border: 1px solid rgba(15,23,42,.08);
-            box-shadow: 0 10px 20px rgba(15,23,42,.045);
+            box-shadow: 0 10px 20px rgba(15,23,42,.05);
+            transition: all .2s ease;
         }
+
+        .stButton > button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 14px 24px rgba(15,23,42,.08);
+        }
+
         .stButton > button[kind="primary"] {
-            background: linear-gradient(135deg, #0F172A 0%, #172554 45%, #4F46E5 100%);
+            background: linear-gradient(135deg, #0F172A 0%, #1D4ED8 45%, #4F46E5 100%);
+            color: #FFFFFF !important;
             border: none;
         }
-        .stTextInput input, .stNumberInput input, .stDateInput input, textarea,
-        .stSelectbox div[data-baseweb="select"] > div {
+
+        .stButton > button[kind="primary"] p,
+        .stButton > button[kind="primary"] span,
+        .stButton > button[kind="primary"] div {
+            color: #FFFFFF !important;
+        }
+
+        .stTextInput input,
+        .stNumberInput input,
+        .stDateInput input,
+        textarea,
+        .stSelectbox div[data-baseweb="select"] > div,
+        .stMultiSelect div[data-baseweb="select"] > div {
             border-radius: 16px !important;
             min-height: 48px !important;
+            background: #FFFFFF !important;
+            color: #0F172A !important;
+            border: 1px solid #CBD5E1 !important;
         }
-        div[data-testid="stProgressBar"] > div > div { background: linear-gradient(90deg, #4F46E5, #06B6D4); }
-        .chat-bubble { border-radius:18px; padding:.85rem .95rem; margin-bottom:.65rem; line-height:1.55; }
-        .chat-ai { background:#FFFFFF; border:1px solid rgba(148,163,184,.22); }
-        .chat-user { background:#EEF2FF; border:1px solid #C7D2FE; }
-        .footer-note { color:#64748B; font-size:.82rem; margin-top:1rem; text-align:center; }
+
+        .stSelectbox div[data-baseweb="select"] span,
+        .stMultiSelect div[data-baseweb="select"] span {
+            color: #0F172A !important;
+        }
+
+        textarea::placeholder,
+        input::placeholder {
+            color: #64748B !important;
+            opacity: 1 !important;
+        }
+
+        .stRadio label p,
+        .stRadio div[role="radiogroup"] label,
+        .stRadio div[role="radiogroup"] span {
+            color: #0F172A !important;
+            font-weight: 850 !important;
+        }
+
+        div[data-testid="stProgressBar"] > div > div {
+            background: linear-gradient(90deg, #4F46E5, #06B6D4);
+        }
+
+        .chat-bubble {
+            border-radius:18px;
+            padding:.85rem .95rem;
+            margin-bottom:.65rem;
+            line-height:1.55;
+            color:#0F172A !important;
+        }
+
+        .chat-ai {
+            background:#FFFFFF;
+            border:1px solid rgba(148,163,184,.22);
+        }
+
+        .chat-user {
+            background:#EEF2FF;
+            border:1px solid #C7D2FE;
+        }
+
+        .footer-note {
+            color:#475569 !important;
+            font-size:.84rem;
+            margin-top:1rem;
+            text-align:center;
+        }
+
+        section[data-testid="stSidebar"] .stButton > button {
+            background: linear-gradient(135deg, #0F172A 0%, #312E81 55%, #4F46E5 100%);
+            color: #FFFFFF !important;
+            border: none !important;
+            font-weight: 900;
+        }
+
+        section[data-testid="stSidebar"] .stButton > button p,
+        section[data-testid="stSidebar"] .stButton > button span {
+            color: #FFFFFF !important;
+        }
+
+        section[data-testid="stSidebar"] .stButton > button:hover {
+            filter: brightness(1.05);
+        }
+
+        .home-action-card * {
+            color:#0F172A !important;
+        }
+
+        .home-color-title,
+        .home-color-title span,
+        .home-caption,
+        .home-alert-box,
+        .home-alert-box strong,
+        .home-insight-label,
+        .home-insight-value,
+        .home-movement-name,
+        .home-movement-meta {
+            color:#0F172A !important;
+        }
+
+        .home-caption,
+        .home-insight-label,
+        .home-movement-meta {
+            color:#475569 !important;
+        }
+
+        .home-register-shell * {
+            color:#FFFFFF !important;
+        }
+
+        .home-register-shell input,
+        .home-register-shell textarea,
+        .home-register-shell div[data-baseweb="select"] > div,
+        .home-register-shell div[data-baseweb="select"] span {
+            color:#0F172A !important;
+            background:#FFFFFF !important;
+        }
+
+        .home-register-shell .stRadio label p,
+        .home-register-shell .stRadio div[role="radiogroup"] span,
+        .home-register-shell label {
+            color:#F8FAFC !important;
+        }
+
+        .stForm .section-title,
+        .stForm .section-caption,
+        .stForm .home-color-title,
+        .stForm .home-caption {
+            color:#0F172A !important;
+        }
+
         #MainMenu { visibility:hidden; }
         footer { visibility:hidden; }
+
         @media (max-width: 900px) {
             .hero-title { font-size:1.72rem; }
             .block-container { padding-left:.8rem; padding-right:.8rem; }
@@ -229,14 +629,6 @@ def aplicar_estilo_zentix():
         """,
         unsafe_allow_html=True,
     )
-
-
-aplicar_estilo_zentix()
-
-
-# ============================================================
-# UTILIDADES
-# ============================================================
 
 def money(value):
     try:
@@ -1044,9 +1436,11 @@ def exportar_excel(df):
 
 def render_auth():
     col_left, col_right = st.columns([1.05, .95], gap="large")
+
     with col_left:
         if ICON_PATH:
             st.image(str(ICON_PATH), width=110)
+
         st.markdown(
             f"""
             <div class="hero-card">
@@ -1063,6 +1457,7 @@ def render_auth():
             """,
             unsafe_allow_html=True,
         )
+
         st.markdown(
             """
             <div class="soft-card">
@@ -1075,12 +1470,41 @@ def render_auth():
 
     with col_right:
         st.markdown("<div class='soft-card'>", unsafe_allow_html=True)
-        section_header("Acceso", "Crea tu cuenta o entra con tu correo.")
-        tab_login, tab_reg, tab_reset = st.tabs(["Login", "Registro", "Recuperar"])
+        section_header("Acceso", "Primero crea tu cuenta. Si ya la tienes, entra desde Login.")
+
+        tab_reg, tab_login, tab_reset = st.tabs(["Registro", "Login", "Recuperar"])
+
+        with tab_reg:
+            st.markdown(
+                "<div class='muted' style='margin-bottom:.75rem;'>Si eres nuevo, empieza aquí.</div>",
+                unsafe_allow_html=True,
+            )
+            reg_email = st.text_input("Correo para registro", key="reg_email")
+            reg_password = st.text_input("Contraseña", type="password", key="reg_password")
+            reg_password_2 = st.text_input("Confirma contraseña", type="password", key="reg_password_2")
+
+            if st.button("Crear cuenta", type="primary", use_container_width=True):
+                if not reg_email or "@" not in reg_email:
+                    st.error("Escribe un correo válido.")
+                elif len(reg_password or "") < 6:
+                    st.error("La contraseña debe tener al menos 6 caracteres.")
+                elif reg_password != reg_password_2:
+                    st.error("Las contraseñas no coinciden.")
+                else:
+                    try:
+                        supabase.auth.sign_up({"email": reg_email.strip(), "password": reg_password})
+                        st.success("Cuenta creada. Ahora entra desde Login. Si Supabase exige confirmación, revisa tu correo.")
+                    except Exception as e:
+                        st.error(f"No pude crear la cuenta: {e}")
 
         with tab_login:
+            st.markdown(
+                "<div class='muted' style='margin-bottom:.75rem;'>Si ya estás registrado, entra aquí.</div>",
+                unsafe_allow_html=True,
+            )
             email = st.text_input("Correo", key="login_email")
             password = st.text_input("Contraseña", type="password", key="login_password")
+
             if st.button("Entrar a Zentix", type="primary", use_container_width=True):
                 if not email or not password:
                     st.error("Escribe correo y contraseña.")
@@ -1096,26 +1520,13 @@ def render_auth():
                     except Exception as e:
                         st.error(f"No pude iniciar sesión: {e}")
 
-        with tab_reg:
-            reg_email = st.text_input("Correo para registro", key="reg_email")
-            reg_password = st.text_input("Contraseña", type="password", key="reg_password")
-            reg_password_2 = st.text_input("Confirma contraseña", type="password", key="reg_password_2")
-            if st.button("Crear cuenta", type="primary", use_container_width=True):
-                if not reg_email or "@" not in reg_email:
-                    st.error("Escribe un correo válido.")
-                elif len(reg_password or "") < 6:
-                    st.error("La contraseña debe tener al menos 6 caracteres.")
-                elif reg_password != reg_password_2:
-                    st.error("Las contraseñas no coinciden.")
-                else:
-                    try:
-                        supabase.auth.sign_up({"email": reg_email.strip(), "password": reg_password})
-                        st.success("Cuenta creada. Ahora entra desde Login. Si Supabase exige confirmación, revisa tu correo.")
-                    except Exception as e:
-                        st.error(f"No pude crear la cuenta: {e}")
-
         with tab_reset:
+            st.markdown(
+                "<div class='muted' style='margin-bottom:.75rem;'>Si olvidaste tu contraseña, recupérala aquí.</div>",
+                unsafe_allow_html=True,
+            )
             reset_email = st.text_input("Correo de recuperación", key="reset_email")
+
             if st.button("Enviar enlace de recuperación", use_container_width=True):
                 if not reset_email:
                     st.error("Escribe tu correo.")
@@ -1125,12 +1536,8 @@ def render_auth():
                         st.success("Si el correo existe, Supabase enviará el enlace de recuperación.")
                     except Exception as e:
                         st.error(f"No pude enviar la recuperación: {e}")
+
         st.markdown("</div>", unsafe_allow_html=True)
-
-
-# ============================================================
-# ONBOARDING
-# ============================================================
 
 def render_onboarding(user_id, email):
     st.markdown(
@@ -1219,15 +1626,34 @@ def render_form_registro(user_id, categorias_ingreso, categorias_gasto, key_pref
 
 def render_registro_por_texto(user_id, categorias_ingreso, categorias_gasto):
     st.markdown("<div class='soft-card'>", unsafe_allow_html=True)
-    section_header("Registro por texto", "Escribe como hablarías: 'Gasté 12000 en almuerzo' o 'Recibí 250000 de freelance'.")
-    texto = st.text_input("Movimiento rápido", placeholder="Ej: gasté 18000 en transporte", key="quick_text_register")
+    st.markdown(
+        """
+        <div class="home-color-title">
+            <span class="home-color-icon">⚡</span>
+            <span style="color:#0F172A !important;">Registro por texto</span>
+        </div>
+        <div class="home-caption" style="color:#475569 !important;">
+            Escribe como hablarías: "Gasté 12000 en almuerzo" o "Recibí 250000 de freelance".
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    texto = st.text_input(
+        "Movimiento rápido",
+        placeholder="Ej: gasté 18000 en transporte",
+        key="quick_text_register",
+    )
+
     if texto:
         parsed = parsear_movimiento_texto(texto, categorias_ingreso, categorias_gasto)
         if parsed["monto"] > 0:
             st.info(f"Zentix entendió: {parsed['tipo']} · {parsed['categoria']} · {money(parsed['monto'])}")
         else:
             st.warning("No detecté monto todavía. Incluye un número para registrar.")
+
     col_a, col_b = st.columns([1, 1])
+
     with col_a:
         if st.button("Registrar desde texto", type="primary", use_container_width=True):
             parsed = parsear_movimiento_texto(texto, categorias_ingreso, categorias_gasto)
@@ -1250,14 +1676,14 @@ def render_registro_por_texto(user_id, categorias_ingreso, categorias_gasto):
                     st.rerun()
                 else:
                     st.error(f"No pude guardar: {resp}")
+
     with col_b:
-        st.caption("La categorización automática usa reglas simples y tus categorías configuradas.")
+        st.markdown(
+            "<div class='muted' style='padding-top:.35rem; color:#475569 !important;'>La categorización automática usa reglas simples y tus categorías configuradas.</div>",
+            unsafe_allow_html=True,
+        )
+
     st.markdown("</div>", unsafe_allow_html=True)
-
-
-# ============================================================
-# PÁGINAS
-# ============================================================
 
 def pagina_inicio(user_id, nombre, df, meta_row, presupuesto_total, limites_visibles):
     df_mes = filtrar_mes(df)
@@ -1654,12 +2080,26 @@ def pagina_registrar(user_id, df):
         """,
         unsafe_allow_html=True,
     )
+
     col1, col2 = st.columns([1.05, .95], gap="large")
+
     with col1:
         st.markdown("<div class='soft-card'>", unsafe_allow_html=True)
-        section_header("Formulario simple", "Ingreso o gasto, monto, categoría y listo.")
+        st.markdown(
+            """
+            <div class="home-color-title">
+                <span class="home-color-icon">📝</span>
+                <span style="color:#0F172A !important;">Formulario simple</span>
+            </div>
+            <div class="home-caption" style="color:#475569 !important;">
+                Ingreso o gasto, monto, categoría y listo.
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
         render_form_registro(user_id, categorias_ingreso, categorias_gasto, key_prefix="register")
         st.markdown("</div>", unsafe_allow_html=True)
+
     with col2:
         render_registro_por_texto(user_id, categorias_ingreso, categorias_gasto)
 
@@ -1670,9 +2110,12 @@ def pagina_registrar(user_id, df):
     else:
         show = df.sort_values("fecha", ascending=False).head(10).copy()
         show["fecha"] = show["fecha"].dt.strftime("%Y-%m-%d")
-        st.dataframe(show[["fecha", "tipo", "categoria", "monto", "descripcion", "emocion"]], use_container_width=True, hide_index=True)
+        st.dataframe(
+            show[["fecha", "tipo", "categoria", "monto", "descripcion", "emocion"]],
+            use_container_width=True,
+            hide_index=True,
+        )
     st.markdown("</div>", unsafe_allow_html=True)
-
 
 def pagina_presupuesto(user_id, df, df_limites):
     df_mes = filtrar_mes(df)
