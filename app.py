@@ -1450,45 +1450,226 @@ def generar_alertas(df, meta_row=None, presupuesto_total=0, limites_df=None):
     return alertas[:5]
 
 
-def construir_reporte_semanal(df, meta_row=None):
-    semana = filtrar_semana_actual(df)
-    semana_ant = filtrar_semana_anterior(df)
-    ing, gas, saldo = resumen_movimientos(semana)
-    _, gas_ant, _ = resumen_movimientos(semana_ant)
-    top_cat, top_monto, top_share = top_categoria_gasto(semana)
-    meta = float((meta_row or {}).get("meta", 0) or 0)
-    puntos = []
-    puntos.append(f"Ingresos de la semana: {money(ing)}.")
-    puntos.append(f"Gastos de la semana: {money(gas)}.")
-    puntos.append(f"Disponible semanal: {money(saldo)}.")
-    if gas_ant > 0:
-        delta = gas - gas_ant
-        if delta > 0:
-            puntos.append(f"Gastaste {money(delta)} más que la semana pasada.")
-        else:
-            puntos.append(f"Gastaste {money(abs(delta))} menos que la semana pasada.")
-    if top_cat:
-        puntos.append(f"La categoría más alta fue {top_cat} con {money(top_monto)}.")
-    if meta > 0:
-        puntos.append(f"Tu meta activa es {money(meta)}. Disponible actual del mes: {money(resumen_movimientos(filtrar_mes(df))[2])}.")
-    if not semana.empty:
-        puntos.append("Siguiente paso: corrige una sola categoría, no todo al tiempo.")
+
+def obtener_rango_reporte(tipo_reporte="Semanal", fecha_ref=None):
+    """
+    Devuelve inicio, fin_exclusivo, etiqueta larga y etiqueta corta para reportes
+    diario, semanal o mensual. Mantiene fechas naive para comparar con pandas.
+    """
+    fecha = pd.Timestamp(fecha_ref or date.today()).normalize()
+    tipo = str(tipo_reporte or "Semanal").strip().lower()
+
+    if tipo.startswith("di"):
+        inicio = fecha
+        fin = inicio + pd.Timedelta(days=1)
+        etiqueta = f"Día {inicio.strftime('%d/%m/%Y')}"
+        etiqueta_corta = inicio.strftime("%Y-%m-%d")
+        nombre_periodo = "diario"
+    elif tipo.startswith("men"):
+        inicio = pd.Timestamp(year=fecha.year, month=fecha.month, day=1)
+        fin = inicio + pd.DateOffset(months=1)
+        meses_es = [
+            "enero", "febrero", "marzo", "abril", "mayo", "junio",
+            "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"
+        ]
+        etiqueta = f"Mes de {meses_es[inicio.month - 1]} de {inicio.year}"
+        etiqueta_corta = inicio.strftime("%Y-%m")
+        nombre_periodo = "mensual"
     else:
-        puntos.append("Siguiente paso: registra al menos 3 movimientos esta semana para activar mejores alertas.")
+        inicio = fecha - pd.Timedelta(days=fecha.weekday())
+        fin = inicio + pd.Timedelta(days=7)
+        ultimo = fin - pd.Timedelta(days=1)
+        etiqueta = f"Semana del {inicio.strftime('%d/%m/%Y')} al {ultimo.strftime('%d/%m/%Y')}"
+        etiqueta_corta = f"{inicio.strftime('%Y-%m-%d')}_a_{ultimo.strftime('%Y-%m-%d')}"
+        nombre_periodo = "semanal"
+
+    return inicio, fin, etiqueta, etiqueta_corta, nombre_periodo
+
+
+def obtener_periodo_anterior(tipo_reporte, inicio, fin):
+    tipo = str(tipo_reporte or "Semanal").strip().lower()
+    if tipo.startswith("men"):
+        inicio_anterior = inicio - pd.DateOffset(months=1)
+        fin_anterior = inicio
+    else:
+        duracion = fin - inicio
+        inicio_anterior = inicio - duracion
+        fin_anterior = inicio
+    return pd.Timestamp(inicio_anterior).normalize(), pd.Timestamp(fin_anterior).normalize()
+
+
+def filtrar_rango(df, inicio, fin):
+    df = filtrar_personal(df)
+    if df.empty:
+        return df
+    inicio = pd.Timestamp(inicio).normalize()
+    fin = pd.Timestamp(fin).normalize()
+    return df[(df["fecha"] >= inicio) & (df["fecha"] < fin)].copy()
+
+
+def etiqueta_periodo_para_texto(nombre_periodo):
+    nombre_periodo = str(nombre_periodo or "semanal").lower()
+    if nombre_periodo == "diario":
+        return "del día"
+    if nombre_periodo == "mensual":
+        return "del mes"
+    return "de la semana"
+
+
+def resumen_periodo(df, tipo_reporte="Semanal", fecha_ref=None):
+    inicio, fin, etiqueta, etiqueta_corta, nombre_periodo = obtener_rango_reporte(tipo_reporte, fecha_ref)
+    inicio_ant, fin_ant = obtener_periodo_anterior(tipo_reporte, inicio, fin)
+
+    df_periodo = filtrar_rango(df, inicio, fin)
+    df_anterior = filtrar_rango(df, inicio_ant, fin_ant)
+
+    ing, gas, saldo = resumen_movimientos(df_periodo)
+    ing_ant, gas_ant, saldo_ant = resumen_movimientos(df_anterior)
+    top_cat, top_monto, top_share = top_categoria_gasto(df_periodo)
+
+    return {
+        "tipo_reporte": tipo_reporte,
+        "nombre_periodo": nombre_periodo,
+        "inicio": inicio,
+        "fin": fin,
+        "inicio_anterior": inicio_ant,
+        "fin_anterior": fin_ant,
+        "etiqueta": etiqueta,
+        "etiqueta_corta": etiqueta_corta,
+        "df_periodo": df_periodo,
+        "df_anterior": df_anterior,
+        "ingresos": ing,
+        "gastos": gas,
+        "saldo": saldo,
+        "ingresos_anterior": ing_ant,
+        "gastos_anterior": gas_ant,
+        "saldo_anterior": saldo_ant,
+        "top_categoria": top_cat,
+        "top_monto": top_monto,
+        "top_share": top_share,
+    }
+
+
+def texto_comparacion_periodo(resumen):
+    gas = float(resumen.get("gastos", 0) or 0)
+    gas_ant = float(resumen.get("gastos_anterior", 0) or 0)
+    saldo = float(resumen.get("saldo", 0) or 0)
+    saldo_ant = float(resumen.get("saldo_anterior", 0) or 0)
+
+    if gas_ant <= 0 and saldo_ant == 0:
+        return "Aún no hay suficiente historial para comparar con el periodo anterior."
+
+    dif_gasto = gas - gas_ant
+    dif_saldo = saldo - saldo_ant
+
+    if dif_gasto > 0:
+        gasto_txt = f"gastaste {money(dif_gasto)} más"
+    elif dif_gasto < 0:
+        gasto_txt = f"gastaste {money(abs(dif_gasto))} menos"
+    else:
+        gasto_txt = "gastaste lo mismo"
+
+    if dif_saldo > 0:
+        saldo_txt = f"tu balance mejoró {money(dif_saldo)}"
+    elif dif_saldo < 0:
+        saldo_txt = f"tu balance bajó {money(abs(dif_saldo))}"
+    else:
+        saldo_txt = "tu balance quedó igual"
+
+    return f"Frente al periodo anterior, {gasto_txt} y {saldo_txt}."
+
+
+def construir_historial_mensual(df, meses=12):
+    df = filtrar_personal(df)
+    columnas = ["mes_periodo", "mes", "ingresos", "gastos", "balance", "movimientos"]
+    if df.empty:
+        return pd.DataFrame(columns=columnas)
+
+    temp = df.copy()
+    temp["mes_periodo"] = temp["fecha"].dt.to_period("M").astype(str)
+
+    resumen = (
+        temp.groupby(["mes_periodo", "tipo"])["monto"]
+        .sum()
+        .unstack(fill_value=0)
+        .reset_index()
+    )
+
+    if "Ingreso" not in resumen.columns:
+        resumen["Ingreso"] = 0.0
+    if "Gasto" not in resumen.columns:
+        resumen["Gasto"] = 0.0
+
+    conteo = temp.groupby("mes_periodo").size().reset_index(name="movimientos")
+    resumen = resumen.merge(conteo, on="mes_periodo", how="left")
+
+    resumen["ingresos"] = pd.to_numeric(resumen["Ingreso"], errors="coerce").fillna(0)
+    resumen["gastos"] = pd.to_numeric(resumen["Gasto"], errors="coerce").fillna(0)
+    resumen["balance"] = resumen["ingresos"] - resumen["gastos"]
+    resumen["mes_fecha"] = pd.to_datetime(resumen["mes_periodo"] + "-01", errors="coerce")
+    resumen["mes"] = resumen["mes_fecha"].dt.strftime("%Y-%m")
+
+    resumen = resumen.sort_values("mes_fecha", ascending=False).head(int(meses or 12))
+    return resumen[columnas].copy()
+
+
+def construir_reporte_periodo(df, meta_row=None, tipo_reporte="Semanal", fecha_ref=None):
+    resumen = resumen_periodo(df, tipo_reporte, fecha_ref)
+    etiqueta_txt = etiqueta_periodo_para_texto(resumen["nombre_periodo"])
+    ing = resumen["ingresos"]
+    gas = resumen["gastos"]
+    saldo = resumen["saldo"]
+    top_cat = resumen["top_categoria"]
+    top_monto = resumen["top_monto"]
+    top_share = resumen["top_share"]
+
+    meta = float((meta_row or {}).get("meta", 0) or 0)
+    df_mes_ref = filtrar_mes(df, resumen["inicio"])
+    saldo_mes_ref = resumen_movimientos(df_mes_ref)[2]
+
+    puntos = []
+    puntos.append(f"Ingresos {etiqueta_txt}: {money(ing)}.")
+    puntos.append(f"Gastos {etiqueta_txt}: {money(gas)}.")
+    puntos.append(f"Balance personal {etiqueta_txt}: {money(saldo)}.")
+    puntos.append(texto_comparacion_periodo(resumen))
+
+    if top_cat:
+        puntos.append(f"La categoría más alta fue {top_cat} con {money(top_monto)} ({fmt_pct(top_share)} del gasto del periodo).")
+    else:
+        puntos.append("Aún no hay una categoría dominante en este periodo.")
+
+    if meta > 0:
+        puntos.append(f"Tu meta activa es {money(meta)}. Disponible del mes revisado: {money(saldo_mes_ref)}.")
+
+    if resumen["df_periodo"].empty:
+        puntos.append("Siguiente paso: registra al menos 3 movimientos en este periodo para activar mejores alertas.")
+    elif saldo < 0:
+        puntos.append("Siguiente paso: revisa gastos variables y busca volver a saldo positivo.")
+    elif top_cat and top_share >= 0.40:
+        puntos.append(f"Siguiente paso: corrige una sola categoría, empezando por {top_cat}.")
+    else:
+        puntos.append("Siguiente paso: mantén el hábito de registro y protege el saldo positivo.")
+
     return puntos
 
 
-def generar_pdf_reporte(nombre, df, meta_row=None):
+def construir_reporte_semanal(df, meta_row=None):
+    # Compatibilidad con la versión anterior: por defecto sigue construyendo reporte semanal.
+    return construir_reporte_periodo(df, meta_row, "Semanal", date.today())
+
+
+def generar_pdf_reporte(nombre, df, meta_row=None, tipo_reporte="Semanal", fecha_ref=None):
     """
-    Genera un PDF premium de una página con diseño visual, métricas claras,
-    resumen accionable y tabla de movimientos recientes.
+    Genera un PDF premium con diseño visual, métricas claras,
+    resumen accionable, comparación con periodo anterior y tabla de movimientos.
+    Permite reporte diario, semanal o mensual.
     """
     if not REPORTLAB_AVAILABLE:
         return None
 
     from reportlab.lib.units import mm
     from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
-    from reportlab.platypus import Image, KeepTogether
+    from reportlab.platypus import Image
 
     buffer = io.BytesIO()
 
@@ -1501,19 +1682,53 @@ def generar_pdf_reporte(nombre, df, meta_row=None):
     COLOR_BG = colors.HexColor("#F7FAFF")
     COLOR_INK = colors.HexColor("#101828")
     COLOR_MUTED = colors.HexColor("#667085")
-    COLOR_SOFT = colors.HexColor("#F8FAFC")
     COLOR_LINE = colors.HexColor("#E2E8F0")
     COLOR_NAVY = colors.HexColor("#101828")
     COLOR_PURPLE = colors.HexColor("#4C1D95")
-    COLOR_VIOLET = colors.HexColor("#7C3AED")
-    COLOR_LILAC = colors.HexColor("#F5F3FF")
-    COLOR_GOLD = colors.HexColor("#F59E0B")
     COLOR_GREEN = colors.HexColor("#16A34A")
     COLOR_RED = colors.HexColor("#DC2626")
     COLOR_BLUE_SOFT = colors.HexColor("#EEF2FF")
     COLOR_GREEN_SOFT = colors.HexColor("#ECFDF5")
     COLOR_RED_SOFT = colors.HexColor("#FEF2F2")
     COLOR_AMBER_SOFT = colors.HexColor("#FFFBEB")
+
+    resumen = resumen_periodo(df, tipo_reporte, fecha_ref)
+    df_periodo = resumen["df_periodo"]
+    df_anterior = resumen["df_anterior"]
+    etiqueta = resumen["etiqueta"]
+    nombre_periodo = resumen["nombre_periodo"]
+
+    ing = resumen["ingresos"]
+    gas = resumen["gastos"]
+    saldo = resumen["saldo"]
+    ing_ant = resumen["ingresos_anterior"]
+    gas_ant = resumen["gastos_anterior"]
+    saldo_ant = resumen["saldo_anterior"]
+    top_cat = resumen["top_categoria"]
+    top_monto = resumen["top_monto"]
+    top_share = resumen["top_share"]
+
+    df_mes_ref = filtrar_mes(df, resumen["inicio"])
+    ing_mes, gas_mes, saldo_mes = resumen_movimientos(df_mes_ref)
+
+    meta = float((meta_row or {}).get("meta", 0) or 0)
+    nombre_meta = str((meta_row or {}).get("nombre_meta", "") or "").strip()
+    progreso_meta = max(0, min(saldo_mes / meta, 1)) if meta > 0 else 0
+
+    tendencia = texto_comparacion_periodo(resumen)
+
+    if saldo < 0:
+        accion = "Prioridad: reduce gastos variables hasta volver a saldo positivo."
+        accion_color = COLOR_RED_SOFT
+    elif top_cat and top_share >= 0.40:
+        accion = f"Enfócate en {top_cat}: concentra {fmt_pct(top_share)} del gasto revisado."
+        accion_color = COLOR_AMBER_SOFT
+    elif meta > 0 and progreso_meta < 0.50:
+        accion = "Reserva un monto fijo esta semana para avanzar hacia tu meta."
+        accion_color = COLOR_BLUE_SOFT
+    else:
+        accion = "Mantén el hábito: registra a diario y protege el saldo positivo."
+        accion_color = COLOR_GREEN_SOFT
 
     doc = SimpleDocTemplate(
         buffer,
@@ -1522,7 +1737,7 @@ def generar_pdf_reporte(nombre, df, meta_row=None):
         leftMargin=MARGIN_X,
         topMargin=MARGIN_TOP,
         bottomMargin=MARGIN_BOTTOM,
-        title="Zentix - Reporte semanal",
+        title=f"Zentix - Reporte {nombre_periodo}",
         author="Zentix",
     )
 
@@ -1638,43 +1853,6 @@ def generar_pdf_reporte(nombre, df, meta_row=None):
         leading=10,
     )
 
-    df_semana = filtrar_semana_actual(df)
-    df_semana_ant = filtrar_semana_anterior(df)
-    df_mes = filtrar_mes(df)
-
-    ing_sem, gas_sem, saldo_sem = resumen_movimientos(df_semana)
-    _, gas_ant, _ = resumen_movimientos(df_semana_ant)
-    ing_mes, gas_mes, saldo_mes = resumen_movimientos(df_mes)
-    top_cat, top_monto, top_share = top_categoria_gasto(df_semana if not df_semana.empty else df_mes)
-
-    meta = float((meta_row or {}).get("meta", 0) or 0)
-    nombre_meta = str((meta_row or {}).get("nombre_meta", "") or "").strip()
-    progreso_meta = max(0, min(saldo_mes / meta, 1)) if meta > 0 else 0
-
-    if gas_ant > 0:
-        diferencia = gas_sem - gas_ant
-        if diferencia > 0:
-            tendencia = f"Subiste {money(diferencia)} frente a la semana anterior."
-        elif diferencia < 0:
-            tendencia = f"Bajaste {money(abs(diferencia))} frente a la semana anterior."
-        else:
-            tendencia = "Gastaste lo mismo que la semana anterior."
-    else:
-        tendencia = "Aún no hay suficiente historial para comparar semanas."
-
-    if saldo_mes < 0:
-        accion = "Prioridad: reduce gastos variables hasta volver a saldo positivo."
-        accion_color = COLOR_RED_SOFT
-    elif top_cat and top_share >= 0.40:
-        accion = f"Enfócate en {top_cat}: concentra {fmt_pct(top_share)} del gasto revisado."
-        accion_color = COLOR_AMBER_SOFT
-    elif meta > 0 and progreso_meta < 0.50:
-        accion = "Reserva un monto fijo esta semana para avanzar hacia tu meta."
-        accion_color = COLOR_BLUE_SOFT
-    else:
-        accion = "Mantén el hábito: registra a diario y protege el saldo positivo."
-        accion_color = COLOR_GREEN_SOFT
-
     def _page_background(canvas, document):
         canvas.saveState()
         canvas.setFillColor(COLOR_BG)
@@ -1698,10 +1876,6 @@ def generar_pdf_reporte(nombre, df, meta_row=None):
 
     def _spacer(h=8):
         return Spacer(1, h)
-
-    def _money_colored(value, tipo="neutral"):
-        color = "#16A34A" if tipo == "income" else "#DC2626" if tipo == "expense" else "#101828"
-        return f'<font color="{color}">{safe_text(money(value))}</font>'
 
     def _metric_card(label, value, caption, tint="#FFFFFF", accent="#7C3AED"):
         card = Table(
@@ -1741,9 +1915,9 @@ def generar_pdf_reporte(nombre, df, meta_row=None):
     except Exception:
         pass
 
-    header_title = Paragraph("Zentix · Reporte semanal", title_style)
+    header_title = Paragraph(f"Zentix · Reporte {nombre_periodo}", title_style)
     header_sub = Paragraph(
-        f"Usuario: <b>{safe_text(nombre)}</b><br/>Fecha: {date.today().strftime('%Y-%m-%d')} · Finanzas personales simples",
+        f"Usuario: <b>{safe_text(nombre)}</b><br/>{safe_text(etiqueta)} · Fecha de descarga: {date.today().strftime('%Y-%m-%d')}",
         subtitle_style,
     )
     header_right = Paragraph("✨ Control<br/>Claridad<br/>Hábito", small_white_style)
@@ -1767,12 +1941,11 @@ def generar_pdf_reporte(nombre, df, meta_row=None):
     story.append(header)
     story.append(_spacer(12))
 
-    # Métricas
     metric_table = Table(
         [[
-            _metric_card("Ingresos semana", money(ing_sem), "Entradas registradas", "#ECFDF5", "#16A34A"),
-            _metric_card("Gastos semana", money(gas_sem), "Salidas registradas", "#FEF2F2", "#DC2626"),
-            _metric_card("Disponible", money(saldo_sem), "Balance semanal", "#EEF2FF", "#4C1D95"),
+            _metric_card("Ingresos periodo", money(ing), "Entradas registradas", "#ECFDF5", "#16A34A"),
+            _metric_card("Gastos periodo", money(gas), "Salidas registradas", "#FEF2F2", "#DC2626"),
+            _metric_card("Balance", money(saldo), "Resultado del periodo", "#EEF2FF", "#4C1D95"),
             _metric_card("Meta", fmt_pct(progreso_meta) if meta > 0 else "Sin meta", money(meta) if meta > 0 else "Configúrala", "#F5F3FF", "#A855F7"),
         ]],
         colWidths=[(PAGE_W - 2 * MARGIN_X) / 4] * 4,
@@ -1788,13 +1961,13 @@ def generar_pdf_reporte(nombre, df, meta_row=None):
     story.append(metric_table)
     story.append(_spacer(10))
 
-    # Acción recomendada + lectura rápida
     insight_left = [
         Paragraph("Lectura rápida", h_style),
-        Paragraph(f"• Ingresos del mes: <b>{safe_text(money(ing_mes))}</b>", bullet_style),
-        Paragraph(f"• Gastos del mes: <b>{safe_text(money(gas_mes))}</b>", bullet_style),
-        Paragraph(f"• Disponible del mes: <b>{safe_text(money(saldo_mes))}</b>", bullet_style),
+        Paragraph(f"• Ingresos del periodo anterior: <b>{safe_text(money(ing_ant))}</b>", bullet_style),
+        Paragraph(f"• Gastos del periodo anterior: <b>{safe_text(money(gas_ant))}</b>", bullet_style),
+        Paragraph(f"• Balance del periodo anterior: <b>{safe_text(money(saldo_ant))}</b>", bullet_style),
         Paragraph(f"• {safe_text(tendencia)}", bullet_style),
+        Paragraph(f"• Balance del mes revisado: <b>{safe_text(money(saldo_mes))}</b>.", bullet_style),
     ]
 
     if top_cat:
@@ -1826,7 +1999,7 @@ def generar_pdf_reporte(nombre, df, meta_row=None):
                 fontSize=10,
                 leading=14,
             ))],
-            [Paragraph("Consejo Zentix: mejora una sola categoría por semana. Lo simple se mantiene.", muted_style)],
+            [Paragraph("Consejo Zentix: mejora una sola categoría por periodo. Lo simple se mantiene.", muted_style)],
         ],
         colWidths=[(PAGE_W - 2 * MARGIN_X) * 0.36],
     )
@@ -1859,12 +2032,50 @@ def generar_pdf_reporte(nombre, df, meta_row=None):
     story.append(insight_table)
     story.append(_spacer(12))
 
-    # Movimientos recientes
-    df_rep = df_semana.sort_values("fecha", ascending=False).head(18)
-    story.append(Paragraph("Movimientos recientes", h_style))
-    story.append(Paragraph("Detalle de los movimientos registrados esta semana.", muted_style))
+    # Balance mensual histórico compacto
+    hist = construir_historial_mensual(df, meses=6)
+    if not hist.empty:
+        story.append(Paragraph("Balance mensual histórico", h_style))
+        hist_data = [[
+            Paragraph("Mes", table_header_style),
+            Paragraph("Ingresos", table_header_style),
+            Paragraph("Gastos", table_header_style),
+            Paragraph("Balance", table_header_style),
+            Paragraph("Movs.", table_header_style),
+        ]]
+        for r in hist.sort_values("mes_periodo", ascending=False).itertuples():
+            balance_color = "#16A34A" if float(r.balance or 0) >= 0 else "#DC2626"
+            hist_data.append([
+                Paragraph(safe_text(r.mes), table_cell_style),
+                Paragraph(f'<font color="#16A34A"><b>{safe_text(money(r.ingresos))}</b></font>', table_cell_style),
+                Paragraph(f'<font color="#DC2626"><b>{safe_text(money(r.gastos))}</b></font>', table_cell_style),
+                Paragraph(f'<font color="{balance_color}"><b>{safe_text(money(r.balance))}</b></font>', table_cell_style),
+                Paragraph(str(int(r.movimientos or 0)), table_cell_muted_style),
+            ])
+        hist_table = Table(hist_data, colWidths=[26 * mm, 34 * mm, 34 * mm, 34 * mm, 18 * mm])
+        hist_style = [
+            ("BACKGROUND", (0, 0), (-1, 0), COLOR_PURPLE),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+            ("BOX", (0, 0), (-1, -1), 0.75, COLOR_LINE),
+            ("GRID", (0, 0), (-1, -1), 0.35, colors.HexColor("#E5E7EB")),
+            ("LEFTPADDING", (0, 0), (-1, -1), 7),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 7),
+            ("TOPPADDING", (0, 0), (-1, -1), 5),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ]
+        for row_idx in range(1, len(hist_data)):
+            bg = colors.white if row_idx % 2 else colors.HexColor("#F8FAFC")
+            hist_style.append(("BACKGROUND", (0, row_idx), (-1, row_idx), bg))
+        hist_table.setStyle(TableStyle(hist_style))
+        story.append(hist_table)
+        story.append(_spacer(12))
+
+    story.append(Paragraph("Movimientos del periodo", h_style))
+    story.append(Paragraph(f"Detalle de los movimientos registrados en: {safe_text(etiqueta)}.", muted_style))
     story.append(_spacer(5))
 
+    df_rep = df_periodo.sort_values("fecha", ascending=False).head(22)
     if not df_rep.empty:
         data = [[
             Paragraph("Fecha", table_header_style),
@@ -1911,7 +2122,7 @@ def generar_pdf_reporte(nombre, df, meta_row=None):
         story.append(table)
     else:
         empty_box = Table(
-            [[Paragraph("Aún no hay movimientos esta semana. Registra al menos 3 movimientos para activar un reporte más útil.", p_style)]],
+            [[Paragraph("Aún no hay movimientos en este periodo. Cambia el periodo o registra nuevos movimientos para activar un reporte más útil.", p_style)]],
             colWidths=[PAGE_W - 2 * MARGIN_X],
         )
         empty_box.setStyle(TableStyle([
@@ -1925,11 +2136,9 @@ def generar_pdf_reporte(nombre, df, meta_row=None):
         story.append(empty_box)
 
     story.append(_spacer(10))
-
-    # Cierre
     closing = Table(
         [[Paragraph(
-            "Este reporte no busca mostrarlo todo: busca darte claridad para tomar una decisión financiera simple esta semana.",
+            "Este reporte no busca mostrarlo todo: busca darte claridad para tomar una decisión financiera simple.",
             ParagraphStyle(
                 "Closing",
                 parent=styles["BodyText"],
@@ -2819,42 +3028,125 @@ def pagina_reporte(user_id, nombre, df, meta_row):
         """
         <div class="hero-card">
             <div class="hero-badge">Reporte</div>
-            <div class="hero-title">Tu semana en limpio.</div>
-            <div class="hero-sub">Pocas conclusiones, movimientos exportables y respaldo de datos.</div>
+            <div class="hero-title">Tu periodo en limpio.</div>
+            <div class="hero-sub">Elige reporte diario, semanal o mensual. También puedes revisar meses pasados y comparar tu balance personal.</div>
         </div>
         """,
         unsafe_allow_html=True,
     )
-    puntos = construir_reporte_semanal(df, meta_row)
+
+    st.markdown("<div class='soft-card'>", unsafe_allow_html=True)
+    section_header("Selecciona el periodo", "Cambia entre diario, semanal o mensual sin perder el formato premium del PDF.")
+    col_tipo, col_fecha = st.columns([0.8, 1.2], gap="large")
+    with col_tipo:
+        tipo_reporte = st.selectbox(
+            "Tipo de reporte",
+            ["Diario", "Semanal", "Mensual"],
+            index=1,
+            key="tipo_reporte_selector",
+        )
+    with col_fecha:
+        if tipo_reporte == "Diario":
+            fecha_ref = st.date_input("Día a revisar", value=date.today(), key="fecha_reporte_diario")
+        elif tipo_reporte == "Mensual":
+            fecha_ref = st.date_input("Mes a revisar", value=date.today(), key="fecha_reporte_mensual")
+            st.caption("Zentix usará el mes completo de la fecha seleccionada.")
+        else:
+            fecha_ref = st.date_input("Semana a revisar", value=date.today(), key="fecha_reporte_semanal")
+            st.caption("Zentix usará la semana completa que contiene esa fecha.")
+
+    resumen = resumen_periodo(df, tipo_reporte, fecha_ref)
+    df_periodo = resumen["df_periodo"]
+    df_anterior = resumen["df_anterior"]
+    etiqueta = resumen["etiqueta"]
+    etiqueta_corta = resumen["etiqueta_corta"]
+
+    ing = resumen["ingresos"]
+    gas = resumen["gastos"]
+    saldo = resumen["saldo"]
+    ing_ant = resumen["ingresos_anterior"]
+    gas_ant = resumen["gastos_anterior"]
+    saldo_ant = resumen["saldo_anterior"]
+    dif_gastos = gas - gas_ant
+    dif_saldo = saldo - saldo_ant
+
+    st.markdown(f"<div class='muted'>Periodo seleccionado: <b>{safe_text(etiqueta)}</b></div>", unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    c1, c2, c3, c4 = st.columns(4)
+    with c1:
+        kpi_card("Ingresos periodo", money(ing), "Entradas registradas", "income")
+    with c2:
+        kpi_card("Gastos periodo", money(gas), "Salidas registradas", "expense")
+    with c3:
+        kpi_card("Balance personal", money(saldo), "Ingresos menos gastos", "balance")
+    with c4:
+        if gas_ant > 0 or saldo_ant != 0:
+            estado = "Mejoró" if dif_saldo >= 0 else "Bajó"
+            kpi_card("Vs anterior", money(dif_saldo), estado, "saving" if dif_saldo >= 0 else "expense")
+        else:
+            kpi_card("Vs anterior", "Sin historial", "Registra más periodos", "saving")
+
+    puntos = construir_reporte_periodo(df, meta_row, tipo_reporte, fecha_ref)
     col1, col2 = st.columns([1, 1], gap="large")
     with col1:
         st.markdown("<div class='soft-card'>", unsafe_allow_html=True)
-        section_header("Resumen semanal", "Lo importante sin muchas gráficas.")
+        section_header(f"Resumen {tipo_reporte.lower()}", "Lo importante del periodo seleccionado.")
         for p in puntos:
             st.markdown(f"<span class='pill pill-info'>• {safe_text(p)}</span><br><br>", unsafe_allow_html=True)
         st.markdown("</div>", unsafe_allow_html=True)
 
     with col2:
         st.markdown("<div class='soft-card'>", unsafe_allow_html=True)
-        section_header("Exportar movimientos", "Respaldo para ti.")
+        section_header("Comparación rápida", "Diferencia contra el periodo anterior equivalente.")
+        if df_anterior.empty:
+            st.info("Todavía no hay datos suficientes del periodo anterior para comparar.")
+        else:
+            st.markdown(f"**Periodo anterior:** {money(ing_ant)} en ingresos, {money(gas_ant)} en gastos y {money(saldo_ant)} de balance.")
+            if dif_gastos > 0:
+                st.markdown(f"<span class='pill pill-expense'>Gastaste {money(dif_gastos)} más que el periodo anterior</span>", unsafe_allow_html=True)
+            elif dif_gastos < 0:
+                st.markdown(f"<span class='pill pill-income'>Gastaste {money(abs(dif_gastos))} menos que el periodo anterior</span>", unsafe_allow_html=True)
+            else:
+                st.markdown("<span class='pill pill-info'>Gastaste lo mismo que el periodo anterior</span>", unsafe_allow_html=True)
+
+            st.markdown("<br>", unsafe_allow_html=True)
+            if dif_saldo >= 0:
+                st.markdown(f"<span class='pill pill-income'>Tu balance mejoró {money(dif_saldo)}</span>", unsafe_allow_html=True)
+            else:
+                st.markdown(f"<span class='pill pill-expense'>Tu balance bajó {money(abs(dif_saldo))}</span>", unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True)
+
+        st.markdown("<div class='soft-card'>", unsafe_allow_html=True)
+        section_header("Exportar", "Descarga el periodo seleccionado.")
         if df.empty:
             st.info("No hay movimientos para exportar.")
         else:
-            archivo, mime, ext = exportar_excel(df)
+            archivo_periodo, mime_periodo, ext_periodo = exportar_excel(df_periodo)
             st.download_button(
-                "Descargar movimientos",
-                data=archivo,
-                file_name=f"zentix_movimientos_{date.today().isoformat()}.{ext}",
-                mime=mime,
+                f"Descargar movimientos {tipo_reporte.lower()}",
+                data=archivo_periodo,
+                file_name=f"zentix_movimientos_{tipo_reporte.lower()}_{etiqueta_corta}.{ext_periodo}",
+                mime=mime_periodo,
                 use_container_width=True,
             )
+
+            archivo_total, mime_total, ext_total = exportar_excel(df)
+            st.download_button(
+                "Descargar todos los movimientos",
+                data=archivo_total,
+                file_name=f"zentix_movimientos_todos_{date.today().isoformat()}.{ext_total}",
+                mime=mime_total,
+                use_container_width=True,
+            )
+
         if REPORTLAB_AVAILABLE:
-            pdf = generar_pdf_reporte(nombre, df, meta_row)
+            pdf = generar_pdf_reporte(nombre, df, meta_row, tipo_reporte, fecha_ref)
             if pdf:
                 st.download_button(
-                    "Descargar reporte PDF",
+                    f"Descargar reporte PDF {tipo_reporte.lower()}",
                     data=pdf,
-                    file_name=f"zentix_reporte_{date.today().isoformat()}.pdf",
+                    file_name=f"zentix_reporte_{tipo_reporte.lower()}_{etiqueta_corta}.pdf",
                     mime="application/pdf",
                     use_container_width=True,
                 )
@@ -2863,11 +3155,56 @@ def pagina_reporte(user_id, nombre, df, meta_row):
         st.markdown("</div>", unsafe_allow_html=True)
 
     st.markdown("<div class='soft-card'>", unsafe_allow_html=True)
-    section_header("Editar movimientos", "Solo ingreso/gasto para mantener Zentix simple.")
-    if df.empty:
-        st.info("Todavía no hay movimientos.")
+    section_header("Meses pasados y balance personal", "Aquí puedes ver el historial mensual para comparar cómo viene tu dinero.")
+    historial = construir_historial_mensual(df, meses=12)
+    if historial.empty:
+        st.info("Todavía no hay suficientes movimientos para construir un historial mensual.")
     else:
-        df_sorted = df.sort_values("fecha", ascending=False).copy()
+        historial_ordenado = historial.sort_values("mes_periodo", ascending=True)
+        fig_hist = px.bar(
+            historial_ordenado,
+            x="mes",
+            y="balance",
+            title="Balance personal por mes",
+            text="balance",
+        )
+        fig_hist.update_traces(texttemplate="%{text:,.0f}", textposition="outside")
+        fig_hist.update_layout(
+            height=360,
+            margin=dict(l=20, r=20, t=55, b=40),
+            paper_bgcolor="white",
+            plot_bgcolor="white",
+            font=dict(color="#0F172A"),
+            title_font=dict(color="#0F172A", size=20),
+        )
+        fig_hist.update_xaxes(tickfont=dict(color="#334155"), title_font=dict(color="#334155"))
+        fig_hist.update_yaxes(tickfont=dict(color="#334155"), title_font=dict(color="#334155"), gridcolor="rgba(148,163,184,.25)")
+        st.plotly_chart(fig_hist, use_container_width=True, config={"displayModeBar": False})
+
+        tabla_hist = historial.copy()
+        tabla_hist["ingresos"] = tabla_hist["ingresos"].apply(money)
+        tabla_hist["gastos"] = tabla_hist["gastos"].apply(money)
+        tabla_hist["balance"] = tabla_hist["balance"].apply(money)
+        tabla_hist = tabla_hist.rename(columns={
+            "mes": "Mes",
+            "ingresos": "Ingresos",
+            "gastos": "Gastos",
+            "balance": "Balance",
+            "movimientos": "Movimientos",
+        })
+        st.dataframe(
+            tabla_hist[["Mes", "Ingresos", "Gastos", "Balance", "Movimientos"]],
+            use_container_width=True,
+            hide_index=True,
+        )
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    st.markdown("<div class='soft-card'>", unsafe_allow_html=True)
+    section_header("Editar movimientos", f"Movimientos del periodo seleccionado: {etiqueta}.")
+    if df_periodo.empty:
+        st.info("No hay movimientos en este periodo. Cambia el día, semana o mes para revisar otros movimientos.")
+    else:
+        df_sorted = df_periodo.sort_values("fecha", ascending=False).copy()
         labels = {}
         for _, r in df_sorted.iterrows():
             labels[str(r["id"])] = f"{pd.to_datetime(r['fecha']).date()} · {r['tipo']} · {r['categoria']} · {money(r['monto'])} · {r.get('descripcion','')}"
@@ -2917,6 +3254,7 @@ def pagina_reporte(user_id, nombre, df, meta_row):
             else:
                 st.error(f"No pude eliminar: {resp}")
     st.markdown("</div>", unsafe_allow_html=True)
+
 
 
 def pagina_ia(user_id, nombre, df, meta_row, presupuesto_total, limites_visibles):
