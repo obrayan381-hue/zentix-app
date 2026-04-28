@@ -1011,6 +1011,7 @@ def top_categoria_gasto(df):
 # SUPABASE · PERFIL, CATEGORÍAS, PLANES
 # ============================================================
 
+
 @st.cache_data(ttl=90, show_spinner=False)
 def obtener_perfil(user_id):
     try:
@@ -1018,6 +1019,7 @@ def obtener_perfil(user_id):
         return result.data[0] if result.data else None
     except Exception:
         return None
+
 
 
 @st.cache_data(ttl=90, show_spinner=False)
@@ -1080,6 +1082,7 @@ def agregar_categoria(user_id, tipo, nombre):
         return False, f"No pude agregar la categoría: {e}"
 
 
+
 @st.cache_data(ttl=90, show_spinner=False)
 def obtener_plan_usuario(user_id):
     default = {"plan": "free", "estado": "active", "consultas_ia_dia": 10, "categorias_extra": 10}
@@ -1109,6 +1112,7 @@ def obtener_plan_usuario(user_id):
 # ============================================================
 # SUPABASE · MOVIMIENTOS
 # ============================================================
+
 
 @st.cache_data(ttl=25, show_spinner=False)
 def obtener_movimientos(user_id):
@@ -1189,6 +1193,7 @@ def eliminar_movimiento(movimiento_id):
 # SUPABASE · METAS Y PRESUPUESTOS
 # ============================================================
 
+
 @st.cache_data(ttl=60, show_spinner=False)
 def obtener_meta(user_id):
     try:
@@ -1224,6 +1229,7 @@ def guardar_meta(user_id, meta_valor, nombre_meta):
             return True, result
         except Exception as e:
             return False, e
+
 
 
 @st.cache_data(ttl=60, show_spinner=False)
@@ -1462,21 +1468,70 @@ def limpiar_respuesta_ia(texto):
 
 
 def respuesta_parece_incompleta(texto):
+    """
+    Validador suave. Antes estaba demasiado estricto y descartaba respuestas
+    buenas de Gemini solo porque no terminaban exactamente con punto o porque
+    venían con formato raro. Ahora solo marca como incompleta una respuesta
+    realmente vacía o claramente cortada.
+    """
     texto = str(texto or "").strip()
-    if len(texto) < 45:
+    if not texto:
+        return True
+    if len(texto) < 25:
         return True
     if texto.count("**") % 2 != 0:
         return True
-    if re.search(r"(\$|\$\d{1,3}|\d+[\.,]?)$", texto):
-        return True
-    if texto[-1] not in ".!?…":
+    if texto.endswith(("$", "(", ":", ",", " y", " de", " con", " para", " por")):
         return True
     return False
 
 
-def consultar_ia_zentix(pregunta, contexto, df):
+def completar_respuesta_ia(model, respuesta_parcial, pregunta, contexto):
+    """Intenta reconstruir una respuesta completa cuando Gemini devuelve algo cortado."""
     if not openai_client:
-        return respuesta_local_zentix(pregunta, contexto, df)
+        return ""
+
+    repair_system = """
+Eres Zentix IA. Reescribe la respuesta COMPLETA para el usuario.
+No uses Markdown, no uses asteriscos, no uses tablas.
+Responde en español claro, máximo 130 palabras, con frases completas.
+Usa los datos del contexto y termina con una acción concreta.
+""".strip()
+
+    repair_user = f"""
+Contexto:
+{contexto}
+
+Pregunta original:
+{pregunta}
+
+Respuesta anterior incompleta o con formato malo:
+{respuesta_parcial}
+
+Reescribe una respuesta completa y limpia.
+""".strip()
+
+    try:
+        response = openai_client.chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": repair_system},
+                {"role": "user", "content": repair_user},
+            ],
+            temperature=0.2,
+            max_tokens=900,
+        )
+        contenido = limpiar_respuesta_ia(response.choices[0].message.content or "")
+        return contenido.strip()
+    except Exception:
+        return ""
+
+
+def consultar_ia_zentix(pregunta, contexto, df):
+    fallback = respuesta_local_zentix(pregunta, contexto, df)
+
+    if not openai_client:
+        return fallback + "\n\nNota Zentix: la IA externa no está configurada en este momento. Revisa que GEMINI_API_KEY esté en tus secrets."
 
     system = """
 Eres Zentix IA, un asistente de finanzas personales simple, claro y responsable.
@@ -1485,14 +1540,14 @@ Tu estilo: corto, práctico, cálido y accionable. Habla en español colombiano 
 Prioriza: cuánto entra, cuánto sale, cuánto queda, hábito, presupuesto, meta y alertas simples.
 No menciones funciones empresariales, inventario, caja de negocio, cartera ni contabilidad; eso será BradaFin.
 Responde SIEMPRE completo y breve: máximo 140 palabras.
-No uses Markdown, no uses asteriscos, no uses tablas y no dejes frases sin terminar.
+No uses Markdown, no uses asteriscos, no uses tablas.
 Si el usuario pide un resumen, usa este orden: Ingresos, Gastos, Disponible, Categoría más alta y Acción sugerida.
 Termina siempre con una acción concreta en una frase completa.
 """.strip()
 
-    user = f"{contexto}\n\nPregunta del usuario:\n{pregunta}\n\nRecuerda: responde completo, breve, sin Markdown y con puntuación final."
+    user = f"{contexto}\n\nPregunta del usuario:\n{pregunta}\n\nResponde completo, breve, sin Markdown y con puntuación final."
     last_error = None
-    fallback = respuesta_local_zentix(pregunta, contexto, df)
+    mejor_respuesta_parcial = ""
 
     for model in GEMINI_MODEL_CANDIDATES:
         try:
@@ -1503,27 +1558,34 @@ Termina siempre con una acción concreta en una frase completa.
                     {"role": "user", "content": user},
                 ],
                 temperature=0.25,
-                max_tokens=1200,
+                max_tokens=1500,
             )
             choice = response.choices[0]
-            contenido = (choice.message.content or "").strip()
+            contenido_original = (choice.message.content or "").strip()
+            contenido = limpiar_respuesta_ia(contenido_original)
             finish_reason = getattr(choice, "finish_reason", None)
 
-            if finish_reason == "length" or respuesta_parece_incompleta(contenido):
-                last_error = f"Respuesta incompleta con modelo {model}"
-                continue
-
-            contenido = limpiar_respuesta_ia(contenido)
-            if contenido:
+            # Si hay una respuesta usable, devuélvela. No la descartes por reglas demasiado estrictas.
+            if contenido and len(contenido) >= 45 and finish_reason not in {"length", "max_tokens"}:
                 return contenido
+
+            # Si la respuesta parece cortada, intenta repararla una vez con el mismo modelo.
+            if contenido:
+                mejor_respuesta_parcial = contenido
+                reparada = completar_respuesta_ia(model, contenido, pregunta, contexto)
+                if reparada and len(reparada) >= 45:
+                    return reparada
+
+            last_error = f"Respuesta vacía o incompleta con modelo {model}"
         except Exception as e:
             last_error = e
             continue
 
-    if last_error:
-        return fallback + "\n\nNota Zentix: la IA externa no entregó una respuesta completa, por eso te muestro un resumen seguro generado con tus datos."
-    return fallback
+    # Si Gemini entregó algo parcialmente útil, muéstralo antes que ocultarlo.
+    if mejor_respuesta_parcial and len(mejor_respuesta_parcial) >= 25:
+        return mejor_respuesta_parcial + "\n\nZentix no pudo completar más texto en este intento. Vuelve a enviar la pregunta y reintento con Gemini."
 
+    return fallback + f"\n\nNota Zentix: no pude recibir una respuesta de Gemini en este momento. Detalle técnico: {safe_text(last_error)}"
 
 @st.cache_data(ttl=60, show_spinner=False)
 def obtener_uso_ia_hoy(user_id):
