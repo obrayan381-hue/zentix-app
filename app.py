@@ -1022,24 +1022,69 @@ def obtener_perfil(user_id):
 
 
 
+def normalizar_tipo_categoria(tipo):
+    tipo_txt = str(tipo or "").strip().lower()
+    return "Ingreso" if tipo_txt.startswith("ing") else "Gasto"
+
+
+def limpiar_lista_categorias(categorias):
+    """Quita vacíos y duplicados, conservando el orden visual."""
+    resultado = []
+    vistos = set()
+    for cat in categorias or []:
+        nombre = str(cat or "").strip()
+        if not nombre:
+            continue
+        key = nombre.lower()
+        if key in vistos:
+            continue
+        vistos.add(key)
+        resultado.append(nombre)
+    return resultado
+
+
 @st.cache_data(ttl=90, show_spinner=False)
 def obtener_categorias_usuario(user_id, tipo):
+    """
+    Devuelve categorías separadas por tipo.
+
+    Corrección importante:
+    - Ingreso muestra categorías de ingreso + defaults de ingreso.
+    - Gasto muestra categorías de gasto + defaults de gasto.
+    - Si en la base quedaron categorías cruzadas de versiones anteriores
+      como Salario dentro de Gasto, no se muestran en el selector de Gasto.
+    """
+    tipo_norm = normalizar_tipo_categoria(tipo)
+    defaults = DEFAULT_INGRESOS if tipo_norm == "Ingreso" else DEFAULT_GASTOS
+    opuestas = DEFAULT_GASTOS if tipo_norm == "Ingreso" else DEFAULT_INGRESOS
+    opuestas_set = {c.lower() for c in opuestas if c.lower() != "otros"}
+    defaults_set = {c.lower() for c in defaults}
+
+    categorias_bd = []
     try:
         result = (
             supabase.table("categorias_usuario")
             .select("*")
             .eq("usuario_id", user_id)
-            .eq("tipo", tipo)
+            .eq("tipo", tipo_norm)
             .order("nombre")
             .execute()
         )
         data = result.data if result.data else []
-        categorias = [str(x.get("nombre", "")).strip() for x in data if str(x.get("nombre", "")).strip()]
-        if categorias:
-            return categorias
+        for row in data:
+            nombre = str(row.get("nombre", "")).strip()
+            if not nombre:
+                continue
+            # Evita que categorías típicas de ingreso aparezcan en gasto y viceversa,
+            # salvo "Otros", que sí puede existir en ambos lados.
+            if nombre.lower() in opuestas_set and nombre.lower() not in defaults_set:
+                continue
+            categorias_bd.append(nombre)
     except Exception:
-        pass
-    return DEFAULT_INGRESOS if tipo == "Ingreso" else DEFAULT_GASTOS
+        categorias_bd = []
+
+    # Defaults primero para que la experiencia móvil sea clara; luego categorías creadas por el usuario.
+    return limpiar_lista_categorias(list(defaults) + categorias_bd)
 
 
 def guardar_onboarding(user_id, nombre_mostrado, categorias_gasto, categorias_ingreso):
@@ -1071,11 +1116,20 @@ def guardar_onboarding(user_id, nombre_mostrado, categorias_gasto, categorias_in
 
 
 def agregar_categoria(user_id, tipo, nombre):
+    tipo_norm = normalizar_tipo_categoria(tipo)
     nombre = str(nombre or "").strip()
     if not nombre:
         return False, "Escribe una categoría."
+
     try:
-        supabase.table("categorias_usuario").insert({"usuario_id": user_id, "tipo": tipo, "nombre": nombre}).execute()
+        actuales = obtener_categorias_usuario(user_id, tipo_norm)
+        if nombre.lower() in {c.lower() for c in actuales}:
+            return True, "Esa categoría ya existe."
+    except Exception:
+        pass
+
+    try:
+        supabase.table("categorias_usuario").insert({"usuario_id": user_id, "tipo": tipo_norm, "nombre": nombre}).execute()
         clear_cached_data()
         return True, "Categoría agregada."
     except Exception as e:
@@ -2575,11 +2629,14 @@ def render_form_registro(user_id, categorias_ingreso, categorias_gasto, key_pref
             monto = st.number_input("Monto", min_value=0.0, step=1000.0, key=f"{key_prefix}_monto")
         descripcion = st.text_input("Descripción", placeholder="Ej: Almuerzo, salario, transporte...", key=f"{key_prefix}_descripcion")
         categorias = categorias_ingreso if tipo == "Ingreso" else categorias_gasto
+        categorias = limpiar_lista_categorias(categorias or ["Otros"])
         categoria_sugerida = sugerir_categoria(descripcion, tipo, categorias)
         default_index = categorias.index(categoria_sugerida) if categoria_sugerida in categorias else 0
         col4, col5 = st.columns([1.1, .9])
         with col4:
-            categoria = st.selectbox("Categoría", categorias, index=default_index, key=f"{key_prefix}_categoria")
+            # La key incluye el tipo para que al cambiar Ingreso/Gasto en móvil
+            # Streamlit refresque el selector y no conserve categorías del tipo anterior.
+            categoria = st.selectbox("Categoría", categorias, index=default_index, key=f"{key_prefix}_categoria_{tipo.lower()}")
         with col5:
             emocion = ""
             if tipo == "Gasto":
