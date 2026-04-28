@@ -1430,32 +1430,70 @@ def respuesta_local_zentix(pregunta, contexto, df):
     top_cat, top_monto, top_share = top_categoria_gasto(df_mes)
     if df_mes.empty:
         return "Aún no tengo suficientes movimientos. Empieza registrando tus ingresos y gastos principales; con 5 a 10 datos ya puedo darte una lectura más útil."
-    accion = "Sigue registrando a diario."
+
+    estado = "positivo" if saldo >= 0 else "negativo"
+    accion = "Sigue registrando a diario para mantener claridad."
     if saldo < 0:
-        accion = "Tu primer paso debe ser frenar gastos variables hasta recuperar saldo positivo."
+        accion = "Prioridad: reduce gastos variables hasta recuperar saldo positivo."
     elif top_cat and top_share >= 0.40:
-        accion = f"Tu mejor ajuste está en {top_cat}. Intenta reducir esa categoría un 10% esta semana."
-    elif gastos > ingresos * 0.8 and ingresos > 0:
-        accion = "Estás usando más del 80% de tus ingresos. Define un techo de gasto semanal para no cerrar el mes justo."
+        accion = f"Enfócate en {top_cat}: intenta reducir esa categoría un 10% esta semana."
+    elif ingresos > 0 and gastos > ingresos * 0.8:
+        accion = "Define un techo de gasto semanal para no cerrar el mes justo."
+
     return (
-        f"Resumen rápido: este mes entraron {money(ingresos)}, salieron {money(gastos)} y te quedan {money(saldo)}. "
-        f"Tu categoría más pesada es {top_cat or 'sin datos'} con {money(top_monto)}. {accion}"
+        f"Resumen de tu mes:\n"
+        f"Ingresos: {money(ingresos)}.\n"
+        f"Gastos: {money(gastos)}.\n"
+        f"Disponible: {money(saldo)} ({estado}).\n"
+        f"Categoría más alta: {top_cat or 'sin datos'} con {money(top_monto)}.\n"
+        f"Acción sugerida: {accion}"
     )
+
+
+def limpiar_respuesta_ia(texto):
+    texto = str(texto or "").strip()
+    texto = texto.replace("**", "")
+    texto = texto.replace("__", "")
+    texto = texto.replace("###", "")
+    texto = texto.replace("##", "")
+    texto = texto.replace("#", "")
+    texto = re.sub(r"\n{3,}", "\n\n", texto)
+    return texto.strip()
+
+
+def respuesta_parece_incompleta(texto):
+    texto = str(texto or "").strip()
+    if len(texto) < 45:
+        return True
+    if texto.count("**") % 2 != 0:
+        return True
+    if re.search(r"(\$|\$\d{1,3}|\d+[\.,]?)$", texto):
+        return True
+    if texto[-1] not in ".!?…":
+        return True
+    return False
 
 
 def consultar_ia_zentix(pregunta, contexto, df):
     if not openai_client:
         return respuesta_local_zentix(pregunta, contexto, df)
+
     system = """
 Eres Zentix IA, un asistente de finanzas personales simple, claro y responsable.
 No eres contador, abogado ni asesor financiero regulado. No prometas rendimientos.
 Tu estilo: corto, práctico, cálido y accionable. Habla en español colombiano neutro.
 Prioriza: cuánto entra, cuánto sale, cuánto queda, hábito, presupuesto, meta y alertas simples.
 No menciones funciones empresariales, inventario, caja de negocio, cartera ni contabilidad; eso será BradaFin.
-Si el usuario pide registrar un movimiento, extrae tipo, monto, categoría sugerida y una descripción breve.
+Responde SIEMPRE completo y breve: máximo 140 palabras.
+No uses Markdown, no uses asteriscos, no uses tablas y no dejes frases sin terminar.
+Si el usuario pide un resumen, usa este orden: Ingresos, Gastos, Disponible, Categoría más alta y Acción sugerida.
+Termina siempre con una acción concreta en una frase completa.
 """.strip()
-    user = f"{contexto}\n\nPregunta del usuario:\n{pregunta}"
+
+    user = f"{contexto}\n\nPregunta del usuario:\n{pregunta}\n\nRecuerda: responde completo, breve, sin Markdown y con puntuación final."
     last_error = None
+    fallback = respuesta_local_zentix(pregunta, contexto, df)
+
     for model in GEMINI_MODEL_CANDIDATES:
         try:
             response = openai_client.chat.completions.create(
@@ -1464,14 +1502,27 @@ Si el usuario pide registrar un movimiento, extrae tipo, monto, categoría suger
                     {"role": "system", "content": system},
                     {"role": "user", "content": user},
                 ],
-                temperature=0.35,
-                max_tokens=700,
+                temperature=0.25,
+                max_tokens=1200,
             )
-            return response.choices[0].message.content.strip()
+            choice = response.choices[0]
+            contenido = (choice.message.content or "").strip()
+            finish_reason = getattr(choice, "finish_reason", None)
+
+            if finish_reason == "length" or respuesta_parece_incompleta(contenido):
+                last_error = f"Respuesta incompleta con modelo {model}"
+                continue
+
+            contenido = limpiar_respuesta_ia(contenido)
+            if contenido:
+                return contenido
         except Exception as e:
             last_error = e
             continue
-    return respuesta_local_zentix(pregunta, contexto, df) + f"\n\nNota: no pude conectar con la IA externa en este momento ({last_error})."
+
+    if last_error:
+        return fallback + "\n\nNota Zentix: la IA externa no entregó una respuesta completa, por eso te muestro un resumen seguro generado con tus datos."
+    return fallback
 
 
 @st.cache_data(ttl=60, show_spinner=False)
