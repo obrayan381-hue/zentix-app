@@ -2619,29 +2619,67 @@ def render_movimiento_row(row):
 
 
 def render_form_registro(user_id, categorias_ingreso, categorias_gasto, key_prefix="main"):
-    with st.form(f"form_registro_{key_prefix}", clear_on_submit=True):
-        col1, col2, col3 = st.columns([.85, 1.1, 1.1])
-        with col1:
-            tipo = st.radio("Tipo", ["Ingreso", "Gasto"], horizontal=True, key=f"{key_prefix}_tipo")
+    """
+    Formulario de registro con categorías separadas por tipo.
+
+    Corrección clave:
+    En Streamlit, los widgets dentro de un st.form NO recalculan el formulario
+    hasta que se envía. Por eso, si el radio Ingreso/Gasto está dentro del form,
+    el selectbox de categorías puede quedarse mostrando las categorías anteriores.
+
+    Solución:
+    El selector de tipo va FUERA del form. Así al cambiar Ingreso/Gasto la app
+    rerenderiza inmediatamente y carga las categorías correctas.
+    """
+    tipo_key = f"{key_prefix}_tipo"
+    tipo = st.radio(
+        "Tipo",
+        ["Ingreso", "Gasto"],
+        horizontal=True,
+        key=tipo_key,
+    )
+
+    categorias_ingreso = limpiar_lista_categorias(categorias_ingreso or DEFAULT_INGRESOS)
+    categorias_gasto = limpiar_lista_categorias(categorias_gasto or DEFAULT_GASTOS)
+    categorias = categorias_ingreso if tipo == "Ingreso" else categorias_gasto
+    categorias = limpiar_lista_categorias(categorias or ["Otros"])
+
+    with st.form(f"form_registro_{key_prefix}_{tipo.lower()}", clear_on_submit=True):
+        col2, col3 = st.columns([1.1, 1.1])
         with col2:
-            fecha_mov = st.date_input("Fecha", value=date.today(), key=f"{key_prefix}_fecha")
+            fecha_mov = st.date_input("Fecha", value=date.today(), key=f"{key_prefix}_fecha_{tipo.lower()}")
         with col3:
-            monto = st.number_input("Monto", min_value=0.0, step=1000.0, key=f"{key_prefix}_monto")
-        descripcion = st.text_input("Descripción", placeholder="Ej: Almuerzo, salario, transporte...", key=f"{key_prefix}_descripcion")
-        categorias = categorias_ingreso if tipo == "Ingreso" else categorias_gasto
-        categorias = limpiar_lista_categorias(categorias or ["Otros"])
+            monto = st.number_input("Monto", min_value=0.0, step=1000.0, key=f"{key_prefix}_monto_{tipo.lower()}")
+
+        descripcion = st.text_input(
+            "Descripción",
+            placeholder="Ej: Almuerzo, salario, transporte...",
+            key=f"{key_prefix}_descripcion_{tipo.lower()}",
+        )
+
         categoria_sugerida = sugerir_categoria(descripcion, tipo, categorias)
         default_index = categorias.index(categoria_sugerida) if categoria_sugerida in categorias else 0
+
         col4, col5 = st.columns([1.1, .9])
         with col4:
-            # La key incluye el tipo para que al cambiar Ingreso/Gasto en móvil
-            # Streamlit refresque el selector y no conserve categorías del tipo anterior.
-            categoria = st.selectbox("Categoría", categorias, index=default_index, key=f"{key_prefix}_categoria_{tipo.lower()}")
+            categoria = st.selectbox(
+                "Categoría",
+                categorias,
+                index=default_index,
+                key=f"{key_prefix}_categoria_{tipo.lower()}",
+            )
         with col5:
             emocion = ""
             if tipo == "Gasto":
-                emocion = st.selectbox("Emoción opcional", EMOCIONES, format_func=lambda x: "No registrar" if x == "" else x, key=f"{key_prefix}_emocion")
+                emocion = st.selectbox(
+                    "Emoción opcional",
+                    EMOCIONES,
+                    format_func=lambda x: "No registrar" if x == "" else x,
+                    key=f"{key_prefix}_emocion_{tipo.lower()}",
+                )
+
         submitted = st.form_submit_button("Guardar movimiento", type="primary", use_container_width=True)
+
     if submitted:
         if monto <= 0:
             st.error("El monto debe ser mayor a cero.")
@@ -2652,7 +2690,6 @@ def render_form_registro(user_id, categorias_ingreso, categorias_gasto, key_pref
                 st.rerun()
             else:
                 st.error(f"No pude guardar el movimiento: {resp}")
-
 
 def render_registro_por_texto(user_id, categorias_ingreso, categorias_gasto):
     st.markdown("<div class='soft-card'>", unsafe_allow_html=True)
