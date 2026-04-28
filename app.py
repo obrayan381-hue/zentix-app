@@ -2,6 +2,7 @@ import os
 import re
 import io
 import html
+import base64
 from datetime import datetime, date, timedelta
 from pathlib import Path
 
@@ -720,6 +721,80 @@ def aplicar_estilo_zentix():
             color: #FFFFFF !important;
         }
 
+
+        /* Logo inicial: más aire, mejor proporción y sin verse pegado arriba */
+        .auth-logo-wrap {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 26px 0 18px 8px;
+            min-height: 78px;
+        }
+
+        .auth-logo-wrap img {
+            width: 132px;
+            max-width: 38vw;
+            height: auto;
+            object-fit: contain;
+            display: block;
+            filter: drop-shadow(0 12px 20px rgba(76,29,149,.16));
+        }
+
+        @media (max-width: 900px) {
+            .auth-logo-wrap {
+                justify-content: center;
+                padding: 18px 0 14px 0;
+            }
+            .auth-logo-wrap img {
+                width: 118px;
+            }
+        }
+
+        /* Menú desplegable de selectbox: fondo oscuro con letras claras */
+        div[data-baseweb="popover"] {
+            z-index: 999999 !important;
+        }
+
+        div[data-baseweb="popover"] [role="listbox"],
+        div[data-baseweb="popover"] ul,
+        div[data-baseweb="menu"] {
+            background: #101828 !important;
+            border: 1px solid rgba(192,132,252,.45) !important;
+            border-radius: 16px !important;
+            box-shadow: 0 22px 38px rgba(16,24,40,.26) !important;
+            padding: .35rem !important;
+        }
+
+        div[data-baseweb="popover"] [role="option"],
+        div[data-baseweb="popover"] li,
+        div[data-baseweb="menu"] [role="option"] {
+            background: #101828 !important;
+            color: #FFFFFF !important;
+            border-radius: 12px !important;
+            font-weight: 850 !important;
+        }
+
+        div[data-baseweb="popover"] [role="option"] *,
+        div[data-baseweb="popover"] li *,
+        div[data-baseweb="menu"] [role="option"] *,
+        div[data-baseweb="popover"] [role="option"] p,
+        div[data-baseweb="popover"] [role="option"] span {
+            color: #FFFFFF !important;
+            font-weight: 850 !important;
+        }
+
+        div[data-baseweb="popover"] [role="option"]:hover,
+        div[data-baseweb="popover"] li:hover,
+        div[data-baseweb="popover"] [aria-selected="true"] {
+            background: linear-gradient(135deg, #4C1D95 0%, #7C3AED 68%, #A855F7 100%) !important;
+            color: #FFFFFF !important;
+        }
+
+        div[data-baseweb="popover"] [aria-selected="true"] *,
+        div[data-baseweb="popover"] [role="option"]:hover * {
+            color: #FFFFFF !important;
+        }
+
         #MainMenu { visibility:hidden; }
         footer { visibility:hidden; }
 
@@ -751,6 +826,39 @@ def fmt_pct(value):
 
 def safe_text(value):
     return html.escape(str(value or ""))
+
+
+def logo_data_uri():
+    if not ICON_PATH:
+        return ""
+    try:
+        suffix = ICON_PATH.suffix.lower().replace(".", "")
+        if suffix == "jpg":
+            suffix = "jpeg"
+        raw = ICON_PATH.read_bytes()
+        encoded = base64.b64encode(raw).decode("utf-8")
+        return f"data:image/{suffix};base64,{encoded}"
+    except Exception:
+        return ""
+
+
+def render_logo_superior():
+    if not ICON_PATH:
+        return
+    data_uri = logo_data_uri()
+    if data_uri:
+        st.markdown(
+            f"""
+            <div class="auth-logo-wrap">
+                <img src="{data_uri}" alt="Logo Zentix" />
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+    else:
+        st.markdown("<div style='height:18px'></div>", unsafe_allow_html=True)
+        st.image(str(ICON_PATH), width=128)
+        st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
 
 
 def clear_cached_data():
@@ -2191,8 +2299,7 @@ def render_auth():
     col_left, col_right = st.columns([1.05, .95], gap="large")
 
     with col_left:
-        if ICON_PATH:
-            st.image(str(ICON_PATH), width=110)
+        render_logo_superior()
 
         st.markdown(
             f"""
