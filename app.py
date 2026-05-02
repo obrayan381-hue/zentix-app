@@ -1219,12 +1219,31 @@ def insertar_movimiento(user_id, tipo, categoria, monto, descripcion="", fecha_m
 
 
 def actualizar_movimiento(movimiento_id, payload):
+    """
+    Actualiza un movimiento de ingreso o gasto.
+
+    Es tolerante si tu tabla movimientos no tiene columnas opcionales como
+    actualizado_en o emocion. Primero intenta guardar todo; si Supabase rechaza
+    una columna, reintenta quitando solo esa columna.
+    """
+    payload = dict(payload or {})
     candidatos = [
         dict(payload),
+        {k: v for k, v in payload.items() if k not in {"actualizado_en"}},
+        {k: v for k, v in payload.items() if k not in {"emocion"}},
         {k: v for k, v in payload.items() if k not in {"emocion", "actualizado_en"}},
     ]
-    last_error = None
+
+    vistos = set()
+    candidatos_limpios = []
     for candidate in candidatos:
+        firma = tuple(sorted(candidate.keys()))
+        if firma not in vistos:
+            vistos.add(firma)
+            candidatos_limpios.append(candidate)
+
+    last_error = None
+    for candidate in candidatos_limpios:
         try:
             result = supabase.table("movimientos").update(candidate).eq("id", movimiento_id).execute()
             clear_cached_data()
@@ -1263,6 +1282,7 @@ def guardar_meta(user_id, meta_valor, nombre_meta):
         "nombre_meta": str(nombre_meta or "").strip() or None,
         "actualizado_en": datetime.now().isoformat(),
     }
+
     try:
         actual = obtener_meta(user_id)
         if actual:
@@ -1273,7 +1293,10 @@ def guardar_meta(user_id, meta_valor, nombre_meta):
         return True, result
     except Exception:
         try:
-            payload_simple = {"meta": float(meta_valor or 0), "actualizado_en": datetime.now().isoformat()}
+            payload_simple = {
+                "meta": float(meta_valor or 0),
+                "actualizado_en": datetime.now().isoformat(),
+            }
             actual = obtener_meta(user_id)
             if actual:
                 result = supabase.table("ahorro_meta").update(payload_simple).eq("usuario_id", user_id).execute()
@@ -1285,69 +1308,150 @@ def guardar_meta(user_id, meta_valor, nombre_meta):
             return False, e
 
 
+def _normalizar_df_limites(df):
+    """
+    Normaliza limites_categoria para que Zentix siempre trabaje con:
+    id, usuario_id, categoria, limite_mensual, activo, creado_en, actualizado_en.
 
-@st.cache_data(ttl=60, show_spinner=False)
-def obtener_limites_categoria_usuario(user_id):
-    columnas = ["id", "usuario_id", "categoria", "limite_mensual", "activo", "creado_en", "actualizado_en"]
-    try:
-        result = supabase.table("limites_categoria").select("*").eq("usuario_id", user_id).order("categoria").execute()
-        data = result.data if result.data else []
-    except Exception:
-        data = []
-    df = pd.DataFrame(data)
+    También da compatibilidad si alguna versión vieja de la tabla usaba columnas
+    como limite, monto, valor o presupuesto.
+    """
+    columnas = [
+        "id",
+        "usuario_id",
+        "categoria",
+        "limite_mensual",
+        "activo",
+        "creado_en",
+        "actualizado_en",
+    ]
+
+    if df is None or df.empty:
+        return pd.DataFrame(columns=columnas)
+
+    df = df.copy()
+
+    if "limite_mensual" not in df.columns:
+        for alternativa in ["limite", "monto", "valor", "presupuesto", "limite_categoria"]:
+            if alternativa in df.columns:
+                df["limite_mensual"] = df[alternativa]
+                break
+
     for col in columnas:
         if col not in df.columns:
             df[col] = None
-    if not df.empty:
-        df["limite_mensual"] = pd.to_numeric(df["limite_mensual"], errors="coerce").fillna(0)
-        df["activo"] = df["activo"].fillna(True).astype(bool)
-    return df
+
+    df["categoria"] = df["categoria"].fillna("").astype(str)
+    df["limite_mensual"] = pd.to_numeric(df["limite_mensual"], errors="coerce").fillna(0)
+    df["activo"] = df["activo"].fillna(True).astype(bool)
+
+    return df[columnas]
+
+
+@st.cache_data(ttl=60, show_spinner=False)
+def obtener_limites_categoria_usuario(user_id):
+    """
+    Obtiene los limites del usuario.
+
+    Si la tabla no existe o Supabase tarda en refrescar el schema cache,
+    Zentix no se rompe: devuelve un DataFrame vacío y la app sigue funcionando.
+    """
+    columnas = ["id", "usuario_id", "categoria", "limite_mensual", "activo", "creado_en", "actualizado_en"]
+    try:
+        result = (
+            supabase.table("limites_categoria")
+            .select("*")
+            .eq("usuario_id", user_id)
+            .order("categoria")
+            .execute()
+        )
+        data = result.data if result.data else []
+        return _normalizar_df_limites(pd.DataFrame(data))
+    except Exception:
+        return pd.DataFrame(columns=columnas)
 
 
 def guardar_limite_categoria(user_id, categoria, limite_mensual, activo=True):
+    """
+    Guarda presupuesto mensual o límite por categoría.
+
+    Esquema recomendado en Supabase:
+    - public.limites_categoria
+    - limite_mensual numeric
+    - índice único usuario_id + categoria
+    """
     categoria = str(categoria or "").strip()
     if not categoria:
         return False, "Categoría vacía."
+
+    limite = float(limite_mensual or 0)
+    ahora = datetime.now().isoformat()
+
     payload = {
         "usuario_id": user_id,
         "categoria": categoria,
-        "limite_mensual": float(limite_mensual or 0),
+        "limite_mensual": limite,
         "activo": bool(activo),
-        "actualizado_en": datetime.now().isoformat(),
+        "actualizado_en": ahora,
     }
+
+    # Camino principal: upsert por usuario + categoría.
     try:
-        result = supabase.table("limites_categoria").upsert(payload, on_conflict="usuario_id,categoria").execute()
+        result = (
+            supabase.table("limites_categoria")
+            .upsert(payload, on_conflict="usuario_id,categoria")
+            .execute()
+        )
         clear_cached_data()
         return True, result
-    except Exception:
-        try:
-            existe = (
+    except Exception as e_upsert:
+        ultimo_error = e_upsert
+
+    # Respaldo: buscar registro y luego actualizar/insertar.
+    try:
+        existe = (
+            supabase.table("limites_categoria")
+            .select("id")
+            .eq("usuario_id", user_id)
+            .eq("categoria", categoria)
+            .limit(1)
+            .execute()
+        )
+
+        if existe.data:
+            result = (
                 supabase.table("limites_categoria")
-                .select("id")
+                .update(payload)
                 .eq("usuario_id", user_id)
                 .eq("categoria", categoria)
-                .limit(1)
                 .execute()
             )
-            if existe.data:
-                result = (
-                    supabase.table("limites_categoria")
-                    .update(payload)
-                    .eq("usuario_id", user_id)
-                    .eq("categoria", categoria)
-                    .execute()
-                )
-            else:
-                result = supabase.table("limites_categoria").insert({**payload, "creado_en": datetime.now().isoformat()}).execute()
-            clear_cached_data()
-            return True, result
-        except Exception as e:
-            return False, e
+        else:
+            result = supabase.table("limites_categoria").insert({**payload, "creado_en": ahora}).execute()
+
+        clear_cached_data()
+        return True, result
+    except Exception as e_manual:
+        ultimo_error = e_manual
+
+    mensaje = (
+        "No pude guardar el límite. Revisa en Supabase que la tabla "
+        "'limites_categoria' tenga la columna 'limite_mensual' y el índice único "
+        "usuario_id,categoria. Detalle técnico: "
+        f"{ultimo_error}"
+    )
+    return False, mensaje
 
 
 def eliminar_limite_categoria(user_id, categoria):
     try:
-        result = supabase.table("limites_categoria").delete().eq("usuario_id", user_id).eq("categoria", categoria).execute()
+        result = (
+            supabase.table("limites_categoria")
+            .delete()
+            .eq("usuario_id", user_id)
+            .eq("categoria", categoria)
+            .execute()
+        )
         clear_cached_data()
         return True, result
     except Exception as e:
@@ -1355,18 +1459,30 @@ def eliminar_limite_categoria(user_id, categoria):
 
 
 def obtener_presupuesto_total(df_limites):
-    if df_limites is None or df_limites.empty:
+    df_limites = _normalizar_df_limites(df_limites)
+
+    if df_limites.empty:
         return 0.0
+
     row = df_limites[df_limites["categoria"] == PRESUPUESTO_TOTAL_KEY]
     if row.empty:
         return 0.0
+
     return float(row.iloc[0].get("limite_mensual", 0) or 0)
 
 
 def obtener_limites_visibles(df_limites):
-    if df_limites is None or df_limites.empty:
+    df_limites = _normalizar_df_limites(df_limites)
+
+    if df_limites.empty:
         return pd.DataFrame(columns=["categoria", "limite_mensual", "activo"])
-    return df_limites[(df_limites["categoria"] != PRESUPUESTO_TOTAL_KEY) & (df_limites["activo"] == True)].copy()
+
+    visibles = df_limites[
+        (df_limites["categoria"] != PRESUPUESTO_TOTAL_KEY)
+        & (df_limites["activo"] == True)
+    ].copy()
+
+    return visibles[["categoria", "limite_mensual", "activo"]]
 
 
 # ============================================================
@@ -3155,6 +3271,154 @@ def pagina_inicio(user_id, nombre, df, meta_row, presupuesto_total, limites_visi
             st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
 
 
+def render_editor_movimientos(user_id, df, key_prefix="edit_movimientos", max_items=30, titulo="Editar movimientos", subtitulo="Selecciona un movimiento para corregirlo o eliminarlo."):
+    """Editor reutilizable para ingresos y gastos."""
+    st.markdown("<div class='soft-card'>", unsafe_allow_html=True)
+    section_header(titulo, subtitulo)
+
+    df = filtrar_personal(df)
+    if df.empty:
+        st.info("Todavía no hay movimientos para editar.")
+        st.markdown("</div>", unsafe_allow_html=True)
+        return
+
+    df_sorted = df.sort_values("fecha", ascending=False).head(int(max_items or 30)).copy()
+    df_sorted = df_sorted[df_sorted["id"].notna()].copy()
+
+    if df_sorted.empty:
+        st.info("No encontré IDs válidos para editar movimientos.")
+        st.markdown("</div>", unsafe_allow_html=True)
+        return
+
+    labels = {}
+    for _, r in df_sorted.iterrows():
+        fecha_val = pd.to_datetime(r.get("fecha"), errors="coerce")
+        fecha_txt = fecha_val.strftime("%Y-%m-%d") if pd.notna(fecha_val) else "Sin fecha"
+        descripcion = str(r.get("descripcion", "") or "").strip()
+        descripcion = f" · {descripcion[:42]}" if descripcion else ""
+        labels[str(r["id"])] = (
+            f"{fecha_txt} · {r.get('tipo', '')} · {r.get('categoria', '')} · "
+            f"{money(r.get('monto', 0))}{descripcion}"
+        )
+
+    selected = st.selectbox(
+        "Movimiento a editar",
+        list(labels.keys()),
+        format_func=lambda x: labels.get(str(x), str(x)),
+        key=f"{key_prefix}_select",
+    )
+
+    row = df_sorted[df_sorted["id"].astype(str) == str(selected)].iloc[0]
+    tipo_inicial = "Ingreso" if str(row.get("tipo", "")) == "Ingreso" else "Gasto"
+
+    tipo = st.radio(
+        "Tipo del movimiento",
+        ["Ingreso", "Gasto"],
+        index=0 if tipo_inicial == "Ingreso" else 1,
+        horizontal=True,
+        key=f"{key_prefix}_tipo_{selected}",
+    )
+
+    categorias = obtener_categorias_usuario(user_id, tipo)
+    categorias = limpiar_lista_categorias(categorias or (DEFAULT_INGRESOS if tipo == "Ingreso" else DEFAULT_GASTOS))
+    if not categorias:
+        categorias = ["Otros"]
+
+    categoria_actual = str(row.get("categoria", "") or "").strip()
+    if categoria_actual not in categorias:
+        categoria_actual = categorias[0]
+
+    fecha_actual = pd.to_datetime(row.get("fecha"), errors="coerce")
+    fecha_default = fecha_actual.date() if pd.notna(fecha_actual) else date.today()
+    emocion_actual = str(row.get("emocion", "") or "")
+
+    with st.form(f"{key_prefix}_form_{selected}_{tipo}"):
+        col_a, col_b = st.columns([1, 1])
+        with col_a:
+            fecha_edit = st.date_input("Fecha", value=fecha_default, key=f"{key_prefix}_fecha_{selected}_{tipo}")
+        with col_b:
+            monto = st.number_input(
+                "Monto",
+                min_value=0.0,
+                step=1000.0,
+                value=float(row.get("monto", 0) or 0),
+                key=f"{key_prefix}_monto_{selected}_{tipo}",
+            )
+
+        categoria = st.selectbox(
+            "Categoría",
+            categorias,
+            index=categorias.index(categoria_actual) if categoria_actual in categorias else 0,
+            key=f"{key_prefix}_categoria_{selected}_{tipo}",
+        )
+
+        descripcion = st.text_input(
+            "Descripción",
+            value=str(row.get("descripcion", "") or ""),
+            key=f"{key_prefix}_descripcion_{selected}_{tipo}",
+        )
+
+        emocion = ""
+        if tipo == "Gasto":
+            emocion = st.selectbox(
+                "Emoción opcional",
+                EMOCIONES,
+                index=EMOCIONES.index(emocion_actual) if emocion_actual in EMOCIONES else 0,
+                format_func=lambda x: "No registrar" if x == "" else x,
+                key=f"{key_prefix}_emocion_{selected}_{tipo}",
+            )
+
+        confirmar_eliminar = st.checkbox(
+            "Confirmo que quiero eliminar este movimiento",
+            key=f"{key_prefix}_confirm_delete_{selected}_{tipo}",
+        )
+
+        col_save, col_delete = st.columns(2)
+        with col_save:
+            save = st.form_submit_button("Guardar cambios", type="primary", use_container_width=True)
+        with col_delete:
+            delete = st.form_submit_button("Eliminar movimiento", use_container_width=True)
+
+    if save:
+        if monto <= 0:
+            st.error("El monto debe ser mayor a cero.")
+        else:
+            payload = {
+                "tipo": tipo,
+                "fecha": fecha_edit.isoformat(),
+                "monto": float(monto or 0),
+                "categoria": categoria,
+                "descripcion": str(descripcion or "").strip(),
+                "emocion": emocion if tipo == "Gasto" else "",
+                "actualizado_en": datetime.now().isoformat(),
+            }
+            ok, resp = actualizar_movimiento(selected, payload)
+            if ok:
+                st.success("Movimiento actualizado.")
+                st.rerun()
+            else:
+                st.error(f"No pude actualizar el movimiento: {resp}")
+
+    if delete:
+        if not confirmar_eliminar:
+            st.warning("Marca la confirmación antes de eliminar el movimiento.")
+        else:
+            ok, resp = eliminar_movimiento(selected)
+            if ok:
+                st.success("Movimiento eliminado.")
+                st.rerun()
+            else:
+                st.error(f"No pude eliminar el movimiento: {resp}")
+
+    st.markdown("<div class='muted' style='margin-top:.75rem;'>Últimos movimientos visibles en este editor:</div>", unsafe_allow_html=True)
+    show = df_sorted.copy()
+    show["fecha"] = pd.to_datetime(show["fecha"], errors="coerce").dt.strftime("%Y-%m-%d")
+    show["monto"] = show["monto"].apply(money)
+    columnas = [c for c in ["fecha", "tipo", "categoria", "monto", "descripcion", "emocion"] if c in show.columns]
+    st.dataframe(show[columnas], use_container_width=True, hide_index=True)
+    st.markdown("</div>", unsafe_allow_html=True)
+
+
 def pagina_registrar(user_id, df):
     categorias_ingreso = obtener_categorias_usuario(user_id, "Ingreso")
     categorias_gasto = obtener_categorias_usuario(user_id, "Gasto")
@@ -3191,19 +3455,15 @@ def pagina_registrar(user_id, df):
     with col2:
         render_registro_por_texto(user_id, categorias_ingreso, categorias_gasto)
 
-    st.markdown("<div class='soft-card'>", unsafe_allow_html=True)
-    section_header("Movimientos recientes", "Puedes revisar lo que acabas de guardar.")
-    if df.empty:
-        st.info("Todavía no hay movimientos.")
-    else:
-        show = df.sort_values("fecha", ascending=False).head(10).copy()
-        show["fecha"] = show["fecha"].dt.strftime("%Y-%m-%d")
-        st.dataframe(
-            show[["fecha", "tipo", "categoria", "monto", "descripcion", "emocion"]],
-            use_container_width=True,
-            hide_index=True,
-        )
-    st.markdown("</div>", unsafe_allow_html=True)
+    render_editor_movimientos(
+        user_id,
+        df,
+        key_prefix="registrar_editor",
+        max_items=30,
+        titulo="Movimientos recientes y edición",
+        subtitulo="Edita o elimina ingresos y gastos desde Registrar. Cambiar el tipo también cambia sus categorías.",
+    )
+
 
 def pagina_presupuesto(user_id, df, df_limites):
     df_mes = filtrar_mes(df)
